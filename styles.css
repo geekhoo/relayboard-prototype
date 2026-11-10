@@ -1860,8 +1860,8 @@ dialog::backdrop {
 
 .form-field input:focus,
 .form-field textarea:focus {
-  border-color: #6aa98b;
-  outline: 2px solid #2f7f63;
+  border-color: var(--focus);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 

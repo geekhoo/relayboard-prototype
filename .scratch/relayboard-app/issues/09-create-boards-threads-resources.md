@@ -6,7 +6,7 @@ The prototype is a working reference for all three: `app.js` L164–L176 impleme
 
 **Blocked by:** 07b — The two rules that keep the gate human and the grant unlaunderable
 
-**Write scope:** the create dialogs, the resource list and the resource detail components; append-only additions to `src/styles.css`.
+**Write scope:** the create dialogs, the resource list and the resource detail components, **each with its own co-located stylesheet**; layout as utilities.
 
 **Status:** ready-for-agent
 

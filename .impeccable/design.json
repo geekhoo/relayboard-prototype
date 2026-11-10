@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-10T13:47:18.220Z",
+  "generatedAt": "2026-11-10T16:04:44.945Z",
   "title": "Design System: Relayboard",
   "extensions": {
     "colorMeta": {
@@ -348,6 +348,126 @@
           "#ece0be",
           "#f6f4ee"
         ]
+      },
+      "ink-placeholder": {
+        "role": "neutral",
+        "displayName": "Placeholder Ink",
+        "canonical": "#66756e",
+        "tonalRamp": [
+          "#222524",
+          "#3d4642",
+          "#58655f",
+          "#74857d",
+          "#93a19a",
+          "#b2bcb8",
+          "#d2d8d5",
+          "#f2f3f2"
+        ]
+      },
+      "rail-well": {
+        "role": "neutral",
+        "displayName": "Rail Well",
+        "canonical": "#29443d",
+        "tonalRamp": [
+          "#1f2926",
+          "#315149",
+          "#47766a",
+          "#5d9b8b",
+          "#81b3a6",
+          "#a5c9c0",
+          "#cadfda",
+          "#f1f4f3"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Rule Grey Soft",
+        "canonical": "#eef1ee",
+        "tonalRamp": [
+          "#222622",
+          "#3b483b",
+          "#566856",
+          "#708870",
+          "#90a490",
+          "#b0beb0",
+          "#d1d9d1",
+          "#f2f3f2"
+        ]
+      },
+      "accent-chip": {
+        "role": "primary",
+        "displayName": "Chip Green Ink",
+        "canonical": "#276049",
+        "tonalRamp": [
+          "#1b2c25",
+          "#265d47",
+          "#378766",
+          "#48b186",
+          "#6fc4a2",
+          "#99d6bd",
+          "#c3e7d8",
+          "#eff5f3"
+        ]
+      },
+      "live-ring": {
+        "role": "secondary",
+        "displayName": "Signal Green Ring",
+        "canonical": "#d9eee4",
+        "tonalRamp": [
+          "#1c2b24",
+          "#285a42",
+          "#3b8360",
+          "#4dac7e",
+          "#73c09c",
+          "#9cd3b9",
+          "#c5e5d6",
+          "#f0f5f2"
+        ]
+      },
+      "paused-line": {
+        "role": "secondary",
+        "displayName": "Held Amber Line",
+        "canonical": "#e6dcc2",
+        "tonalRamp": [
+          "#2c271b",
+          "#5d4d26",
+          "#867037",
+          "#b09348",
+          "#c4ad6f",
+          "#d5c599",
+          "#e6ddc3",
+          "#f5f4ef"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus Ring",
+        "canonical": "#0f6b52",
+        "tonalRamp": [
+          "#15332a",
+          "#107258",
+          "#17a67f",
+          "#1fdaa7",
+          "#4de6bd",
+          "#81edd0",
+          "#b5f5e3",
+          "#edf8f5"
+        ]
+      },
+      "focus-on-rail": {
+        "role": "primary",
+        "displayName": "Focus Ring on Rail",
+        "canonical": "#9be0bd",
+        "tonalRamp": [
+          "#192e24",
+          "#1f6441",
+          "#2d915e",
+          "#3bbe7b",
+          "#64cf99",
+          "#91ddb7",
+          "#beebd4",
+          "#eff6f2"
+        ]
       }
     },
     "typographyMeta": {
@@ -432,6 +552,23 @@
       {
         "name": "min-width",
         "value": "320px"
+      }
+    ],
+    "colorRenames": [
+      {
+        "prototype": "--white",
+        "design": "surface",
+        "note": "same value #ffffff"
+      },
+      {
+        "prototype": "--panel",
+        "design": "surface-panel",
+        "note": "same value #f8faf8"
+      },
+      {
+        "prototype": "--panel-tint",
+        "design": "surface-tint",
+        "note": "same value #f5f8f5"
       }
     ]
   },

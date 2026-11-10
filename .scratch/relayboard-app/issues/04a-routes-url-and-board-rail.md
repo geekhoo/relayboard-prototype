@@ -6,7 +6,7 @@
 
 **Blocked by:** 01 — Make the scaffold into a Relayboard shell; 03 — The client interface and its in-memory implementation
 
-**Write scope:** new route files under `src/routes/**`, plus the frame layout. Does **not** rewrite `src/routes/__root.tsx`, which 01 leaves finished.
+**Write scope:** new route files under `src/routes/**` and the board-rail component with its co-located stylesheet. Does **not** rewrite `src/routes/__root.tsx`, which 01 leaves finished.
 
 **Status:** ready-for-agent
 

@@ -6,7 +6,7 @@
 
 **Blocked by:** 04a — The route tree, the URL contract and the board rail
 
-**Write scope:** the thread-pane route and its components; append-only additions to `src/styles.css`, namespaced by component.
+**Write scope:** the thread-pane route and its components, **each with its own co-located stylesheet**; layout and responsive stages as Tailwind utilities. Does not append to a shared stylesheet.
 
 **Status:** ready-for-agent
 

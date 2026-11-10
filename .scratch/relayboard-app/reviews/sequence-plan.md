@@ -601,6 +601,15 @@ accept 18 levels and say so.
 
 ## 5. Conflicts and holes, ranked by damage
 
+> **Status: every item below was fixed in the ticket pass that followed this review.** The ten
+> ranked defects — the missing server functions for the two participant reads, `11a`'s queue,
+> `01`/`06a` disagreeing about `vercel.json`, the async lock in `02b`/`07b`, the unsplit
+> conformance suite, `13a`'s vacuous overflow assertion, `readPrincipal` taking no board, `08c`'s
+> renewal matching declared values, `06b`'s non-existent server entry, and `14`'s ungated purge —
+> are corrected at the ticket that owned each one, the two missing edges (`06c ← 04c`,
+> `13b → 14`) are added, and all 30 tickets now carry a `Write scope`. What follows is retained
+> as the evidence for those changes, not as a list of open defects.
+
 ### 5.0 First: what the restructure actually fixed
 
 Credit where due, verified by reading both the finding and the current ticket text.
@@ -1107,6 +1116,19 @@ thread pane. That is day ~8–10, not day 3, and the plan should be honest about
 ---
 
 ## 7. What must be decided before ticket 01 starts
+
+> **Status after the decisions below were taken (spec revision 8 and the ticket pass):**
+> **1. Styling method — DECIDED.** Utilities for layout, co-located stylesheets for component
+> anatomy; the global sheet holds only tokens, `@font-face`, resets, base typography and the
+> reduced-motion block. Recorded in the spec under *Styling* and in `01`'s write scope.
+> **2. Missing tokens — DONE.** The eight colours the prototype used and the design system never
+> carried are now in `DESIGN.md`'s frontmatter and the sidecar, and `DESIGN.md`'s focus prose names
+> the token instead of a stray hex. The prototype's own one-off focus colour was unified too, so
+> there is now one focus ring.
+> **3. Where the `woff2` lands — DECIDED.** `public/fonts/`, referenced as an absolute
+> `/fonts/…` URL.
+> **4. `vercel.json` — DECIDED.** Deleted; `01` owns the Nitro preset and `06a` verifies it.
+> **Nothing in this section still blocks `01`.**
 
 Ranked. Only decisions that become a rewrite if deferred. Each names the ticket that would have to
 be redone.

@@ -6,7 +6,7 @@ This ticket is where the workspace first shows a permission grant rather than en
 
 **Blocked by:** 08c — Expiry, revocation, renewal and a fingerprint the workspace derived; 10b — An act reads as an event without becoming louder than a message; 07a — The permission vocabulary, its scopes, and enforcement at the boundary
 
-**Write scope:** the participant panel component and the details drawer that 05 renders into — **this ticket owns both**; 05 must not build them.
+**Write scope:** the participant panel **and** the details drawer that 05 renders into — **this ticket owns both**, each with a co-located stylesheet; layout as utilities.
 
 **Status:** ready-for-agent
 

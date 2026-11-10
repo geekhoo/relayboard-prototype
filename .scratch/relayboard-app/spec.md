@@ -259,7 +259,17 @@ Before any Relayboard code lands, the scaffold's own identity is removed. These 
 - **The starter chrome is deleted.** Header, Footer, the `/about` route, the `/demo/tanstack-query` route, their styles, and the `TanStackDevtools` panel in the document shell all go. Relayboard is a full-bleed three-column application; a site header and footer would consume exactly the vertical space the composer needs. The root document shell becomes the app frame.
 - **The route tree starts empty.** After deleting the demo routes, the app's own routes are the whole tree — there is no inherited route to keep working.
 
-Tokens live in one place in the app and are traceable to `DESIGN.md`: the colour ramp, type scale, radii and shadows are declared once, and no component hard-codes a hex value. The app uses Tailwind v4, so the natural home is its `@theme` block with the `DESIGN.md` token names preserved verbatim — `--color-ink-muted`, `--color-rail-active`, `--radius-sm` and so on — rather than renamed to framework defaults. Keeping the names means a diff between `DESIGN.md` and the stylesheet is readable, and it means the design-system drift linter, if it is ever pointed at the app, has something to match against.
+### Styling
+
+Tokens live in one place in the app and are traceable to `DESIGN.md`: the colour ramp, type scale, radii and shadows are declared once, and no component hard-codes a hex value. The app uses Tailwind v4, so the home is its `@theme` block with the `DESIGN.md` token names preserved verbatim — `--color-ink-muted`, `--color-rail-active`, `--radius-sm` and so on — rather than renamed to framework defaults. Keeping the names means a diff between `DESIGN.md` and the stylesheet is readable, and it means the design-system drift linter, if it is ever pointed at the app, has something to match against.
+
+**The split is deliberate: utilities for layout, co-located CSS for component anatomy.**
+
+- **Layout, spacing, grid, responsive stages and one-off adjustments are utilities.** A column that narrows at 980px is a breakpoint variant; it is not worth a named class.
+- **Component anatomy is a co-located stylesheet beside the component.** The thread row's three-line structure, the composer's sheet, the drawer, the stream panel, the act entry, the byline — these are not compositions of atomic values, they are named arrangements with internal relationships, and expressing them as utility strings makes them unreadable and unreviewable. Each component owns one small file.
+- **The reason for two idioms rather than one.** The reference implementation is roughly two thousand lines of hand-written CSS that already encodes the visual system correctly. Rewriting it as utility strings would be a re-derivation with a large diff and no gain, and would lose the one thing the prototype is valuable for: it is *right*. Porting it wholesale as a single global sheet, on the other hand, would abandon the framework the app is built on and leave every new component unstyleable without editing a shared file.
+- **The boundary rule.** A stylesheet may set what a utility cannot express cleanly — multi-element relationships, `:has`, descendant selectors, sticky mechanics, keyframes. It may not re-implement a token value, and it may not reproduce spacing that a utility already names. When in doubt, it is a utility.
+- **One global sheet, and it holds only what is genuinely global**: the token block, `@font-face`, resets, the base typography, and the `prefers-reduced-motion` block. Everything else is co-located.
 
 ### Module boundaries
 

@@ -6,7 +6,7 @@
 
 **Blocked by:** 11a — The stream as an SSE server route, with a written event contract
 
-**Write scope:** the stream panel, pause and replay, and the read-position persistence.
+**Write scope:** the stream panel component with a co-located stylesheet, plus pause and replay state and the read-position persistence; layout as utilities.
 
 **Status:** ready-for-agent
 

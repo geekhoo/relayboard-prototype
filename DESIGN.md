@@ -7,24 +7,32 @@ colors:
   ink-body: "#475950"
   ink-muted: "#5a6960"
   ink-faint: "#62716a"
+  ink-placeholder: "#66756e"
   rail: "#19322f"
   rail-hover: "#294640"
   rail-active: "#35544b"
   rail-ink: "#d8e9e1"
   rail-ink-muted: "#b7d1c4"
   rail-ink-faint: "#9eb9ac"
+  rail-well: "#29443d"
   surface: "#ffffff"
   surface-panel: "#f8faf8"
   surface-tint: "#f5f8f5"
   line: "#e9eeea"
+  line-soft: "#eef1ee"
   accent: "#176e52"
   accent-hover: "#105c43"
   accent-ink: "#1e604a"
   accent-soft: "#e8f4ee"
   accent-chip-bg: "#dbece0"
+  accent-chip: "#276049"
   live: "#1e9371"
+  live-ring: "#d9eee4"
   paused: "#8a6620"
   paused-surface: "#faf7ee"
+  paused-line: "#e6dcc2"
+  focus: "#0f6b52"
+  focus-on-rail: "#9be0bd"
 typography:
   display:
     fontFamily: "IBM Plex Sans, ui-sans-serif, sans-serif"
@@ -226,7 +234,7 @@ Avatars are rounded squares (9–11px), not circles: the circle is reserved for 
 
 ### Inputs / Fields
 - **Style:** white fill, 1px #d3e0d7 edge, 7px radius, 13px text.
-- **Focus:** the edge shifts to #6aa98b *and* a 2px #2f7f63 outline appears at 1px offset. The focus indicator is a real ring, not a border color change, so it survives a white-on-white edit field.
+- **Focus:** the edge shifts to Focus Ring (`focus`) *and* a 2px outline in the same token appears at 1px offset. The focus indicator is a real ring, not a border colour change, so it survives a white-on-white edit field. **One focus token, everywhere** — a second focus colour is drift, not emphasis.
 - **Composer:** a 12px-radius white sheet with a 1px edge and a single 1px resting shadow; focus-within changes only the edge color.
 
 ### Navigation

@@ -6,7 +6,7 @@
 
 **Blocked by:** 10a — Entry kinds in the domain, the store and the contract
 
-**Write scope:** act rendering in the entry list; append-only additions to `src/styles.css`, namespaced by component.
+**Write scope:** act rendering inside the entry list, as its own component with a co-located stylesheet; layout as utilities.
 
 **Status:** ready-for-agent
 

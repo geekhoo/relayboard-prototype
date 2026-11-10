@@ -6,7 +6,7 @@
 
 **Blocked by:** 05 — Read a thread and post a message; 09 — Create a board or thread, and add a resource; 04c — The route seam's harness, which the plan is missing; 11c — A revoked principal's stream closes, and the demo control stays honest; 12 — A participant's identity, permissions and progress
 
-**Write scope:** the frame grid, the media queries and `src/styles.css` layout rules outright; append-only additions elsewhere, namespaced by component.
+**Write scope:** the frame grid, the responsive stages and the layout rules in **each affected component's own stylesheet**, plus the utilities that express breakpoints. This ticket is the only one allowed to change layout across components; no other ticket restyles another's frame.
 
 **Status:** ready-for-agent
 

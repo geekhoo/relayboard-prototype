@@ -6,7 +6,7 @@
 
 **Blocked by:** 13a — The workspace holds its shape at every width; 14 — Purge the demo content without touching what you made
 
-**Write scope:** focus management and keyboard handlers across the shell and the panels; no new layout.
+**Write scope:** focus management and keyboard handlers across the shell and the panels, plus the focus-ring treatment in each component's own stylesheet; no new layout.
 
 **Status:** ready-for-agent
 
