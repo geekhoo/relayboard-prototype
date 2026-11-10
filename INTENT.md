@@ -155,11 +155,15 @@ the working example:
 ```json
 {
   "intent": {
-    "skills": ["@relayboard/skills"],
+    "skills": ["@tanstack/*", "@relayboard/skills"],
     "exclude": ["@relayboard/skills#relayboard-identity"]
   }
 }
 ```
+
+`"@tanstack/*"` opts in to the Agent Skills that the installed TanStack packages ship
+themselves — see *TanStack's own skills* below. It is a scope rule, so it also covers
+TanStack packages added later; that is a deliberate trust decision, not a default.
 
 It installs the packed tarball as a real dependency
 (`"@relayboard/skills": "file:vendor/relayboard-skills-0.1.0.tgz"`; the published form
@@ -170,7 +174,64 @@ Verified there against the packed tarball: a package entry surfaces all its skil
 exact `<pkg>#<skill>` entry surfaces one, `intent exclude add` removes exactly that
 skill while the allowlist stays, and **trust does not propagate** — a transitive
 dependency that ships skills is hidden and `intent load` on it fails with *"is not
-listed in intent.skills"*.
+listed in intent.skills"*. That last rule is exactly why TanStack's skills were
+invisible until `"@tanstack/*"` was added: they are transitive dependencies of the app,
+and discovery finds them but does not grant trust.
+
+### TanStack's own skills
+
+The scaffold's TanStack packages ship their own `skills/**/SKILL.md`. Once
+`"@tanstack/*"` is allowlisted, discovery surfaces **11 packages / 35 skills** alongside
+the two Relayboard ones (12 packages, 37 skills total, `hiddenSourceCount: 0`,
+`conflicts: []`):
+
+| Package | Skills | Type |
+| --- | --- | --- |
+| `@tanstack/router-core` | 10 | `router-core` core + `auth-and-guards`, `code-splitting`, `data-loading`, `navigation`, `not-found-and-errors`, `path-params`, `search-params`, `ssr`, `type-safety` |
+| `@tanstack/start-client-core` | 7 | `start-core` core + `auth-server-primitives`, `deployment`, `execution-model`, `middleware`, `server-functions`, `server-routes` |
+| `@tanstack/devtools` | 4 | `devtools-app-setup`, `devtools-plugin-panel`, `devtools-marketplace`, `devtools-production` |
+| `@tanstack/devtools-event-client` | 3 | `devtools-event-client`, `devtools-bidirectional`, `devtools-instrumentation` |
+| `@tanstack/react-router` | 3 | `react-router`, `compositions/router-query`, `lifecycle/migrate-from-react-router` |
+| `@tanstack/react-start` | 3 | `react-start`, `react-start/server-components`, `lifecycle/migrate-from-nextjs` |
+| `@tanstack/devtools-vite`, `match-sorter-utils`, `router-plugin`, `start-server-core`, `virtual-file-routes` | 1 each | core |
+
+The `core` / `framework` entries are entry points; the `sub-skill` entries are loaded
+*in addition* when the task is narrow (for example
+`@tanstack/router-core#router-core/data-loading` for loader work,
+`@tanstack/start-client-core#start-core/server-routes` for API routes). `intent list`
+prints the `intent load` command for each, and
+`npx intent install --map` writes all 37 explicit task-to-skill mappings into
+`AGENTS.md` (17 KB) if you would rather have routing in the guidance file than in
+`intent list`. This repository keeps the compact default block and relies on
+`intent list`.
+
+Their guidance is genuinely useful and occasionally more current than the app:
+`@tanstack/devtools-vite#devtools-vite-plugin` says "Vite ^6 || ^7 only" in its prose,
+while the installed package's `peerDependencies` allow `^8` and the app builds on Vite
+8.3.7. Prefer the installed package metadata when prose and metadata disagree, and say
+which you trusted.
+
+**Stale checks on TanStack's own skills mostly report drift you cannot fix.** Packaged
+skills carry the library version they were written against, which lags the package they
+ship inside:
+
+| Package | Skill was written for | Installed | Skills flagged |
+| --- | --- | --- | --- |
+| `@tanstack/router-core` | 1.171.15 | 1.171.39 | 10 / 10 |
+| `@tanstack/start-client-core` | 1.170.14 | 1.170.39 | 7 / 7 |
+| `@tanstack/react-router` | 1.166.2 | 1.170.46 | 3 / 3 |
+| `@tanstack/react-start` | 1.168.32 | 1.169.5 | 3 / 3 |
+| `@tanstack/devtools` | 0.10.12 | 0.16.0 | 4 / 4 |
+| `@tanstack/router-plugin` | 1.168.23 | 1.169.0 | 1 / 1 |
+| `@tanstack/start-server-core` | 1.169.17 | 1.169.45 | 1 / 1 |
+| `@tanstack/virtual-file-routes` | 1.161.4 | 1.162.0 | 1 / 1 |
+| `@tanstack/devtools-event-client`, `devtools-vite` | 0.10.12 | 0.5.1 / 0.8.6 | 0 (patch-level or older-numbered) |
+| `@tanstack/match-sorter-utils` | 9.2.6 | 9.2.6 | 0 |
+
+`npx intent stale` scoped to the app itself reports nothing (`skills: []`), because the
+app has no `skills/` of its own; scope `stale` at a package directory to see the rows
+above. These are upstream drift notices — a patch bump inside the same minor — not
+actionable here, and none of them affect the Relayboard library's own gate.
 
 Behaviour worth knowing before you debug it:
 
@@ -185,7 +246,9 @@ Behaviour worth knowing before you debug it:
   `intent-skills` block into `AGENTS.md`. Its generated text says to run `intent list`
   "from the workspace root", which is wrong for this layout — the root has no skills of
   its own. Run it in `apps/relayboard-web`, where the allowlist and the installed
-  package are.
+  package are. Re-running it after a hand-edit of `AGENTS.md` is safe: it reports
+  `No changes to AGENTS.md; skill loading guidance already current.` and leaves the
+  surrounding text alone.
 - **Workspace (unpublished) packages are only discovered when linked.** A
   `skills/**/SKILL.md` inside a `packages/*` directory stays invisible — `"… is
   declared in intent.skills but was not discovered"` — until the package is in

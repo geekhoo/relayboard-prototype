@@ -45,11 +45,12 @@
     "vite": "^8.0.0"
   },
   "intent": {
-    "skills": [
-      "@relayboard/skills"
-    ],
     "exclude": [
       "@relayboard/skills#relayboard-identity"
+    ],
+    "skills": [
+      "@tanstack/*",
+      "@relayboard/skills"
     ]
   },
   "pnpm": {

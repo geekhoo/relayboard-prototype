@@ -31,15 +31,22 @@ The allowlist and exclusion that shape what you can load:
 
 ```json
 "intent": {
-  "skills": ["@relayboard/skills"],
+  "skills": ["@tanstack/*", "@relayboard/skills"],
   "exclude": ["@relayboard/skills#relayboard-identity"]
 }
 ```
 
-`relayboard-thread-sequencing` and `relayboard-mock-api` are loadable.
-`relayboard-identity` is excluded because its guidance needs a principal read
-(`getPrincipal`) that `window.RelayboardMockAPI` does not expose; remove the
-exclusion only after that endpoint exists.
+`"@tanstack/*"` opts in to the skills the installed TanStack packages ship themselves —
+35 of them across 11 packages, e.g. `@tanstack/router-core#router-core/data-loading`,
+`@tanstack/start-client-core#start-core/server-routes`,
+`@tanstack/react-start#react-start`. `npx intent list` prints the exact `intent load`
+command for each; `npx intent install --map` would instead write all 37 mappings into
+this file.
+
+`relayboard-thread-sequencing` and `relayboard-mock-api` are loadable from
+`@relayboard/skills`. `relayboard-identity` is excluded because its guidance needs a
+principal read (`getPrincipal`) that `window.RelayboardMockAPI` does not expose; remove
+the exclusion only after that endpoint exists.
 
 See [`../../INTENT.md`](../../INTENT.md) for the full workflow, and
 [`NOTES.md`](NOTES.md) §11 for the raw command output behind these statements.

@@ -33,3 +33,8 @@ node_modules/
 # skill files are the only part worth tracking.
 .dsh/skills/impeccable/scripts/bin/
 **/.impeccable/hook.local.json
+
+# The transient Intent review report. `npm run skills:review` writes it, the
+# annotate script fills it in, and `intent maintainer review --record` consumes
+# it; the durable outcome lives in .intent/review-state.json, which IS tracked.
+.intent/review.json

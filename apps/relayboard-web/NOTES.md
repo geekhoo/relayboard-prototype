@@ -898,3 +898,121 @@ npx intent install               # writes AGENTS.md with the skill-loading block
 
 npm run build; npx tsc --noEmit; npm run check                    # all exit 0
 ```
+
+## 12. Opting in to the TanStack packages' own skills
+
+§11.5 recorded 11 `@tanstack/*` packages shipping **35 skills** that were hidden because
+`intent.skills` named only `@relayboard/skills`. This section opts in to them.
+
+### 12.1 The change
+
+One line in `apps/relayboard-web/package.json` — a scope rule, not 35 exact entries:
+
+```json
+"intent": {
+  "skills": ["@tanstack/*", "@relayboard/skills"],
+  "exclude": ["@relayboard/skills#relayboard-identity"]
+}
+```
+
+`"@tanstack/*"` also covers TanStack packages installed later. That is the intended
+behaviour of a scope rule (per Intent's `configuration` doc, package and scope rules
+"include future matching skills"), and it is a trust decision, not a default: the
+skills are instructions an agent may follow.
+
+### 12.2 Before → after (real output)
+
+| State | `intent list` | `hiddenSourceCount` |
+| --- | --- | --- |
+| `["@relayboard/skills"]` | 1 package, 2 skills | 11 |
+| `["@tanstack/*", "@relayboard/skills"]` | **12 packages, 37 skills** | **0** |
+
+`notices: []`, `warnings: []`, `conflicts: []` after the change. The Relayboard
+exclusion still applies — `npx intent load @relayboard/skills#relayboard-identity` is
+still refused with *"excluded by Intent configuration"*.
+
+### 12.3 What got surfaced (11 packages / 35 skills)
+
+| Package | Installed | Skills (type) |
+| --- | --- | --- |
+| `@tanstack/router-core` | 1.171.39 | `router-core` (core), plus sub-skills `auth-and-guards`, `code-splitting`, `data-loading`, `navigation`, `not-found-and-errors`, `path-params`, `search-params`, `ssr`, `type-safety` |
+| `@tanstack/start-client-core` | 1.170.39 | `start-core` (core), plus sub-skills `auth-server-primitives`, `deployment`, `execution-model`, `middleware`, `server-functions`, `server-routes` |
+| `@tanstack/devtools` | 0.16.0 | `devtools-app-setup` (core), `devtools-plugin-panel` (core), `devtools-marketplace` (lifecycle), `devtools-production` (lifecycle) |
+| `@tanstack/devtools-event-client` | 0.5.1 | `devtools-event-client`, `devtools-bidirectional`, `devtools-instrumentation` |
+| `@tanstack/react-router` | 1.170.46 | `react-router` (framework), `compositions/router-query` (composition), `lifecycle/migrate-from-react-router` (lifecycle) |
+| `@tanstack/react-start` | 1.169.5 | `react-start` (framework), `react-start/server-components` (sub-skill), `lifecycle/migrate-from-nextjs` (lifecycle) |
+| `@tanstack/devtools-vite` | 0.8.6 | `devtools-vite-plugin` |
+| `@tanstack/match-sorter-utils` | 9.2.6 | `fuzzy-ranking` |
+| `@tanstack/router-plugin` | 1.169.0 | `router-plugin` |
+| `@tanstack/start-server-core` | 1.169.45 | `start-server-core` |
+| `@tanstack/virtual-file-routes` | 1.162.0 | `virtual-file-routes` |
+
+The `core`/`framework` skill of each package is its entry point; the `sub-skill` entries
+are loaded in addition for a narrow task. Spot-checked loads, all exit 0:
+`@tanstack/router-core#router-core/data-loading`, `@tanstack/router-plugin#router-plugin`,
+`@tanstack/start-client-core#start-core/deployment`,
+`@tanstack/start-client-core#start-core/server-functions`,
+`@tanstack/devtools-vite#devtools-vite-plugin`.
+
+### 12.4 The mapping block: measured, then declined
+
+`npx intent install --map --dry-run` writes **37 mappings, 17 110 characters, 120 lines**
+into `AGENTS.md` — one `id`/`run`/`for` triple per skill, `for` being the skill's full
+description. That would dominate an agent-config file for a prototype, so the compact
+default block is kept and `intent list` supplies routing instead. Recorded here because
+the tradeoff is a judgement call, not a fact: a team that prefers routing written into
+the guidance file can regenerate it with `npx intent install --map`.
+
+### 12.5 `intent stale` on packaged skills (conservative, mostly upstream noise)
+
+Scoped `intent stale node_modules/@tanstack/<pkg> --json`, versions are
+"skill was written for → installed":
+
+| Package | Skill version | Installed | Skills flagged |
+| --- | --- | --- | --- |
+| `@tanstack/router-core` | 1.171.15 | 1.171.39 | 10 / 10 |
+| `@tanstack/start-client-core` | 1.170.14 | 1.170.39 | 7 / 7 |
+| `@tanstack/react-router` | 1.166.2 | 1.170.46 | 3 / 3 |
+| `@tanstack/react-start` | 1.168.32 | 1.169.5 | 3 / 3 |
+| `@tanstack/devtools` | 0.10.12 | 0.16.0 | 4 / 4 |
+| `@tanstack/router-plugin` | 1.168.23 | 1.169.0 | 1 / 1 |
+| `@tanstack/start-server-core` | 1.169.17 | 1.169.45 | 1 / 1 |
+| `@tanstack/virtual-file-routes` | 1.161.4 | 1.162.0 | 1 / 1 |
+| `@tanstack/devtools-event-client` | 0.10.12 | 0.5.1 | 0 / 3 |
+| `@tanstack/devtools-vite` | 0.10.12 | 0.8.6 | 0 / 1 |
+| `@tanstack/match-sorter-utils` | 9.2.6 | 9.2.6 | 0 / 1 |
+
+Every flag is `version drift (a → b)` — nothing else, no artifact or coverage warnings.
+These are upstream notices: the skills ship inside the package they describe and simply
+lag it by a patch or two. They are **not** actionable here and must not be "fixed" by
+editing `node_modules`.
+
+`npx intent stale --json` **in the app directory reports nothing** (`skills: []`,
+`versionDrift: null`) because the app owns no `skills/` of its own — scope `stale` at a
+package to see the rows above. The Relayboard library's own `stale` (run from the repo
+root via `npm run skills:stale`) is unaffected and still clean.
+
+### 12.6 One conflict between skill prose and installed metadata
+
+`@tanstack/devtools-vite#devtools-vite-plugin` states *"Vite ^6 || ^7 only"*. The
+installed `@tanstack/devtools-vite@0.8.6` declares
+`peerDependencies.vite = "^6.0.0 || ^7.0.0 || ^8.0.0"`, and this app builds on Vite
+8.3.7 with `devtools()` first in `vite.config.ts`. When prose and installed package
+metadata disagree, the metadata wins here; the build is the tiebreak and it is exit 0.
+Worth knowing before an agent "fixes" the Vite version.
+
+### 12.7 Re-verification after the change
+
+| Command | Result |
+| --- | --- |
+| `npm run build` | exit 0 (`✓ built in …`, three environments) |
+| `npx tsc --noEmit` | exit 0 |
+| `npm run check` | exit 0, `Checked 14 files in 21ms. No fixes applied.` |
+| `npx intent install` (re-run after hand-editing `AGENTS.md`) | `No changes to AGENTS.md; skill loading guidance already current.` — the hand-written section below the generated block survives |
+| `npm run skills:check` (repo root, library gate) | passed, 0 pending review items — the TanStack allowlist is app-scoped and does not affect the library record |
+| `git status` | `apps/relayboard-web/package-lock.json` showed as modified only because `git checkout` normalized CRLF (content verified byte-identical first) and was restored |
+
+`AGENTS.md` gained a paragraph naming the TanStack opt-in, so an agent reading the file
+knows 35 more skills exist and how to reach them; `INTENT.md` gained the *TanStack's own
+skills* section with the table above.
+

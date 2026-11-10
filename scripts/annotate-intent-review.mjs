@@ -54,10 +54,48 @@ const ITEM_OUTCOMES = {
   'source:.gitignore': {
     outcome: 'out-of-scope',
     reason:
-      'The root .gitignore gained node_modules/ because the workspace root now owns a package.json that installs the Intent toolchain. That is repository tooling for the CI gate, not evidence about Relayboard guidance, and it changes no documented behaviour.',
+      'The root .gitignore holds repository tooling only: node_modules/ because the workspace root owns a package.json that installs the Intent toolchain, and the transient .intent/review.json report that `intent maintainer review --record` consumes. Neither is evidence about Relayboard guidance, and neither changes documented behaviour. The durable review outcome it complements, .intent/review-state.json, stays tracked.',
     evidence: [
-      '.gitignore — one added block with a comment explaining the root package.json',
+      '.gitignore — the root-manifest block and the .intent/review.json block, both commented with their reason',
       'package.json — root manifest, devDependencies only',
+      'git check-ignore -v .intent/review.json -> .gitignore:40, while .intent/review-state.json remains tracked (git ls-files .intent/)',
+    ],
+  },
+  'source:.scratch/relayboard-app/spec.md': {
+    outcome: 'out-of-scope',
+    reason:
+      'The /to-spec output for the port, filed under the local-markdown tracker. It describes intended future behaviour and makes no claim about the prototype that a skill teaches, so it is neither evidence a skill cites nor guidance a skill must follow.',
+    evidence: [
+      'AGENTS.md — new root file declaring .scratch/<feature>/ as the local issue tracker',
+      'docs/agents/issue-tracker.md — records .scratch/relayboard-app/spec.md as the only current ticket',
+      'the file is not listed in any skill frontmatter sources: grep sources over packages/relayboard-skills/skills/*/SKILL.md finds only docs/{identity-provenance,mock-api,thread-sequencing}.md',
+    ],
+  },
+  'source:docs/agents/domain.md': {
+    outcome: 'out-of-scope',
+    reason:
+      'Consumer rules telling the engineering skills where the glossary and ADRs live. It governs how skills are driven in this repository; it is not a source document that any Relayboard skill cites, and it states the single-context layout decision rather than any product fact.',
+    evidence: [
+      'written by /setup-matt-pocock-skills; layout chosen as single-context because the prototype, apps/relayboard-web and packages/relayboard-skills share one domain vocabulary',
+      'grep sources over packages/relayboard-skills/skills/*/SKILL.md — docs/agents/* is absent from every sources list',
+    ],
+  },
+  'source:docs/agents/issue-tracker.md': {
+    outcome: 'out-of-scope',
+    reason:
+      'The local-markdown issue tracker convention for this repository (paths, numbering, Status: lines, wayfinder operations). Repository process documentation, not a source any skill cites.',
+    evidence: [
+      'written by /setup-matt-pocock-skills; tracker chosen as local markdown because the repository has no git remote',
+      'grep sources over packages/relayboard-skills/skills/*/SKILL.md — docs/agents/* is absent from every sources list',
+    ],
+  },
+  'source:docs/agents/triage-labels.md': {
+    outcome: 'out-of-scope',
+    reason:
+      'The mapping from the five canonical triage roles to this repository\'s Status: strings. Process documentation for the triage skill; no Relayboard guidance depends on it.',
+    evidence: [
+      'written by /setup-matt-pocock-skills; the default label vocabulary was kept unchanged',
+      'grep sources over packages/relayboard-skills/skills/*/SKILL.md — docs/agents/* is absent from every sources list',
     ],
   },
 }
