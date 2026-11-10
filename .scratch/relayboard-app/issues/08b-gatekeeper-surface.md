@@ -6,6 +6,8 @@
 
 **Blocked by:** 08a — Knock, wait, enter — the admission cycle on the server
 
+**Write scope:** the gatekeeper surface: one route and its components, using the admission controls `DESIGN.md` documents.
+
 **Status:** ready-for-agent
 
 - [ ] A human holding `admit:agent` on a board sees that board's pending requests. A principal without the permission sees the surface disabled with a stated reason (`DESIGN.md` §213), not an empty list.

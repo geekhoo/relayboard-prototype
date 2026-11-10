@@ -6,6 +6,8 @@
 
 **Blocked by:** None (can start immediately)
 
+**Write scope:** `vitest.config.ts`, `src/domain/**`, `tests/**`, and **append-only** additions to `biome.json` (its own globs) and `package.json` (one `test` script plus its dependencies). Does not touch `vite.config.ts` or `src/styles.css`, which 01 owns.
+
 **Status:** ready-for-agent
 
 - [ ] `npm test` runs Vitest in Node; a trivial suite passes; the run needs no browser, no DOM implementation and no network.

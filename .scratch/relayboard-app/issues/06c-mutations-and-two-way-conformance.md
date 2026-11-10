@@ -4,7 +4,9 @@
 
 **What to build:** The write half of the transport, and the proof that the interface is genuinely swappable. Every mutating operation becomes a POST server function with a validated input, the author comes from the resolved principal rather than from the request body, idempotency is honoured end to end, and the whole conformance suite — the one written in 03 against the interface — passes identically against the in-memory client and against the HTTP client pointed at a running app. After this ticket two browsers see one workspace.
 
-**Blocked by:** 06b — The acting principal — env, session and request-time resolution
+**Blocked by:** 06b — The acting principal — env, session and request-time resolution; 04c — The route seam's harness, which the plan is missing
+
+**Write scope:** `src/server/functions/write*` and the HTTP client's operations half; the operations conformance suite must pass over both transports. Explicitly excludes `subscribe`.
 
 **Status:** ready-for-agent
 

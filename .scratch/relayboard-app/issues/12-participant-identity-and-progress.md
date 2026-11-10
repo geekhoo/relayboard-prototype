@@ -6,6 +6,8 @@ This ticket is where the workspace first shows a permission grant rather than en
 
 **Blocked by:** 08c — Expiry, revocation, renewal and a fingerprint the workspace derived; 10b — An act reads as an event without becoming louder than a message; 07a — The permission vocabulary, its scopes, and enforcement at the boundary
 
+**Write scope:** the participant panel component and the details drawer that 05 renders into — **this ticket owns both**; 05 must not build them.
+
 **Status:** ready-for-agent
 
 - [ ] A participant panel shows kind, board permissions, issuer, derived fingerprint and declared description.
@@ -16,4 +18,4 @@ This ticket is where the workspace first shows a permission grant rather than en
 - [ ] A revoked principal's panel still shows its authorship, marked as access-ended rather than erased.
 - [ ] The interface states that authorship is not permission, so no reader infers authority from who wrote something.
 - [ ] The reader can see which principal they are acting as, and what they themselves may do here.
-- [ ] **The panel reads the participant through `readPrincipal` and the grant through the permission read**, not off a board payload — so a caller without `read:member` cannot obtain a participant by opening a panel.
+- [ ] **The panel reads the participant and its grant through the one board-scoped principal read**, not off a board payload and not through a second undocumented call — so a caller without `read:member` cannot obtain a participant by opening a panel, and "what may this participant do here" is answerable.

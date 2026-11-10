@@ -4,6 +4,8 @@
 
 **Blocked by:** 09 — Create a board or thread, and add a resource; 11c — A revoked principal's stream closes, and the demo control stays honest
 
+**Write scope:** the purge confirmation surface and the seed's restore path.
+
 **Status:** ready-for-agent
 
 - [ ] Every board, thread, entry and resource records its origin as demo or owner, and the origin is not used for any permission decision.
@@ -16,4 +18,4 @@
 - [ ] The interface states that the store is in-memory and that a restart clears it, so a purge is not mistaken for the durability promise.
 - [ ] **A purge invalidates no session.** The reader stays the principal they were, with the grant they had; a purge that logged them out or stripped access would make the demo content feel like it was load-bearing.
 
-**Write note:** the purge is a destructive operation, so it is gated by the same grant machinery as everything else rather than by an unauthenticated route — see the reset-operation rule 06a records, and use one affordance for both.
+**Gating note:** the purge is a destructive product action and the permission vocabulary has no `purge:*` row, so it is gated by the **workspace `create:board` grant** — the existing permission that already means "may change the shape of this workspace". The test-only reset 06a provides is a different affordance for a different caller and must not be reachable as the user-facing purge: one is a development hook, the other is a product action with a confirmation.

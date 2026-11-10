@@ -6,6 +6,8 @@
 
 **Blocked by:** 07b — The two rules that keep the gate human and the grant unlaunderable
 
+**Write scope:** the entry union in the domain, the store's entry-writing path (including its error strings), and the contract's entry shape. This ticket owns the entry-writing path outright — 08a appends to the store but not here.
+
 **Status:** ready-for-agent
 
 - [ ] `Entry` widens from a single-member union to four kinds — message, artifact, status move, acknowledgement — and every existing consumer (`readMessages`, the store's reads, the HTTP validators, the conformance suite) is typed against `Entry` rather than a bare `Message`.

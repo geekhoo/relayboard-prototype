@@ -4,7 +4,9 @@
 
 **What to build:** The workspace is operable without a pointer, and focus never goes missing. `/` and `Ctrl/Cmd + K` focus thread search; Escape closes the open drawer, panel or dialog; focus enters a dialog when it opens and returns to the control that opened it when it closes; every interactive element has a visible focus ring, including on the dark rail; and every list row, tab and control is reachable in a sensible order. The prototype already did most of this (`app.js` L222), so this is a port with one addition: it must also hold in the surfaces the prototype never had.
 
-**Blocked by:** 13a — The workspace holds its shape at every width
+**Blocked by:** 13a — The workspace holds its shape at every width; 14 — Purge the demo content without touching what you made
+
+**Write scope:** focus management and keyboard handlers across the shell and the panels; no new layout.
 
 **Status:** ready-for-agent
 

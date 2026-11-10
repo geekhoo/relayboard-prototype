@@ -6,12 +6,15 @@
 
 **Blocked by:** 03 — The client interface and its in-memory implementation
 
+**Write scope:** `src/server/functions/read*`, the store singleton and its lifetime notes. Verifies the Nitro preset without re-pinning it.
+
 **Status:** ready-for-agent
 
 - [ ] Each read operation — listing boards, listing a board's threads, reading a thread's entries, listing a board's resources, reading positions, and reading the acting principal's own record if that member exists — is reachable as a server function with a GET-shaped, validated input.
+- [ ] **Both participant reads are server functions here**: listing a board's participants, and reading one participant with the grant it holds on that board. Ticket 03 adds them to the interface and nothing else makes them reachable; without them the conformance suite cannot run over HTTP (06c) and ticket 12 has nothing to render.
 - [ ] Each operation validates its input at the boundary and rejects malformed input before the store is touched, with an identifiable error rather than a thrown string.
 - [ ] The store is a single in-process instance shared by all requests, created once per server process, not per request and not at module scope of a client-reachable module.
-- [ ] `vite.config.ts` pins Nitro's preset to `node-server` rather than leaving it to auto-detection, and the reason is recorded in place: the in-process store and the stream both require one long-running process, so a serverless build cannot hold either (spec L504–512). `vercel.json` stays as the scaffold left it and is documented as inert.
+- [ ] **The deployment target stays pinned by ticket 01 and is verified here**: the Nitro preset is `node-server` in config rather than auto-detected, `vercel.json` is absent, and a build with the Vercel environment variable set either fails or still produces the node-server preset. Spec makes the serverless target unsupported, and a green serverless build that cannot hold an SSE connection is the trap this criterion catches. Do not re-pin the preset — 01 owns it.
 - [ ] An HTTP implementation of `RelayboardClient` exists covering the read operations, and the conformance suite's read assertions — written once, against the interface — pass against it unchanged.
 - [ ] The conformance suite's **write** assertions are explicitly out of scope here and the HTTP implementation fails loudly on them rather than returning `undefined` or an empty result. It must be impossible for 06b's absence to read as a pass.
 - [ ] `subscribe` is explicitly out of scope and fails loudly. The stream is a server route, not a server function (spec L341), and it arrives in 11a; an RPC-shaped `subscribe` written here would be the wrong transport and would have to be removed.

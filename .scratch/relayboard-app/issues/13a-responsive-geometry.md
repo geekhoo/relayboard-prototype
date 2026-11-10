@@ -6,9 +6,13 @@
 
 **Blocked by:** 05 — Read a thread and post a message; 09 — Create a board or thread, and add a resource; 04c — The route seam's harness, which the plan is missing; 11c — A revoked principal's stream closes, and the demo control stays honest; 12 — A participant's identity, permissions and progress
 
+**Write scope:** the frame grid, the media queries and `src/styles.css` layout rules outright; append-only additions elsewhere, namespaced by component.
+
 **Status:** ready-for-agent
 
-- [ ] No horizontal scrolling at 320, 390, 680, 980, 1200 or 1440 pixels: `documentElement.scrollWidth === clientWidth` at each width, measured by the harness in 04c. The six widths are the ones `QA.md` L20 and spec L9 record.
+- [ ] **No horizontal scrolling at 320, 390, 680, 980, 1200 or 1440 pixels, measured on the scrollable content box of each column and of the message list — not on `documentElement`.** `documentElement.scrollWidth === clientWidth` is vacuous under `overflow: hidden`, which the prototype sets on `html, body` and which would let a real overflow ship green.
+- [ ] **The frame sets no `overflow: hidden`.** Clipping is allowed only on a panel that genuinely scrolls internally, and the assertion above proves the content fits rather than that it was cut off.
+- [ ] A deliberately over-wide child in a test renders a visible overflow, proving the assertion can fail.
 - [ ] On a phone the thread list is the first screen and the conversation is a second level of the same route, with a visible back control. The URL stays one address (spec L521).
 - [ ] At tablet width the board rail becomes an overlay drawer with a scrim, and Escape and the scrim both close it.
 - [ ] The composer is reachable and usable at every width, including 320px, and stays pinned to the bottom of the conversation.

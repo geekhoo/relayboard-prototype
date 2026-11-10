@@ -6,6 +6,8 @@
 
 **Blocked by:** 08b — The gatekeeper's decision surface
 
+**Write scope:** expiry, revocation and renewal inside the admissions module; the derived fingerprint and issuer.
+
 **Status:** ready-for-agent
 
 - [ ] An admission carries an expiry chosen at admission: a bounded window, or never. An admission admitted before this ticket existed is given a bounded default rather than becoming permanent (spec L370, L375).
@@ -14,6 +16,8 @@
 - [ ] A revocation is distinguishable in the refusal from a denial and from an expiry, so an operator can tell a policy decision from a bug (spec L379).
 - [ ] The entries a revoked or expired principal already authored keep their author, and a test asserts one of them is still attributed to it after revocation.
 - [ ] Renewal after expiry resolves to the **same principal id**, so its history stays one continuous record rather than splitting per credential (spec L574). A test renews and asserts the entry's author id is unchanged.
+- [ ] **Renewal is proved by the expired credential itself**, presented in the renewal request and matched on its stored hash — not by matching the name or operator the caller declares. An expired principal holds nothing, so a renewal matching declared values would let any caller inherit another principal's history.
+- [ ] A renewal presenting a credential whose hash is unknown is refused, and one principal's credential cannot renew a different principal.
 - [ ] The issuer and fingerprint are derived by the server from the credential it issued: two credentials for one principal yield the same fingerprint, two principals yield different ones, the renewal above preserves it, and a `fingerprint` field supplied by the knocker is ignored rather than stored.
 - [ ] Declared and derived values are distinguishable **in the payload**, not only in the UI: the declared operator is echoed as declared and the derived issuer and fingerprint sit in their own fields, so a non-browser client cannot mistake one for the other (spec L575).
 - [ ] An admitted agent acting outside its grant is refused exactly as a human outside its grant would be, asserted on the same operation for both, so the refusal shape is proven identical (spec L566).

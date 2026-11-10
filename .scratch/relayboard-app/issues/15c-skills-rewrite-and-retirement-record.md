@@ -6,6 +6,8 @@
 
 **Blocked by:** 15b — `QA.md`, `DESIGN.md` and `PRODUCT.md` catch up with the app
 
+**Write scope:** the skills package, its docs, `INTENT.md` and the root `AGENTS.md`; and the repack of the vendored tarball the app consumes.
+
 **Status:** ready-for-agent
 
 - [ ] `relayboard-mock-api` is rewritten to describe the app's transport. It no longer documents `appendMessage({ authorId, … })` — `packages/relayboard-skills/docs/mock-api.md` L22 still does, and the signature was superseded at spec L356 — and it points at the operation vocabulary a caller actually has rather than at a `window` global.

@@ -6,6 +6,8 @@
 
 **Blocked by:** 02b — The store, the per-thread sequence and the lock
 
+**Write scope:** the seed fixture and the store's seeding path only.
+
 **Status:** ready-for-agent
 
 - [ ] The seed reproduces the prototype's workspace: the seven principals of `app.js` L20–28 (four humans, three agents) with the same ids, names, kinds and declared descriptions; the three boards of L29–33; the ten threads of L34–45; the seven resources; and the entries of L52–82 with their `references` and the one `relation` at L57.

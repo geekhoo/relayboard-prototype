@@ -6,9 +6,13 @@
 
 **Blocked by:** 11c — A revoked principal's stream closes, and the demo control stays honest; 12 — A participant's identity, permissions and progress; 13b — Keyboard operation and focus management; 14 — Purge the demo content without touching what you made
 
+**Write scope:** the frozen parity list and the parity specs under `e2e/`.
+
 **Status:** ready-for-agent
 
 - [ ] Each of `QA.md`'s twelve verified scenarios is represented by at least one test, and each of the roughly sixty-four assertions in them is either covered or explicitly listed as not carried across with a one-line reason. The list is enumerated in the ticket or in a companion file, so "covers every behaviour" is countable by a reviewer rather than judged.
+- [ ] **The parity list is a file, frozen before ticket 06c**, not a reading of `QA.md` at the time this ticket runs — so this ticket cannot grade its own homework. Each entry says how the prototype's assertion is reinterpreted as an observable of the app, because some of the original assertions name internals the spec forbids.
+- [ ] **The type and contrast floors are asserted here, over real product text**: no functional text below 11px, no body text below 13px, and every text run at AA against its composited background. Ticket 01 can only assert the token set is right; this is the first ticket with text to measure.
 - [ ] The suite uses the same method `QA.md` records (L5): real browser, stated viewports (1440×900 and 390×844 at minimum, plus the four layout widths), a cleared state per scenario, and no assertion that depends on fonts or colours.
 - [ ] The suite drives the app only through its routes and its rendered UI — never through internals, module imports, or a direct store call — so a refactor of the UI does not break it (spec L536, L556).
 - [ ] The two former gaps are passing tests: in-thread message search is reachable and works at a phone width, and the selected board and thread survive a reload.

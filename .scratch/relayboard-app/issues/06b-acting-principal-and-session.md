@@ -6,11 +6,14 @@
 
 **Blocked by:** 06a — The read operations over HTTP, and one store for the process
 
+**Write scope:** `src/env.ts`, the server entry it names, session issuance and the request-time resolver.
+
 **Status:** ready-for-agent
 
 - [ ] A required server-only session secret is declared in `env.ts`, and it is **not** `.optional()`. Its absence is a startup failure, not a first-request failure (spec L355–356, story 151).
 - [ ] `runtimeEnv` includes the server's process environment, not only `import.meta.env`. `NOTES.md` §5(d) measured that a plain server variable read through `import.meta.env` comes back `null`; this ticket fixes that and records the measurement in place.
-- [ ] `env.ts` is imported by the server entry point, so validation actually runs. Today it is imported by nothing (`NOTES.md` §5; grep over `src/` finds no importer).
+- [ ] **`env.ts` is imported by the app's real server entry, and the ticket names it.** Verified: there is no `src/server.ts`, `src/start.ts`, `src/entry-server.tsx` or `app.config.ts` today, and `env.ts` has no importer at all — so "import it from the server entry" names a file that must first be identified or introduced. If a global server entry has to be added for this, that is part of this ticket and belongs in its write scope.
+- [ ] The import is placed so a missing secret fails the process before it serves a request, not on the first request that happens to read it.
 - [ ] `.env.example` exists and names the required variable; `.env` stays gitignored. `README.md`'s stale reference to a file the CLI never generated is corrected or removed.
 - [ ] A first request without a session is issued a signed, `HttpOnly`, `SameSite=Lax` cookie naming the principal it acts as; a request with a valid cookie resolves to that principal.
 - [ ] The cookie's value is not readable from client JavaScript and is not echoed into any payload.

@@ -6,6 +6,8 @@
 
 **Blocked by:** 07a — The permission vocabulary, its scopes, and enforcement at the boundary
 
+**Write scope:** the grant and gate rules inside the store; the store-level `grant` operation this ticket introduces.
+
 **Status:** ready-for-agent
 
 - [ ] Granting `admit:agent` to an agent principal is refused, with a message naming why. Granting it to a human succeeds. The same holds for `revoke:agent`, asserted separately for each.
@@ -14,7 +16,7 @@
 - [ ] A principal cannot grant a permission it does not itself hold, at the scope it does not hold it. A human who cannot `move:status` on a board cannot hand out `move:status` on that board; the same principal holding it at workspace scope may. Both directions are asserted.
 - [ ] A principal cannot grant at a scope broader than the one it holds the permission at — a board-scoped `read:member` holder cannot grant `read:member` at workspace scope.
 - [ ] Granting a permission the vocabulary does not define is refused as a validation failure before any rule above runs.
-- [ ] Granting is a mutation under the same per-store lock as `seq` assignment, so two concurrent grants to one principal cannot interleave into a lost update.
+- [ ] Granting follows the same no-`await`-between-read-and-write rule as `seq` assignment, so two concurrent grants to one principal cannot both read the old grant and both write. There is no per-store lock; the invariant is the ordering rule the store module states.
 - [ ] A refusal from either rule is distinguishable by a caller from a missing-permission refusal, so an operator can tell "you cannot do this" from "you cannot give this".
 - [ ] Every one of the rules above is asserted at the admission seam (spec L560–575) against the store, so 08 can reuse the assertions rather than restate them.
 

@@ -6,12 +6,14 @@
 
 **Blocked by:** 10b — An act reads as an event without becoming louder than a message
 
+**Write scope:** the SSE server route, the event contract and the stream half of the conformance suite.
+
 **Status:** ready-for-agent
 
 - [ ] A server route returns `text/event-stream` on the same origin as the server functions, authenticating through 06b's resolver rather than a second mechanism.
 - [ ] The event vocabulary is exactly the eight names in spec L342 — `message-committed`, `thread-created`, `board-created`, `resource-created`, `artifact-attached`, `status-moved`, `acknowledged`, `connection-changed` — and a test asserts the emitted set equals that literal set. The names and payload shapes are written down in one place, so a non-browser client can consume the stream without reading the UI source (story 155).
 - [ ] Every entry-bearing event carries the entry's `seq`, and the client uses that `seq` as its cursor. There is no client-side sequence arithmetic anywhere in the transport path.
-- [ ] A paused subscriber receives no events, and the server holds the queue keyed by thread rather than dropping the entries (spec L344).
+- [ ] A paused subscriber receives no events, and **no queue is held for it**. The store keeps no per-subscriber backlog: resuming replays from that subscriber's cursor, which is what the model already supports and what keeps one source of truth for what has been missed (spec: "There is no server-side queue"). A queue built here would disagree with 11b, which derives the pending count from the cursor.
 - [ ] Resuming replays from that subscriber's cursor and reports the replayed count in `connection-changed`, floor-verified: replaying zero reports zero rather than omitting the field.
 - [ ] Reconnect uses the standard `Last-Event-ID` header so the cursor survives a dropped connection without bespoke client bookkeeping (spec L345).
 - [ ] `subscribe` is implemented on `RelayboardClient` by both the in-memory client and the HTTP client, and a contract test drives both implementations through the same scenario — subscribe, commit, pause, commit, resume — asserting identical observed events.

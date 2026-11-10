@@ -6,6 +6,8 @@
 
 **Blocked by:** 04b — The thread pane and the rest of the address
 
+**Write scope:** `playwright.config.ts`, `e2e/**`, and **append-only** additions to `biome.json` (its own globs) and `package.json` (its own dependency and script).
+
 **Status:** ready-for-agent
 
 - [ ] Playwright is installed and `npm run e2e` (or equivalent) starts the app on a fixed port, waits for it to be ready, and shuts it down; the suite runs from a clean checkout without a manual server.

@@ -6,6 +6,8 @@
 
 **Blocked by:** 11a — The stream as an SSE server route, with a written event contract
 
+**Write scope:** the stream panel, pause and replay, and the read-position persistence.
+
 **Status:** ready-for-agent
 
 - [ ] New entries appear in an open thread without a refresh, in `seq` order, as they commit.

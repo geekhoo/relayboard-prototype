@@ -6,6 +6,8 @@
 
 **Blocked by:** 11b — Live, pause, replay — the reader's side of the stream; 08c — Expiry, revocation, renewal and a fingerprint the workspace derived
 
+**Write scope:** revocation-close handling and the simulation control inside the stream panel.
+
 **Status:** ready-for-agent
 
 - [ ] A permission change affecting a principal is emitted on that principal's open connection, so a revocation reaches an already-connected subscriber rather than waiting for its next request.

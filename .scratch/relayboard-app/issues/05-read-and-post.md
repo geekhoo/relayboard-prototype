@@ -6,6 +6,8 @@ Three behaviours the prototype has and `QA.md` grades as passing belong to no ot
 
 **Blocked by:** 04c — The route seam's harness, which the plan is missing
 
+**Write scope:** the conversation route, the composer and the entry-list components; append-only additions to `src/styles.css`. Does **not** own the details drawer, which 12 builds; this ticket renders into it.
+
 **Status:** ready-for-agent
 
 - [ ] Entries render ordered strictly by `seq`, never by timestamp.

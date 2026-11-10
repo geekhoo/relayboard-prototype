@@ -6,6 +6,8 @@
 
 **Blocked by:** 03 — The client interface and its in-memory implementation; 06c — Every mutation over HTTP, and the conformance suite run both ways
 
+**Write scope:** the permission vocabulary, the check helper and the interface's declared requirements. Does not add a route or a control.
+
 **Status:** ready-for-agent
 
 - [ ] The permission vocabulary exists in one module and equals the four rows of spec L396–400 exactly: workspace (`read:board`, `create:board`, `admit:agent`, `revoke:agent`, `grant:permission`), board (`read:board`, `update:board`, `create:thread`, `add:resource`, `read:member`), thread (`read:thread`, `post:message`, `move:status`, `add:artifact`, `acknowledge:thread`), resource (`read:resource`, `add:resource`). A test asserts the exported set equals that literal list, so "covers every action" is checkable rather than judged.

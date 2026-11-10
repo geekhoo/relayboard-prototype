@@ -6,6 +6,8 @@
 
 **Blocked by:** 10a — Entry kinds in the domain, the store and the contract
 
+**Write scope:** act rendering in the entry list; append-only additions to `src/styles.css`, namespaced by component.
+
 **Status:** ready-for-agent
 
 - [ ] Acts and messages render in one list, ordered strictly by `seq`, with date dividers spanning both.

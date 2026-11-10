@@ -6,6 +6,8 @@
 
 **Blocked by:** 07b — The two rules that keep the gate human and the grant unlaunderable
 
+**Write scope:** a **new** admissions module and append-only additions to the store for principals and grants. Does not touch the entry-writing path, which 10a owns.
+
 **Status:** ready-for-agent
 
 - [ ] A knock surface exists, distinct from `RelayboardClient`, reachable by a caller with no credential at all. It exposes `knock`, `pollAdmission`, `listPending`, `admit` and `deny`, and none of them appears on the participant interface (spec L327–332).

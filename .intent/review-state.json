@@ -176,11 +176,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/03-client-interface-and-in-memory-client.md": {
-      "fingerprint": "c9752bd9c4ae29ae70f918caae019b2734c758826713a4e2bea7e4207bbe02a4",
+      "fingerprint": "ef53299e4ec200f42b6d9d1ac0518c08389079485a3cdb23fc29d02b8952b338",
       "snapshot": {
-        ".scratch/relayboard-app/issues/03-client-interface-and-in-memory-client.md": "f33daccc30d6127a99d734aafb49d81226d5f78a808e1ec9d72a31976ee49cd1"
+        ".scratch/relayboard-app/issues/03-client-interface-and-in-memory-client.md": "6d39f84235ed9c71b8cd4edbfbea40af05a62ae58ea5c9c1fff8c1feff34fdaa"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -204,11 +204,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/05-read-and-post.md": {
-      "fingerprint": "264f2717857c785c7faef2a36d69fa3ad01fbe18a085ba026fd0a2e44aff79e2",
+      "fingerprint": "4bc15cb91cab3e6212c176641cfc14c5bc01010990e086828e1cccc139cfe8e3",
       "snapshot": {
-        ".scratch/relayboard-app/issues/05-read-and-post.md": "188376d1135279aec4b65170cb9d0b578b61b4875fcb98eb2e495b947febc44e"
+        ".scratch/relayboard-app/issues/05-read-and-post.md": "6c38ffbe69c9cda8a8aae75f329023bc10a7244c1c1c6fe5ee252bf349a06102"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -260,11 +260,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/09-create-boards-threads-resources.md": {
-      "fingerprint": "7de118caeac1aa947de6b9ca768358d736e0039ee01cca18406bf5b83f82f9c2",
+      "fingerprint": "20f4d7d2e829a8efe7cc4cbe77f8c6bff6a5de248cddaf8a3edd2d06c51a3f2b",
       "snapshot": {
-        ".scratch/relayboard-app/issues/09-create-boards-threads-resources.md": "87ebd935c811388d6a8c32aacc61c75d5e74805f87966815a1907f6f457dbbab"
+        ".scratch/relayboard-app/issues/09-create-boards-threads-resources.md": "e2fce1af8eebf663347ec0daa20d85c7108b1ce697f9fa10d05eb0355e8a7158"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -302,11 +302,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/12-participant-identity-and-progress.md": {
-      "fingerprint": "396a3f081d17ae02cb1f1542bb172ec7944d1bc1bb79e0b84252f7878485c6c2",
+      "fingerprint": "c5ca33fc89dfd2d2afbd6740f6ab8d8581228755de72d02101a2f3753ee0e507",
       "snapshot": {
-        ".scratch/relayboard-app/issues/12-participant-identity-and-progress.md": "8aadf69277d904f5729d1ed7713b122bf2fdcd6bc065d38025a60c2d7d150d5a"
+        ".scratch/relayboard-app/issues/12-participant-identity-and-progress.md": "31f441bd4941892ac98876fd61c460d8309bfd148782a46fa02e87e4566d198d"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -330,11 +330,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/14-demo-purge-and-restore.md": {
-      "fingerprint": "9c08b78d278818c2ff407b36dcaca6e9d46ae8e24efb07b575a6533c97740a1d",
+      "fingerprint": "d9f0b56a5cdfcc646d91c06471d0b4b38541bca20131f070ce29fcde046b4f67",
       "snapshot": {
-        ".scratch/relayboard-app/issues/14-demo-purge-and-restore.md": "e63fc861731b920839a9792fd096f3c5a8788f727b8affaff645685a7ae174de"
+        ".scratch/relayboard-app/issues/14-demo-purge-and-restore.md": "3aaa5cf177249bfa7436ef7984d9aa5c59504cd8307e67936c08889ddd06a7f9"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -372,11 +372,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/02a-store-harness-and-domain-types.md": {
-      "fingerprint": "e2b331e5dd49bbde08611d751d9a8d828386fe1fcb40289b372a858c799c88af",
+      "fingerprint": "2443b99bab4d41cce390984decd22f9b40cb9ff0a680e5f7430ce951f17334e4",
       "snapshot": {
-        ".scratch/relayboard-app/issues/02a-store-harness-and-domain-types.md": "1aabf9d5e186e2c21140411ed98553acacb015d322e9125c8c4a07bb749f4a08"
+        ".scratch/relayboard-app/issues/02a-store-harness-and-domain-types.md": "87fd57daec6b0fc9d68dd23579e3ecbe6dab28179238c38fb624a123bdf01a63"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -386,11 +386,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/02b-store-and-sequence.md": {
-      "fingerprint": "14485d46cf27ab772666ad2a6697893c9ca854c3446368ae0badc9d40342e8f7",
+      "fingerprint": "133650e3b69e7b639260794ad5ed5386df0c2f469f62e2427ad5e08ed90787e5",
       "snapshot": {
-        ".scratch/relayboard-app/issues/02b-store-and-sequence.md": "f4a39fd26e5ddbb45c516562dd7f03da09d17f7d373dfc8886d78df81cd0a88a"
+        ".scratch/relayboard-app/issues/02b-store-and-sequence.md": "0a04193e2b4efd99ef5dad120daa1dbaf435af626cbad6b61a93f282a92bbb3b"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -400,11 +400,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/02c-demo-seed-with-origin.md": {
-      "fingerprint": "c37f89063711489d1b5035613de35ffea41f55904a98f0b488be789619257f26",
+      "fingerprint": "759b596685188aa5301d5a44150a926f6dd12300a847b1a46ac837ca7e9f2ca5",
       "snapshot": {
-        ".scratch/relayboard-app/issues/02c-demo-seed-with-origin.md": "824acde0256aa0c7aa2322031f86fd3a695a51981764e469fda88847e7d65514"
+        ".scratch/relayboard-app/issues/02c-demo-seed-with-origin.md": "a8b2e2b025eac00493148630c124355ead85386f5c4440159a76e9a9380ec6f8"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -414,11 +414,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/04a-routes-url-and-board-rail.md": {
-      "fingerprint": "3f188f6c992ceccbb338f261aeca2637e24fbe2daaccc1f548651217a4f993c4",
+      "fingerprint": "9d52d9550dceeafff13082b4cd05a89498f9e57a4350ba0d0237f251dd15de0c",
       "snapshot": {
-        ".scratch/relayboard-app/issues/04a-routes-url-and-board-rail.md": "56332a55c9b40762ffe46119f41106353841e40622104998c89e49360de2cfaf"
+        ".scratch/relayboard-app/issues/04a-routes-url-and-board-rail.md": "2d6ca1e79bae46915c91c3524b33586905ffa792c45319ea45c343b58f305ec7"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -428,11 +428,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/04b-thread-pane-and-address.md": {
-      "fingerprint": "17d29e766fd8ca5fa946fc8ae612a28cb317c96dc513f547444f29e9c5d911dd",
+      "fingerprint": "75e9d5223307111b07857cdd5117ce48a79ba4d080f1c43b7ac8da78ed43f528",
       "snapshot": {
-        ".scratch/relayboard-app/issues/04b-thread-pane-and-address.md": "5781aea1b5cdcf19a52b1aaa15118c52795c4c15255ccda9c21e4192f75e7387"
+        ".scratch/relayboard-app/issues/04b-thread-pane-and-address.md": "e0bc3d5d32a6079534eed350b09cda8160204fbeff3b2948846363b3fc5f8ba4"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -442,11 +442,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/04c-route-seam-harness.md": {
-      "fingerprint": "27ca35de61556c6cb94f1021a5d7f3912c1850e840ede980b9b1e4e504852d5d",
+      "fingerprint": "92cab3c687a002ea027b45ba84dd0057208d639bb67c5ed9acd6fd2178a9daed",
       "snapshot": {
-        ".scratch/relayboard-app/issues/04c-route-seam-harness.md": "548bb25447ad895b995d0958bd700aa78d6ea54312994299acd5c464a4fa1058"
+        ".scratch/relayboard-app/issues/04c-route-seam-harness.md": "5981cca1f2c21afde7d2b4c29ce83cf5a1ab39021d47a8a6563f0bb85c8ca138"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -456,11 +456,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/06a-read-operations-and-store-lifetime.md": {
-      "fingerprint": "12e551c03ab0c2dc6317ea34eb5777c85f3914d997c6ffb36f2d023dd80418ba",
+      "fingerprint": "5486941fd96b2a26077eb6e7e09893d1540cf8a91c1224e5df517c6bb933c92e",
       "snapshot": {
-        ".scratch/relayboard-app/issues/06a-read-operations-and-store-lifetime.md": "88b95301632c53c580afcce4efd8d649e10ccb6ddd0c9e15faeecbd70e26a3e3"
+        ".scratch/relayboard-app/issues/06a-read-operations-and-store-lifetime.md": "0b52524141b5791d24258e51c49788a600077a912d3ea3e13722821308b3db7e"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -470,11 +470,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/06b-acting-principal-and-session.md": {
-      "fingerprint": "2ecb28211c5d9744af3571e18d22d76f2fd466edef6218baeb442241ab019583",
+      "fingerprint": "a33f2d5ddd27a926abf8483df559c87e74870309de570f3e01d9acee8f8a7e83",
       "snapshot": {
-        ".scratch/relayboard-app/issues/06b-acting-principal-and-session.md": "f5d43b3dd776e0ef1d9330273b54951f0bd8f9c276bd4a0b1109aed376c14fdf"
+        ".scratch/relayboard-app/issues/06b-acting-principal-and-session.md": "6d5d0b454cc03fe4c55a8277ffd04f840807603c6776bb41d6bee9b0cb0d0222"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -484,11 +484,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/06c-mutations-and-two-way-conformance.md": {
-      "fingerprint": "55d3dc2fe355b053d6bb804fc8f478df1db01b3a6af05556aa7d8c2c59ceff01",
+      "fingerprint": "567e1dbf3b9b1395e1175176395c8e1846ddc6f191528a2fa62e54f22610e931",
       "snapshot": {
-        ".scratch/relayboard-app/issues/06c-mutations-and-two-way-conformance.md": "a64b949c74aebaa2230fceafd127f9a9755e2c0e61432ee20d6c5528e6e17c7a"
+        ".scratch/relayboard-app/issues/06c-mutations-and-two-way-conformance.md": "431bde128efe52312e5f3da6dbd1706ddc9a4e3325b371ad2822979822891067"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -498,11 +498,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/07a-permission-vocabulary-and-enforcement.md": {
-      "fingerprint": "287c0605366c2a339fffa6fd4e87e56bd4536f9fdc0b3d163b2aa136792170b6",
+      "fingerprint": "fafc359fa38c84cff9a84e47a6b3c595e4721c037a8319d255b106989c418c79",
       "snapshot": {
-        ".scratch/relayboard-app/issues/07a-permission-vocabulary-and-enforcement.md": "9f4e3e3595b21ea41f2516a89d6879c586bf439047fc89d7452d65d4158901be"
+        ".scratch/relayboard-app/issues/07a-permission-vocabulary-and-enforcement.md": "699955ada0ae98eb2cf44d3441e21038756af1d999897d4c199f67ce4791c1be"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -512,11 +512,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/07b-gate-and-grant-bounds.md": {
-      "fingerprint": "f44514e1b453e3ad226e23daaf95ebb5ea3a15078693552454f6bba22ea7af74",
+      "fingerprint": "66e6298ca2c10a98fcb18bc73dde650c74723e2d2208103e1125e0dbef77751c",
       "snapshot": {
-        ".scratch/relayboard-app/issues/07b-gate-and-grant-bounds.md": "cb1fa5ad647b29cba65536984c5ab46f9aac9d7c3b5a861427a47dad99a0cd3a"
+        ".scratch/relayboard-app/issues/07b-gate-and-grant-bounds.md": "9c80e3d42d0ecd641d679d6cf52ca0ae89f3aaec13f7b60a13e7f5bc81543591"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -526,11 +526,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/08a-knock-wait-enter.md": {
-      "fingerprint": "3012e8928195499b69074c61d933d8cc8536b0e25eb56dc68b4982f72de9361b",
+      "fingerprint": "5935ef4da50a9a6f1e4d20fde4604b18c8fec8cc224ea9e583b5fac33478cef9",
       "snapshot": {
-        ".scratch/relayboard-app/issues/08a-knock-wait-enter.md": "0cb11308e6c361157ec6ffed82c9bf1bde6950072a3c902ae3ad910339664813"
+        ".scratch/relayboard-app/issues/08a-knock-wait-enter.md": "2cc5bbf2e7fd8d2a5a9b09fb081d1aa6004f2dfa466eaa5225fb3113c4d3f2e2"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -540,11 +540,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/08b-gatekeeper-surface.md": {
-      "fingerprint": "d1cc5b078fafa693a4af563bcfc2d821517f950ab857c73c2a941a1049b6d48d",
+      "fingerprint": "a05c5a726bafa2f4dd422607bd4046db9848e5b5529b5d9e3b6d7a87372947f0",
       "snapshot": {
-        ".scratch/relayboard-app/issues/08b-gatekeeper-surface.md": "3cf2160873872b6354f8eaaa7a5d8891f12505a0819a28c2ec0383b85f2eff80"
+        ".scratch/relayboard-app/issues/08b-gatekeeper-surface.md": "ae1b2425fd0acd8ca15bbbdc662b5729997548241f8b6ba5193145e84bb52d47"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -554,11 +554,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/08c-expiry-revocation-renewal-identity.md": {
-      "fingerprint": "12f721360b5bc0924142f06c4155db157d9d0a786fff48f97b96db3efb7f3519",
+      "fingerprint": "ac0014fcc1332e23e5f87a72d567160e9f77830c44bcca835e90d8b499de7e8f",
       "snapshot": {
-        ".scratch/relayboard-app/issues/08c-expiry-revocation-renewal-identity.md": "677add20829c3ee07b3bc056a95d88fbbeee9b45529352096d339e224eb89e3b"
+        ".scratch/relayboard-app/issues/08c-expiry-revocation-renewal-identity.md": "dc83e153aa52e6b2dbdbd266ea2fa6d1f25f037e1a6cfd3bf4b11cde49845e07"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -568,11 +568,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/10a-entry-kinds-in-the-chronology.md": {
-      "fingerprint": "8f807c91381f46810e38e3dfee49a1b9a80c5d51213c0d938c51fa138d4bd525",
+      "fingerprint": "79d47afc8ed2d4a230b44c5d3bbd4d292f76396bf457f5c6df22cd8709d6603d",
       "snapshot": {
-        ".scratch/relayboard-app/issues/10a-entry-kinds-in-the-chronology.md": "11196e08acf2bb0c321d664b84ee630206ab8a1856421011b14f9254659cea49"
+        ".scratch/relayboard-app/issues/10a-entry-kinds-in-the-chronology.md": "c546d363bcd4e0a31fbf2548547c5fa0e7104c523efafb4f190365f08da87c66"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -582,11 +582,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/10b-act-rendering.md": {
-      "fingerprint": "215fc6c27e50de7c25a5b8358cc8204921f0a44300633d92dfb9883b2d9a34ec",
+      "fingerprint": "3e418ebf3163d2e72d70c059718a6c494aef1a83fe070c7f7f8b16a32036e4f4",
       "snapshot": {
-        ".scratch/relayboard-app/issues/10b-act-rendering.md": "09e96778a3bbcbf912275969d2b48f3dcc329b3eabe20f2b0a02d1bf98ceaba4"
+        ".scratch/relayboard-app/issues/10b-act-rendering.md": "ab428e3bad454dfbfd1368a0457c7cfb14874936fab788e3b56f999720c1445a"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -596,11 +596,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/11a-sse-transport-and-event-contract.md": {
-      "fingerprint": "eee8c480c368fd3e7a83df76cfb35145e9b801a86e2d52272a7ee0541269ee43",
+      "fingerprint": "416d414f1a8f6f9decaab4a400906100078282e0b6df58a532a6686f24070254",
       "snapshot": {
-        ".scratch/relayboard-app/issues/11a-sse-transport-and-event-contract.md": "851ea79d6efa6e5dda25ddee7de64352c55f9c27c3dfbe6585e12df8a0d84115"
+        ".scratch/relayboard-app/issues/11a-sse-transport-and-event-contract.md": "b503295d5d9fcbd96092467c9228836977cbdd1c9452127a26221b21efa862a1"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -610,11 +610,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/11b-pause-replay-and-persistence.md": {
-      "fingerprint": "b6cd5523e8d506308f50bb9a0b0272408f4e4e5be71a41651f6037437b7e7d95",
+      "fingerprint": "7ac7581cd4c41fe7216471ef43dcc378cc7e848cdcc79d85f13c9edd42a9b37a",
       "snapshot": {
-        ".scratch/relayboard-app/issues/11b-pause-replay-and-persistence.md": "c2104a065a475acf3efdaecfbe455133fb1eb8fc9c6af288c3d3e8f900d5e71c"
+        ".scratch/relayboard-app/issues/11b-pause-replay-and-persistence.md": "0ecbe6069f09991580f6865f6def4019db9d23094f6694cc66a590c617e2af03"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -624,11 +624,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/11c-revocation-close-and-simulation.md": {
-      "fingerprint": "74ccacd1a40d3f84068c22f6d14fdb935691bf92a69d51ce7cda041b89935d8b",
+      "fingerprint": "629f734886842c8a9ece5095449de6690635b5bf18e646021ada6c6adc56f2ee",
       "snapshot": {
-        ".scratch/relayboard-app/issues/11c-revocation-close-and-simulation.md": "769209c054e6a2e8b48f171ac8357916265eed8e221c1712158369ad8e64a571"
+        ".scratch/relayboard-app/issues/11c-revocation-close-and-simulation.md": "ab231522606de770d9d2f3ca6545b94ac82dfe321da6fb853ac57b026be32e6c"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -638,11 +638,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/13a-responsive-geometry.md": {
-      "fingerprint": "d642ba650a15acbf344c04ac464530cc4a52e3a87050d07aaf4eac176bd35798",
+      "fingerprint": "63fcbeff8f1e4194a119d08589fca5c3f8a359cceaba91b81d0607c9789cf4c6",
       "snapshot": {
-        ".scratch/relayboard-app/issues/13a-responsive-geometry.md": "1adb0aacb0f4e53123fba5477dae289d572b2ec9432bfac9c7f1e820f6ca45c4"
+        ".scratch/relayboard-app/issues/13a-responsive-geometry.md": "45c64a066aea49bce4de09251367c19d84ce95924826523ff196e670718b0300"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -652,11 +652,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/13b-keyboard-and-focus.md": {
-      "fingerprint": "7f16a89400fd3235b502d35923406de9bc644ddc26ce49ea2b7153b82d6e1a53",
+      "fingerprint": "11c26d114e411357f3171867cf45e3526064de00b113e4c80c3e7da351de4522",
       "snapshot": {
-        ".scratch/relayboard-app/issues/13b-keyboard-and-focus.md": "033ff1dfd5781ed0ed0b8236f7b0c4b136fa66d6fe3d41be2fa9a0101288d11c"
+        ".scratch/relayboard-app/issues/13b-keyboard-and-focus.md": "0929a661cdc75d401470262293961c6dc8eadf6c6a791e4deb8ebc240806935e"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -666,11 +666,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/15a-parity-suite.md": {
-      "fingerprint": "53f1fcb628110f3fd996b9c7ac504ffe1e8cc0461b5ddb4b71075fd78cdac97d",
+      "fingerprint": "d6504bf5e5c2e3cb17e0a809f46b78feae2fa15c7b8e2651a014009ff6b146b6",
       "snapshot": {
-        ".scratch/relayboard-app/issues/15a-parity-suite.md": "6723ac2b7117f2df190b933976080d951a28231511a74234fa521a856062f297"
+        ".scratch/relayboard-app/issues/15a-parity-suite.md": "83019176d8b728b4101341d05f20c359dc973fa9f325f7f7e9b959139c22cb19"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -680,11 +680,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/15b-doc-and-design-catch-up.md": {
-      "fingerprint": "e6703df4bf0d7caae2cdba414f0ef7d446c4f300dd3e24eac84209bd85b2590d",
+      "fingerprint": "f667e750e1004baac5224516ca793dea219a5c6ff3d8df487f9ea4d2b074041b",
       "snapshot": {
-        ".scratch/relayboard-app/issues/15b-doc-and-design-catch-up.md": "2e503889b25dcc03356e16053fc65243e5dd4d50118decfa994d43c589969481"
+        ".scratch/relayboard-app/issues/15b-doc-and-design-catch-up.md": "9f88f0392c29d1164ee4417dedf45b7364e891bced2b75efbf8feb5480d7e873"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -694,11 +694,11 @@
       ]
     },
     "source:.scratch/relayboard-app/issues/15c-skills-rewrite-and-retirement-record.md": {
-      "fingerprint": "90657a755b25426eb8343bc3311d2dcc10905d43ec085e120ab566dab12ac3dc",
+      "fingerprint": "dfb5a5625305b6e391711d1899fc23cae4c11de706c44de8751ab0ea4aae7cb6",
       "snapshot": {
-        ".scratch/relayboard-app/issues/15c-skills-rewrite-and-retirement-record.md": "932f9bfcf391f3d991f7d696a21e18ff3e841d748eb7e26f4d521872f689e298"
+        ".scratch/relayboard-app/issues/15c-skills-rewrite-and-retirement-record.md": "fcbc87a689d04b68006f6d3e44f0928da18865342b1cb2000531e6812f88c2b9"
       },
-      "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [
@@ -1063,6 +1063,20 @@
         ".scratch/relayboard-app/reviews/proposed-splits/15c-skills-rewrite-and-retirement-record.md": "932f9bfcf391f3d991f7d696a21e18ff3e841d748eb7e26f4d521872f689e298"
       },
       "head": "f9b6d050f92bf6a1d6bee50668d460f269771f6c",
+      "outcome": "out-of-scope",
+      "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and points the `## Agent skills` block at `docs/agents/`",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/ or docs/agents/"
+      ]
+    },
+    "source:.scratch/relayboard-app/reviews/sequence-plan.md": {
+      "fingerprint": "2c2c982c01bd15375d6ace3c6ef6a92a59e23639efb7186e6d71c34cd45d0182",
+      "snapshot": {
+        ".scratch/relayboard-app/reviews/sequence-plan.md": "6d4ed0df2ea0fa4bde01f9889bcd5b243454a8762a63e73c6084d45e4561e1a6"
+      },
+      "head": "c386f9730ee955fab81e32b88c59e035d09bca90",
       "outcome": "out-of-scope",
       "reason": "Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.",
       "evidence": [

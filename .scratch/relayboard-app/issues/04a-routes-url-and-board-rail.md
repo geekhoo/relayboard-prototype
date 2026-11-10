@@ -6,6 +6,8 @@
 
 **Blocked by:** 01 — Make the scaffold into a Relayboard shell; 03 — The client interface and its in-memory implementation
 
+**Write scope:** new route files under `src/routes/**`, plus the frame layout. Does **not** rewrite `src/routes/__root.tsx`, which 01 leaves finished.
+
 **Status:** ready-for-agent
 
 - [ ] The route tree contains only Relayboard routes: nothing resolves for `/about` or `/demo/tanstack-query`, and `routeTree.gen.ts` reflects that.

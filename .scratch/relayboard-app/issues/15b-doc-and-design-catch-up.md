@@ -6,6 +6,8 @@
 
 **Blocked by:** 15a — Every behaviour `QA.md` verified, exercised against the app
 
+**Write scope:** `QA.md`, `DESIGN.md`, `PRODUCT.md` and the design sidecar. Nothing under `src/`.
+
 **Status:** ready-for-agent
 
 - [ ] `QA.md` is rewritten to describe the app: its method, its scenario list, its viewport list and its `Not verified` section, with the prototype's hash-addressed files and `puppeteer-core` harness replaced by the app's route-seam suite. The honesty section stays: what was not exercised is stated in the same spirit as the original (L25–32).

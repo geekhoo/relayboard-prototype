@@ -6,6 +6,8 @@
 
 **Blocked by:** 04a — The route tree, the URL contract and the board rail
 
+**Write scope:** the thread-pane route and its components; append-only additions to `src/styles.css`, namespaced by component.
+
 **Status:** ready-for-agent
 
 - [ ] The open thread is in the URL, and reloading or pasting that URL restores the same board and thread.
