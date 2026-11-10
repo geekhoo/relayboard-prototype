@@ -1,7 +1,7 @@
 Status: ready-for-agent
 Tracker: local markdown — `.scratch/relayboard-app/spec.md`
 Tickets: `.scratch/relayboard-app/issues/01-*` … `15-*` (dependency order, blockers first)
-Revision: 7 — the demo seed is separable from what the reader creates: every entry records its origin, and a purge removes only demo-origin content while leaving the reader’s own boards, threads, posts, resources, identity and grants intact. Carries revisions 2-6 forward. Nothing is implemented yet; this supersedes the earlier revisions in place.
+Revision: 8 — adopts the delivery and lead-dev reviews. Decides where a session’s principal comes from, adds the two missing participant reads to the client interface, drops the paused-subscriber queue in favour of cursor replay, drops the async lock in favour of an explicit ordering rule, and pins the deployment target instead of documenting it. Carries revisions 2-7 forward.
 
 ## Problem Statement
 
@@ -302,6 +302,8 @@ interface RelayboardClient {
 
   // How far each principal has got. Read-only; the write is `acknowledge`.
   readPositions(threadId: ThreadId): Promise<PrincipalPosition[]>
+  listMembers(boardId: BoardId): Promise<PrincipalSummary[]>   // who is on this board
+  readPrincipal(principalId: PrincipalId): Promise<Principal> // one participant, with its grant here
 
   subscribe(handlers: StreamHandlers): Unsubscribe
 }
@@ -314,6 +316,8 @@ Each operation maps to exactly one permission, checked at the boundary:
 | `listBoards`, `listThreads`, `readThread`, `readMessages` | `read:board` on that board |
 | `listResources` | `read:resource` on that board |
 | `readPositions` | `read:thread` |
+| `listMembers` | `read:member` |
+| `readPrincipal` | `read:member` |
 | `appendMessage` | `post:message` |
 | `createThread` | `create:thread` |
 | `createBoard` | `create:board` |
@@ -341,7 +345,7 @@ The prototype's nine operations are carried forward unchanged in name and intent
 - The stream is **not** a server function. It is a server route returning `text/event-stream`, because a server function returns one response and closes. This is also why the client cannot use `EventSource` against the server-function RPC surface: the two are different transports on the same origin, and `subscribe` is the interface method that hides that difference.
 - The SSE event vocabulary extends the prototype's four mutation events plus a connection event: `message-committed`, `thread-created`, `board-created`, `resource-created`, `artifact-attached`, `status-moved`, `acknowledged`, `connection-changed`. Each carries the same payload shape the prototype dispatches for its existing events, extended for the new ones, so the payload contract is grown rather than reinvented.
 - Every thread-entry event carries the entry's `seq`, and the client uses that `seq` as its cursor. No client-side sequence arithmetic.
-- A paused subscriber receives no events and the server holds the queue keyed by thread. Resuming replays from the subscriber's cursor and reports the replayed count in `connection-changed`.
+- A paused subscriber receives no events. There is **no server-side queue**: the store does not hold withheld events for anyone, and resuming replays from the subscriber's `cursor`, which is what the prototype does and what the model already supports. A queue would be a second source of truth for what a subscriber has missed, and would need to be reconciled with `cursor` forever. The replay count is computed from the difference between the cursor and the thread's current `seq`, and reported in `connection-changed`.
 - Reconnect uses the standard SSE `Last-Event-ID` mechanism so the cursor survives a dropped connection without bespoke client bookkeeping.
 - A permission change is itself a stream event on any open connection for that principal, so a revoked principal is disconnected rather than left holding a live stream it may no longer read.
 
@@ -349,7 +353,14 @@ The prototype's nine operations are carried forward unchanged in name and intent
 
 This is the decision that changes the contract most, and it is deliberate.
 
-- A browser receives a signed, `HttpOnly`, `SameSite=Lax` workspace session cookie on first request, naming the principal it acts as. Session issuance is not authentication: it identifies, it does not authorise, and the interface and docs must say so.
+- A browser receives a signed, `HttpOnly`, `SameSite=Lax` workspace session cookie on its first request, naming **a seeded principal** selected round-robin from those the seed marks as browser-selectable. The reader therefore acts as a real principal with a real grant from the very first request, which is what makes a two-browser test deterministic and what lets the app be explored without a provisioning step. Session issuance is not authentication: it identifies, it does not authorise, and the interface and docs must say so.
+
+Consequences that must not be left to a ticket:
+
+- **The seed marks at least one principal as holding the workspace-wide grant** (a superadmin), and at least one as browser-selectable. Round-robin selection must be cyclic and stable within one store instance, so a test that opens two browsers knows which two principals it got — or can ask, which is cheaper and is why the principal read exists.
+- **A session is bound to a principal id, not to a name.** If the seed changes, an old cookie naming a principal that no longer exists resolves to no principal and the request is refused, rather than silently becoming somebody else.
+- **`SESSION_SECRET` signs it.** With no secret the app refuses to start; that is story 151 and it is checked at boot, not on the first request.
+- **A purge never invalidates a session.** The seed is demo content; the session is the reader’s identity, and cleaning up the demo must not log them out.
 - **`appendMessage` no longer accepts `authorId` from the client.** The server derives the acting principal from the resolved credential. A browser cannot post as another participant.
 - `simulateIncoming` picks its author server-side from the board's agent members; the client cannot choose which agent speaks.
 - The session needs a signing secret, which makes the app the first thing in this repository with a real secret. That is a boot-time requirement, not a per-request discovery: the app validates it at startup and refuses to run without it.
@@ -498,7 +509,7 @@ Because these messages are user-visible strings, they live in one place in the d
 
 ### Concurrency and the store's lifetime
 
-- The store is a single in-process instance with a per-store async lock around every mutation. `seq` assignment under concurrency is the one place a race would be a correctness bug, so it is serialised deliberately rather than hoped about.
+- The store is a single in-process instance. **The store is synchronous**, so a mutation runs to completion before the next one begins and there is no interleaving to protect against; an async lock here would protect nothing, and a test of it would pass against a no-op. The correctness rule is instead explicit and testable: **`seq` assignment and insertion are a single synchronous step**, and no `await` may appear between computing a thread’s next `seq` and appending the entry. A later move to an asynchronous store must revisit this, and the rule is recorded so that it is revisited rather than forgotten.
 - The store is **in-memory and volatile**. It survives connection churn and multiple tabs, which is the whole point of the port; it does not survive a server restart. The app says this in the interface, and the reset operation is documented.
 
 ### Deployment: the scaffold's target contradicts the store
@@ -508,7 +519,8 @@ The scaffold is configured for Vercel, and its Nitro build switches preset autom
 The decision:
 
 - **The app targets one long-running Node process.** The in-memory store and SSE both require it, and the shipping unit is that process. The Nitro node-server preset is the one that matches.
-- **The Vercel configuration is not a supported deployment for this spec.** It is neither deleted nor made to work; it stays as the scaffold left it and is documented as inert. Deploying to a serverless platform needs durable storage and a different notification transport, which is out of scope.
+- **The build pins the `node-server` preset in the app’s own Vite/Nitro configuration**, so a production build cannot silently become a serverless one. This is not a documentation matter: the scaffold’s recorded findings show that setting the Vercel environment variable makes Nitro auto-select the `vercel` preset and the build still succeeds, which is the exact trap — a green build that cannot hold an SSE connection. Pinning the preset makes the unsupported target fail loudly at build time instead.
+- **The Vercel deployment configuration is deleted, not annotated.** A file that appears to configure a deployment that cannot work is worse than no file, because the next person reads it as permission.
 - This is written down rather than left implicit because "deploy it to Vercel" is the obvious next thing someone will try, and it would appear to work until a second instance existed.
 
 ### The app's routes

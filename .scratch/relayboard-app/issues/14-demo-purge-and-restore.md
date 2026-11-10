@@ -2,7 +2,7 @@
 
 **What to build:** The workspace opens with demo content so it can be explored immediately, and that content must be removable without taking the reader's own work with it. A purge removes demo-origin records and nothing else: the reader's boards, threads, messages and resources survive, along with their identity, session and every grant. Where the two overlap — the reader's post on a demo board — the purge says so before it runs. Restore brings the demo back without duplicating whatever survived.
 
-**Blocked by:** 09 — create boards, threads and resources
+**Blocked by:** 09 — Create a board or thread, and add a resource; 11c — A revoked principal's stream closes, and the demo control stays honest
 
 **Status:** ready-for-agent
 
@@ -14,3 +14,6 @@
 - [ ] Restore re-seeds the demo content without duplicating what survived the purge.
 - [ ] Principals holding a subscription are told that a purge happened, rather than inferring a failure from silence.
 - [ ] The interface states that the store is in-memory and that a restart clears it, so a purge is not mistaken for the durability promise.
+- [ ] **A purge invalidates no session.** The reader stays the principal they were, with the grant they had; a purge that logged them out or stripped access would make the demo content feel like it was load-bearing.
+
+**Write note:** the purge is a destructive operation, so it is gated by the same grant machinery as everything else rather than by an unauthenticated route — see the reset-operation rule 06a records, and use one affordance for both.

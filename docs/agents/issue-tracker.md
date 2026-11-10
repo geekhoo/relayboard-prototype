@@ -13,14 +13,21 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 ## Current contents
 
 - `.scratch/relayboard-app/spec.md` — `/to-spec` output for porting the static
-  prototype into `apps/relayboard-web`. Status: `ready-for-agent`. Revision 7.
-- `.scratch/relayboard-app/issues/01-*` … `15-*` — `/to-tickets` output: fifteen
-  tracer-bullet tickets, numbered in dependency order with blockers first. Every
-  ticket is `ready-for-agent` by construction.
+  prototype into `apps/relayboard-web`. Status: `ready-for-agent`. Revision 8.
+- `.scratch/relayboard-app/issues/` — `/to-tickets` output, restructured after a
+  delivery review and a lead-dev review: **30 tickets**, each a green vertical
+  slice that fits one focused session. Twelve keep their original number; the
+  nine that were too large are now `02a–c`, `04a–c`, `06a–c`, `07a–b`, `08a–c`,
+  `10a–b`, `11a–c`, `13a–b`, `15a–c`. Every ticket is `ready-for-agent` by
+  construction.
+- `.scratch/relayboard-app/reviews/` — the two reviews that shaped the set, plus
+  the sub-issue proposals they came from. Read them when a ticket's reasoning is
+  unclear; they cite line numbers.
 
 Work the frontier: a ticket is startable when every ticket named in its
-`**Blocked by:**` line is complete. `01` and `02` have no blockers and can start
-immediately; `15` is the only ticket that depends on four others.
+`**Blocked by:**` line is complete. `01` and `02a` have no blockers and can start
+immediately, in parallel — but they share `vite.config.ts` and `package.json`, so
+take `02a` second if both are claimed the same day.
 
 ## When a skill says "publish to the issue tracker"
 

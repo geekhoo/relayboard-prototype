@@ -1,0 +1,23 @@
+# 11b: Live, pause, replay — the reader's side of the stream
+
+**From:** 11 — Live delivery, pause and replay over SSE
+
+**What to build:** The interface over the transport: new entries appear in an open thread without a refresh; the live indicator pairs a colour with a word and never reads "Live" while disconnected; pausing withholds entries from the view while they keep accumulating in history; a paused reader sees how many are waiting; resuming replays them in order and reports the count; and the read position survives a reload so a refresh is not a data-loss event.
+
+**Blocked by:** 11a — The stream as an SSE server route, with a written event contract
+
+**Status:** ready-for-agent
+
+- [ ] New entries appear in an open thread without a refresh, in `seq` order, as they commit.
+- [ ] The live indicator pairs a colour with a word (`DESIGN.md` §269, §284: never a status colour without its word). It reads "Live" only while the stream is connected, and "Paused" with the pending count while paused.
+- [ ] Pausing withholds entries from the view while they continue to accumulate in history. A test pauses, commits two entries, and asserts the view still shows the pre-pause last entry while the thread's entry count has risen.
+- [ ] A paused reader sees a count of the entries awaiting them, and that count is derived from the cursor rather than from a separate counter.
+- [ ] Resuming replays the withheld entries in order and reports how many were replayed, in the wording the prototype used (`app.js` L118: "Replayed N missed message(s)") and in the stream log.
+- [ ] The reader's position survives a page reload: a reload mid-thread restores the same thread and does not reset the cursor, so a refresh is not a data-loss event. `localStorage` holds only the remembered location (spec L482).
+- [ ] A stream that cannot be reached reports itself as unavailable rather than rendering an empty thread as if it were complete (spec L495, story 149).
+- [ ] The paused state is not lost on navigation: moving to another thread and back preserves it, or the interface states plainly that it does not.
+- [ ] The unread badge counts from `seen`, and the stream replays from `cursor`; a test asserts they diverge in the paused case and that neither is used for the other's purpose (spec L479).
+- [ ] The simulation control ("simulate an agent post") still works, and its panel states plainly that it is a demonstration and not another participant (story 51–52).
+- [ ] The route seam covers pause → commit → resume → count reported, and reload → position retained.
+
+**Leaves the build green:** yes.

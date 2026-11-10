@@ -20,7 +20,8 @@ them.
 | `QA.md` | The recorded, reproducible verification pass for the prototype. |
 | `INTENT.md` | How the agent skills are authored, validated and consumed. |
 | `.scratch/relayboard-app/spec.md` | The port spec: what the app must become, and every decision behind it. |
-| `.scratch/relayboard-app/issues/` | The port tickets, `01`–`15`, in dependency order. **Work the frontier**: a ticket is startable when every ticket in its `Blocked by` line is done. |
+| `.scratch/relayboard-app/issues/` | The port tickets — **30**, in dependency order. **Work the frontier**: a ticket is startable when every ticket in its `Blocked by` line is done. `01` and `02a` are the only two that can start now. |
+| `.scratch/relayboard-app/reviews/` | The two reviews that shaped the ticket set, with line-numbered evidence. |
 
 None of the workspace packaging is required to open the prototype:
 `index.html` still runs on its own.
