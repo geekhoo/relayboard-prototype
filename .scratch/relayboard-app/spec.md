@@ -1,6 +1,6 @@
 Status: ready-for-agent
 Tracker: local markdown — `.scratch/relayboard-app/spec.md`
-Revision: 6 — the permission vocabulary is per object (`<verb>:<object>`, workspace- and board-scoped) and covers every permissible action, adjustable later. Resource is promoted to the canonical object and artifact is defined as a resource attached to a thread. Superadmin is defined as a human provisioned with the workspace-wide grant. Carries revisions 2-5 forward. Nothing is implemented yet; this supersedes the earlier revisions in place.
+Revision: 7 — the demo seed is separable from what the reader creates: every entry records its origin, and a purge removes only demo-origin content while leaving the reader’s own boards, threads, posts, resources, identity and grants intact. Carries revisions 2-6 forward. Nothing is implemented yet; this supersedes the earlier revisions in place.
 
 ## Problem Statement
 
@@ -230,6 +230,16 @@ A participant gets the same product they can already see, except that the person
 158. As a maintainer, I want the shipped agent skills to describe the real application rather than the static prototype, so that the guidance stays true.
 159. As a maintainer, I want a parity checklist against the static prototype, so that "ported" is a verifiable claim and not an impression.
 
+
+### Demo data and purge
+
+160. As a human participant, I want demo content to be visibly demo content, so that I never mistake it for something I created.
+161. As a human participant, I want to purge the demo content without losing the boards, threads, messages and resources I made, so that I can make the workspace mine without starting over.
+162. As a human participant, I want to be told before a purge which of my own posts sit on a demo board and will go with it, so that I do not lose work to a cleanup.
+163. As a human participant, I want my own identity and my own permissions to survive a purge, so that cleaning up the demo does not log me out or strip my access.
+164. As a human participant, I want to restore the demo content without duplicating whatever survived, so that I can hand the workspace on exactly as I found it.
+165. As an agent principal, I want a purge to stop messaging me rather than silently disconnecting, so that I can tell a deliberate cleanup from a failure.
+
 ## Implementation Decisions
 
 ### Where this work happens
@@ -436,6 +446,8 @@ Admission changes what several other artefacts can honestly say. Each of these i
 - **The acknowledgement ladder changes what the participant drawer must show.** It currently shows kind, issuer, fingerprint and board access. It now has to show which permissions the principal holds and how far it has got on the current thread, or a reader cannot tell a silent principal from an unread one.
 - **`DESIGN.md` gains a second undocumented component: an act entry.** A status move, an artifact and an acknowledgement are new rows in the message chronology that must read as events rather than prose without becoming louder than a message — and an artifact must show which resource it points at without duplicating it. That is a visual decision, not an implementation detail, and it needs a `DESIGN.md` entry and a sidecar snippet.
 - **The skills’ `appendMessage` guidance is superseded twice over.** Not only does the caller no longer name its author, the thread now contains entries that are not messages at all. `relayboard-thread-sequencing`’s statement that reading is "order by `seq`, filter by thread" stays true, but its claim that a thread’s entries are messages does not.
+- **`DESIGN.md` gains a third undocumented component: the purge confirmation.** A destructive, demo-scoped action that must state what it will remove, including the reader’s own entries on demo boards, is a design decision about tone and consequence. It cannot be a default dialog.
+- **The skills must not teach agents that demo content is real.** An agent reading the seeded board should be able to see that it is demo-origin, so that a purge is expected rather than surprising.
 - **The interface is "what a participant can do", and the two grant-changing surfaces stay outside it.** `RelayboardClient` holds only operations that require a grant; admission and permission administration are separate surfaces beside it. If either joins the interface, it stops describing one caller and starts describing two.
 
 ### Environment configuration
@@ -446,6 +458,17 @@ The scaffold's `env.ts` exists, is correct in shape, and **is imported by nothin
 - Both declared variables are `.optional()`, which is why the untouched scaffold builds with no `.env` at all. The session secret must not be optional, or the app will start and fail on first post.
 
 The variable surface is therefore explicit: a required server-only session secret, and the existing optional title. Everything else stays optional so a fresh clone still builds and runs.
+
+### The demo seed is separable from the reader's own data
+
+The workspace opens with demo content so it can be explored immediately, and that content is not the reader's. The two must not be tangled, or cleaning up the demo either destroys real work or leaves the demo permanently embedded.
+
+- **Every entry records its origin**, as `demo` or `owner`. Boards, threads, entries and resources all carry it. This is a provenance field, not a permission: it says where a record came from, never who may touch it.
+- **Purge removes demo-origin records and nothing else.** The reader's own boards, threads, messages and resources survive, along with their principal, their session and every grant they hold. A purge that logs the reader out or strips access is a bug, because cleaning up sample content is not a security event.
+- **The interaction between the two is stated, not silently resolved.** A board the reader created survives a purge. A demo board the reader posted into does not survive, and the reader's posts on it go with it, because a post on a removed board has nowhere to live. The purge surface therefore names how many of the reader's own entries sit on demo boards before the action runs, and requires confirmation. The alternative — keeping the board alive because it acquired an owner entry — quietly converts demo content into permanent content and makes purge useless.
+- **Restore is additive and idempotent.** Re-seeding after a purge brings back the demo content without duplicating whatever survived, so a reader can hand the workspace on exactly as they received it.
+- **A purge is an event, not a silent disappearance.** Principals holding a subscription are told, so an agent that was messaging into demo content learns it was cleaned up rather than inferring a failure from transport silence.
+- **The store stays in-memory.** Purge does not make anything durable and does not need to; a restart clears everything regardless, and the interface says so.
 
 ### Sequencing and visibility
 
@@ -569,7 +592,7 @@ The store and contract seams are new. They are introduced with Vitest: the store
 - **Authentication.** A credential identifies a principal; it proves nothing about the entity holding it. There is no login, password, OAuth, MFA, or session hardening — a stolen credential is simply that principal.
 - **Roles as a system.** Permissions are granted individually. There are no roles, no groups, no inheritance, and no role editor. Superadmin exists only as the name for the workspace-wide grant held by one provisioned human; there is no superadmin console, no second tier, and no way to create another through the UI.
 - **Permission administration UI beyond admission.** The invite path grants a permission set at admission. Broadly editing an existing principal’s permissions after the fact is not in this spec.
-- **Durable storage.** The store is in-memory and volatile by decision. No database, no migration, no backup. Choosing one is a separate spec.
+- **Durable storage.** The store is in-memory and volatile by decision. No database, no migration, no backup. Purging the demo protects the reader’s own data from a cleanup, not from a restart. Choosing a database is a separate spec.
 - **Serverless or multi-instance deployment.** Explicitly excluded by the store decision, including the Vercel configuration the scaffold carries.
 - **Real agent runtime.** No agent execution, scheduling, tool invocation, model selection or task assignment. The exclusion in `PRODUCT.md` is permanent, not deferred.
 - **Message editing and deletion.** Corrections remain new messages. Redaction and tombstones stay discussed-not-implemented.
