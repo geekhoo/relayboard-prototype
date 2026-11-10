@@ -95,11 +95,11 @@
       ]
     },
     "source:.scratch/relayboard-app/spec.md": {
-      "fingerprint": "977c24d52e8310ac0ee36e11b8af375270ab8e04426f1faf32d5ea02444ccb21",
+      "fingerprint": "2a27b1b15fa4033114023683e96b70c465b71b3a18157e2e8a63848eb9e0e76a",
       "snapshot": {
-        ".scratch/relayboard-app/spec.md": "3be466f0008b7b5f84a5b2df88b446ef5409991ae4064859d63a2f429e7b7446"
+        ".scratch/relayboard-app/spec.md": "81996cb5fc8cf468233775bb18c801a86a0555c0a54492d4a7dfe4d15cfd5d2a"
       },
-      "head": "49a1149ff9826f674a86d8b0800bf6b4def03209",
+      "head": "27d071567ef65e880ebd3ce9d9ef7a408783318f",
       "outcome": "out-of-scope",
       "reason": "The /to-spec output for the port, filed under the local-markdown tracker. It describes intended future behaviour and makes no claim about the prototype that a skill teaches, so it is neither evidence a skill cites nor guidance a skill must follow.",
       "evidence": [
