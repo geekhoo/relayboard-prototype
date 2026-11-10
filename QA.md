@@ -1,19 +1,31 @@
 # Prototype validation
 
-**Method:** Chromium browser automation using a local HTML/CSS/JS injection harness; tests executed without a backend. Desktop 1440×900 and mobile 390×844.
+**Method:** Headless Google Chrome 157.0.8103.40 (`C:\Program Files\Google\Chrome\Application\chrome.exe`) driven by `puppeteer-core` 25.16.0 installed only in `%TEMP%\relayboard-qa` (no dependency added to this project), against `index.html` served over HTTP from a throwaway Node static server on an ephemeral localhost port (not `file://`). Viewports: **1440×900** and **390×844** (mobile emulation, `hasTouch`), plus 1200×900, 980×900, 680×900 and 320×700 for the layout checks. Every scenario starts from a cleared `localStorage` and a fresh load. Assertions read DOM state, element counts, the `relayboard-demo-v3` blob, and `scrollWidth`/`clientWidth`; no assertion depends on fonts, colours, or other computed styles. Files under test: `index.html` sha256:abc3e15cf9f5, `app.js` sha256:57f544259161, `styles.css` sha256:2a48d4e7ba41. Harness: `%TEMP%\relayboard-qa\run-qa.js`, machine-readable output in `%TEMP%\relayboard-qa\result.json`.
 
 ## Verified
 
-- Initial flat message history renders with nine messages in the selected thread.
-- Posting a message adds one canonical sequence position and updates the UI.
-- Pausing the mock subscription and simulating an agent post reports one pending notification.
-- Reconnecting replays the pending notification and returns to Live status.
-- Creating a board and then a thread works.
-- Posting in a newly created thread works.
-- Adding an external resource link works.
-- Switching between Threads, Resources, and People works.
-- Thread search filters by name/snippet; zero-result state displays.
-- Desktop and mobile render without document-level horizontal overflow.
-- No runtime JavaScript exceptions in tested paths.
+64 assertions across 12 scenarios, all passing in the recorded run.
 
-**Limitations:** The prototype does not establish real network durability, persistence across devices, actual broker acks, or production accessibility certification. Client-side localStorage and simulated async API functions are illustrative only.
+- **Initial load** renders "Durable message delivery" with exactly 9 message elements, stored sequence `1–9` with no gaps, header subtitle "Platform workspace · 9 messages", state seeded under `relayboard-demo-v3` (version 3).
+- **Posting** appends exactly one message (9 → 10), advances the canonical sequence by one (badge `#10`), clears the composer, and the Send button is disabled while empty and enabled once a draft exists. The committed text matches what was typed.
+- **Stream pause:** the pill reads "Live" with a "Pause stream" control; pausing flips it to "Paused" with "Reconnect & replay" and the panel reports "Stream paused".
+- **Paused + "Simulate agent post":** pending count is reported as `Paused · 1` with "1 message awaiting replay", and the message is committed to history (10 stored) while remaining withheld from the stream (delivery cursor 9, 9 bubbles rendered). **"Reconnect & replay"** replays it, the pill returns to "Live", bubbles go 9 → 10, the toast reads "Replayed 1 missed message", and the cursor catches up to the canonical sequence.
+- **Board → thread → post:** creating a board adds it to the sidebar (4 boards), selects it, and shows 0 threads with a "Start a conversation" empty state; creating a thread in it yields one row and "QA Sandbox · 0 messages"; posting there starts at sequence `#1` and the subtitle becomes "QA Sandbox · 1 message". Board, thread and message all survive a reload.
+- **Resources:** the seeded 3 links are listed; adding `https://example.com/qa-spec` appends a 4th row and stores it, with the toast "Resource link added". A non-HTTP scheme (`ftp://…`) is rejected with "Use an HTTP or HTTPS URL", stores nothing, and keeps the dialog open. A malformed value (`not-a-url`) never submits — native validation blocks it (`checkValidity()===false`, "Please enter a URL."). Resource chips inside messages are `<a>` elements with `http(s)` hrefs, `target="_blank"`, `rel="noopener noreferrer"`.
+- **Tabs:** Threads is the default (5 rows); Resources shows 3 rows; People shows 5 members including 2 agent tags; returning to Threads restores the 5 rows. `aria-selected` follows the active tab throughout. People rows are full-width (335px inside a 335px list), left-aligned, and `cursor:pointer`; clicking a row opens that participant's drawer, and clicking the row's chevron opens the same drawer.
+- **Thread search** narrows the list (5 → 1 for "replay", matching "Reconnect and replay behavior"), renders a zero-result empty state for "zzzz" ("No matching threads" / "Try a different search term."), and clearing the input restores all 5. The Unread filter narrows to the 2 unread threads with `aria-pressed="true"` and clears back to 5.
+- **Keyboard:** `/`, `Ctrl+K` and `Cmd/Meta+K` all move focus to the thread search field. Typing `/` inside the composer keeps focus and the draft in the composer. `Ctrl+Enter` and `Cmd/Meta+Enter` both commit the draft and clear the composer.
+- **No horizontal overflow:** `documentElement.scrollWidth === clientWidth` at 1440×900 (Threads, Resources, People and the stream dialog), at 390×844 (thread list, conversation, boards drawer, resources, stream dialog), and at 320×700.
+- **Stream dialog geometry** at 1440/1200/980/680/390 wide: fully inside the viewport, anchored to the right edge (25px gap desktop, 10px at ≤680px), sitting directly below the connection pill, and with zero geometric overlap of the composer dock; it is modal by design, its own controls stay hittable, and the composer is focusable again once it closes.
+- **Supporting paths:** the thread details drawer reports "Messages 9" / "Last sequence #9" and closes on `Escape`; clicking a message author opens the participant identity drawer with its fingerprint; in-thread message search filters ("broker" → 3 hits, "qqqqq" → "No matching messages") and restores 9 on close; triple-clicking Send still posts exactly one message; sending works from the 390px composer.
+- **No uncaught exceptions or console errors:** zero `Runtime.exceptionThrown`, zero error-level `Log.entryAdded`, zero `pageerror`, zero `console.error`, and no HTTP response ≥ 400 across every scenario above.
+
+## Not verified
+
+- **In-thread message search is not reachable at mobile widths.** The `#search-messages-btn` control is `display:none` with no layout box at 390px, and nothing else opens the message-search bar, so that feature exists only at desktop widths. Recorded here as a known gap, not a pass.
+- **Selection does not survive a reload.** After creating a board and thread, a reload keeps the data but returns the app to the default "Platform workspace" board and "Durable message delivery" thread.
+- Cross-browser behaviour: only Chromium was exercised. Firefox, Safari, and real iOS/Android browsers are untested.
+- Touch gestures, screen readers, and keyboard-only traversal beyond the shortcuts listed above were not tested.
+- Real multi-tab or multi-device sync, and the `storage` event path, were not exercised.
+
+**Limitations:** This is a client-side simulation. `window.RelayboardMockAPI` runs in the same page as the UI with `setTimeout` latency, so there is no real network durability, no persistence across devices or browsers, no broker acknowledgements, and no server-side ordering guarantee — `localStorage` under `relayboard-demo-v3` is the only store and it is per-browser-profile. The pause/replay sequence demonstrates a UI contract, not delivery semantics. Accessibility was checked only for landmarks, labels, focus targets, and the shortcuts above; nothing here constitutes a production accessibility certification (no full WCAG audit, no assistive-technology testing), and no performance, load, or security testing was performed.
