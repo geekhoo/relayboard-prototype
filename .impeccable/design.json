@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T04:39:01.059Z",
+  "title": "Design System: Relayboard",
+  "extensions": {
+    "colorMeta": {
+      "ink-strong": {
+        "role": "neutral",
+        "displayName": "Deep Fir Ink",
+        "canonical": "#1d332a",
+        "tonalRamp": [
+          "#1e2925",
+          "#2f5344",
+          "#457963",
+          "#5a9e82",
+          "#7eb69f",
+          "#a4cbbb",
+          "#c9e0d7",
+          "#f0f4f3"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Fir Ink",
+        "canonical": "#243a31",
+        "tonalRamp": [
+          "#1f2825",
+          "#325044",
+          "#497563",
+          "#5f9982",
+          "#82b19e",
+          "#a6c8ba",
+          "#cbdfd7",
+          "#f1f4f3"
+        ]
+      },
+      "ink-body": {
+        "role": "neutral",
+        "displayName": "Body Ink",
+        "canonical": "#475950",
+        "tonalRamp": [
+          "#212624",
+          "#3a4941",
+          "#54695f",
+          "#6e8a7c",
+          "#8ea59a",
+          "#afbfb7",
+          "#d0d9d5",
+          "#f1f3f2"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#5a6960",
+        "tonalRamp": [
+          "#222523",
+          "#3c4640",
+          "#57665d",
+          "#73867a",
+          "#92a298",
+          "#b2bdb6",
+          "#d1d8d4",
+          "#f2f3f2"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "canonical": "#62716a",
+        "tonalRamp": [
+          "#222524",
+          "#3d4642",
+          "#58655f",
+          "#73857d",
+          "#93a19a",
+          "#b2bcb8",
+          "#d2d8d5",
+          "#f2f3f2"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Rail Green",
+        "canonical": "#19322f",
+        "tonalRamp": [
+          "#1d2a29",
+          "#2b5752",
+          "#3f7e77",
+          "#53a69c",
+          "#78bbb3",
+          "#9fcfc9",
+          "#c7e3df",
+          "#f0f5f4"
+        ]
+      },
+      "rail-hover": {
+        "role": "neutral",
+        "displayName": "Rail Hover",
+        "canonical": "#294640",
+        "tonalRamp": [
+          "#1f2927",
+          "#30524b",
+          "#46776d",
+          "#5c9d8f",
+          "#7fb4a9",
+          "#a4cac2",
+          "#cae0db",
+          "#f0f4f3"
+        ]
+      },
+      "rail-active": {
+        "role": "neutral",
+        "displayName": "Rail Active",
+        "canonical": "#35544b",
+        "tonalRamp": [
+          "#1f2826",
+          "#325047",
+          "#497468",
+          "#609888",
+          "#83b1a3",
+          "#a7c7be",
+          "#cbded9",
+          "#f1f4f3"
+        ]
+      },
+      "rail-ink": {
+        "role": "neutral",
+        "displayName": "Rail Ink",
+        "canonical": "#d8e9e1",
+        "tonalRamp": [
+          "#1e2924",
+          "#2f5342",
+          "#447960",
+          "#5a9f7e",
+          "#7eb69b",
+          "#a3cbb8",
+          "#c9e1d5",
+          "#f0f4f2"
+        ]
+      },
+      "rail-ink-muted": {
+        "role": "neutral",
+        "displayName": "Rail Ink Muted",
+        "canonical": "#b7d1c4",
+        "tonalRamp": [
+          "#1f2824",
+          "#335041",
+          "#4a745f",
+          "#61987c",
+          "#83b09a",
+          "#a7c7b7",
+          "#cbded5",
+          "#f1f4f2"
+        ]
+      },
+      "rail-ink-faint": {
+        "role": "neutral",
+        "displayName": "Rail Ink Faint",
+        "canonical": "#9eb9ac",
+        "tonalRamp": [
+          "#212724",
+          "#374c42",
+          "#4f6e5f",
+          "#68907d",
+          "#89aa9a",
+          "#acc3b8",
+          "#cedcd5",
+          "#f1f3f2"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#242424",
+          "#414141",
+          "#5f5f5f",
+          "#7c7c7c",
+          "#9a9a9a",
+          "#b7b7b7",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "surface-panel": {
+        "role": "neutral",
+        "displayName": "Panel Grey",
+        "canonical": "#f8faf8",
+        "tonalRamp": [
+          "#202720",
+          "#364c36",
+          "#4f6e4f",
+          "#689168",
+          "#89ab89",
+          "#abc3ab",
+          "#cedcce",
+          "#f1f3f1"
+        ]
+      },
+      "surface-tint": {
+        "role": "neutral",
+        "displayName": "Tint Green",
+        "canonical": "#f5f8f5",
+        "tonalRamp": [
+          "#202720",
+          "#364d36",
+          "#4e6f4e",
+          "#669266",
+          "#88ac88",
+          "#abc4ab",
+          "#cddccd",
+          "#f1f3f1"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Rule Grey",
+        "canonical": "#e9eeea",
+        "tonalRamp": [
+          "#212622",
+          "#394a3c",
+          "#536b57",
+          "#6c8c73",
+          "#8da792",
+          "#aec0b2",
+          "#cfdad1",
+          "#f1f3f2"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Working Green",
+        "canonical": "#176e52",
+        "tonalRamp": [
+          "#173128",
+          "#176c50",
+          "#219d75",
+          "#2bcd99",
+          "#57dcb1",
+          "#88e6c8",
+          "#b9f0df",
+          "#eef7f4"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Working Green",
+        "canonical": "#105c43",
+        "tonalRamp": [
+          "#163228",
+          "#136f51",
+          "#1ca176",
+          "#25d49a",
+          "#52e1b2",
+          "#85eac9",
+          "#b7f2df",
+          "#edf7f4"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Reading Green",
+        "canonical": "#1e604a",
+        "tonalRamp": [
+          "#192e27",
+          "#1f634d",
+          "#2d906f",
+          "#3bbd92",
+          "#65cfab",
+          "#92ddc4",
+          "#bfebdc",
+          "#eff6f3"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Pale Green Wash",
+        "canonical": "#e8f4ee",
+        "tonalRamp": [
+          "#1d2b24",
+          "#2a5841",
+          "#3d805f",
+          "#50a87c",
+          "#76bd9a",
+          "#9ed1b7",
+          "#c6e4d5",
+          "#f0f5f2"
+        ]
+      },
+      "accent-chip-bg": {
+        "role": "primary",
+        "displayName": "Green Chip Wash",
+        "canonical": "#dbece0",
+        "tonalRamp": [
+          "#1e2a21",
+          "#2d5539",
+          "#417c53",
+          "#56a36c",
+          "#7ab98d",
+          "#a1cdae",
+          "#c8e2cf",
+          "#f0f4f1"
+        ]
+      },
+      "live": {
+        "role": "secondary",
+        "displayName": "Signal Green",
+        "canonical": "#1e9371",
+        "tonalRamp": [
+          "#173129",
+          "#166c53",
+          "#209d79",
+          "#2ace9f",
+          "#57ddb6",
+          "#88e7cb",
+          "#b9f1e0",
+          "#eef7f4"
+        ]
+      },
+      "paused": {
+        "role": "secondary",
+        "displayName": "Held Amber",
+        "canonical": "#8a6620",
+        "tonalRamp": [
+          "#302817",
+          "#6a4e19",
+          "#9a7224",
+          "#ca952f",
+          "#d9ae5b",
+          "#e4c68a",
+          "#efddba",
+          "#f7f4ee"
+        ]
+      },
+      "paused-surface": {
+        "role": "secondary",
+        "displayName": "Held Amber Wash",
+        "canonical": "#faf7ee",
+        "tonalRamp": [
+          "#2e2919",
+          "#65531e",
+          "#92792b",
+          "#c09e38",
+          "#d1b562",
+          "#decb90",
+          "#ece0be",
+          "#f6f4ee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Board name and thread intro heading. 22px / 700, balanced wrap."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Dialog titles, drawer identity names. 17px / 700."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Thread rows, conversation header, author names. 13.5–16px / 600–700."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Message text. 13px / 400 at 1.75, capped at 68ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase section headings and micro-labels. 11px / 600 with 0.8px tracking."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 18px 50px rgba(12, 24, 20, 0.18)",
+        "purpose": "Modal dialogs."
+      },
+      {
+        "name": "popover",
+        "value": "0 20px 60px rgba(12, 24, 20, 0.16)",
+        "purpose": "Message-stream panel."
+      },
+      {
+        "name": "drawer",
+        "value": "-16px 0 45px rgba(12, 24, 20, 0.1)",
+        "purpose": "Details drawer, offset toward its leading edge."
+      },
+      {
+        "name": "toast",
+        "value": "0 8px 28px rgba(12, 24, 20, 0.22)",
+        "purpose": "Transient confirmations."
+      },
+      {
+        "name": "rest",
+        "value": "0 1px 2px rgba(12, 24, 20, 0.06)",
+        "purpose": "Composer resting edge only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "State transitions on rows, tabs and buttons (0.15s)."
+      },
+      {
+        "name": "ease-out-soft",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Drawer and rail slide (0.2–0.22s)."
+      },
+      {
+        "name": "ease-out-fade",
+        "value": "ease-out",
+        "purpose": "Scrim and toast fade (0.16–0.18s)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rail-narrow",
+        "value": "1200px"
+      },
+      {
+        "name": "rail-drawer",
+        "value": "980px"
+      },
+      {
+        "name": "single-column",
+        "value": "680px"
+      },
+      {
+        "name": "min-width",
+        "value": "320px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled action on a view — send a message, confirm a dialog.",
+      "html": "<button class=\"ds-btn-primary\">Send<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 11 17-8-6.8 18-2.4-7.8L3 11Z\"/><path d=\"m10.8 13.2 9.1-10\"/></svg></button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:34px;padding:8px 13px;background:#176e52;color:#fff;border:1px solid #176e52;border-radius:7px;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s ease-out,border-color .15s ease-out}.ds-btn-primary:hover{background:#105c43;border-color:#105c43}.ds-btn-primary:focus-visible{outline:2px solid #0f6b52;outline-offset:2px}.ds-btn-primary:disabled{background:#dfe9e3;color:#55665d;border-color:#dfe9e3;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral companion action: cancel, pause the stream, add a resource.",
+      "html": "<button class=\"ds-btn-secondary\">Reconnect &amp; replay</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:8px 12px;background:#fff;color:#3d5c4c;border:1px solid #d3e0d7;border-radius:7px;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s ease-out,border-color .15s ease-out}.ds-btn-secondary:hover{background:#f2f7f2;border-color:#b6d4c1}.ds-btn-secondary:focus-visible{outline:2px solid #0f6b52;outline-offset:2px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-box",
+      "description": "Thread search with an inline shortcut affordance; focus is a real ring, not a border tint.",
+      "html": "<label class=\"ds-search\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"10.8\" cy=\"10.8\" r=\"6.8\"/><path d=\"m16 16 4.5 4.5\"/></svg><input placeholder=\"Find a thread\" /><span class=\"ds-search-key\">/</span></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:9px;height:38px;padding:0 10px;background:#fff;border:1px solid #e5eae6;border-radius:9px;color:#62716a;transition:border-color .2s}.ds-search:focus-within{border-color:#7fb79c}.ds-search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif;font-size:13px;color:#243a31}.ds-search input::placeholder{color:#66756e;opacity:1}.ds-search-key{min-width:18px;line-height:18px;text-align:center;font-size:11px;color:#5a6960;background:#f4f5f3;border:1px solid #e1e4df;border-radius:4px}"
+    },
+    {
+      "name": "Board Rail Row",
+      "kind": "nav",
+      "refersTo": "board-button-active",
+      "description": "Board entry in the dark rail. The active row is a fill plus a 1px inset edge — never a side stripe.",
+      "html": "<div class=\"ds-rail\"><button class=\"ds-board is-active\"><span class=\"ds-board-mark\">P</span><span class=\"ds-board-name\">Platform workspace</span><span class=\"ds-board-count\">3</span></button><button class=\"ds-board\"><span class=\"ds-board-mark ds-ochre\">C</span><span class=\"ds-board-name\">Campaign launch</span></button></div>",
+      "css": ".ds-rail{display:flex;flex-direction:column;gap:3px;padding:8px;background:#19322f;border-radius:9px;width:248px;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-board{display:flex;align-items:center;gap:10px;width:100%;padding:11px 10px;background:transparent;border:0;border-radius:7px;color:#b7d1c4;text-align:left;font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s ease-out,color .15s ease-out}.ds-board:hover{background:#294640;color:#fff}.ds-board.is-active{background:#35544b;color:#fff;box-shadow:inset 0 0 0 1px #4d6c62}.ds-board:focus-visible{outline:2px solid #9be0bd;outline-offset:2px}.ds-board-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:#527b72;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}.ds-board-mark.ds-ochre{background:#8a6553}.ds-board-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-board-count{min-width:20px;padding:2px 6px;text-align:center;font-size:11px;font-weight:500;color:#d3e1d9;background:#486158;border-radius:4px}"
+    },
+    {
+      "name": "Thread Row",
+      "kind": "card",
+      "refersTo": "thread-row-selected",
+      "description": "The pane index row: title, last line, author, count, unread marker.",
+      "html": "<button class=\"ds-thread is-selected\"><span class=\"ds-thread-icon\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><path d=\"M9 3 6 21M18 3l-3 18M4 9h17M3 15h17\"/></svg></span><span class=\"ds-thread-main\"><span class=\"ds-thread-top\"><span class=\"ds-thread-title\">Durable message delivery</span><span class=\"ds-thread-time\">23m</span></span><span class=\"ds-thread-excerpt\">That gives us a clean boundary. I’ve linked the event envelope specification for…</span><span class=\"ds-thread-meta\"><span>Alex Morgan</span><span class=\"ds-sep\"></span><span>9 msgs</span><span class=\"ds-unread\"></span></span></span></button>",
+      "css": ".ds-thread{display:flex;gap:10px;width:100%;padding:13px 13px 14px;background:#f8faf8;border:0;border-radius:9px;text-align:left;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif;cursor:pointer;transition:background .15s ease-out}.ds-thread:hover{background:#edf1ed}.ds-thread.is-selected{background:#e8f2eb;box-shadow:inset 0 0 0 1px #d5e6dc}.ds-thread:focus-visible{outline:2px solid #0f6b52;outline-offset:2px}.ds-thread-icon{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#fff;border:1px solid #e5eae4;color:#7b8b81;flex-shrink:0}.ds-thread.is-selected .ds-thread-icon{background:#d6e7da;color:#356f58;border-color:#cee3d2}.ds-thread-main{flex:1;min-width:0}.ds-thread-top{display:flex;align-items:baseline;gap:8px}.ds-thread-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600;color:#34443d}.ds-thread.is-selected .ds-thread-title{color:#1f5641}.ds-thread-time{font-size:11px;color:#5a6960;font-variant-numeric:tabular-nums;white-space:nowrap}.ds-thread-excerpt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:6px;font-size:13px;line-height:1.45;color:#5a6960}.ds-thread-meta{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11px;color:#5a6960}.ds-sep{width:3px;height:3px;border-radius:50%;background:#a7b1a7}.ds-unread{width:6px;height:6px;border-radius:50%;background:#1e9371}"
+    },
+    {
+      "name": "Message Byline",
+      "kind": "custom",
+      "refersTo": "agent-chip",
+      "description": "The signature row: author, principal kind, time, and the canonical sequence number revealed on hover.",
+      "html": "<article class=\"ds-msg\"><span class=\"ds-avatar ds-avatar-agent\">OR</span><div class=\"ds-msg-body\"><div class=\"ds-byleline\"><button class=\"ds-author\">Orion</button><span class=\"ds-agent\">AGENT</span><time class=\"ds-time\">9:54 AM</time><span class=\"ds-seq\">#6</span></div><p class=\"ds-msg-text\">Give each subscriber a durable position and expose a replay API. On reconnect, the subscriber reads events after its last acknowledged cursor, then resumes live delivery.</p></div></article>",
+      "css": ".ds-msg{display:flex;gap:13px;padding:13px;border-radius:9px;background:#fff;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-avatar{display:flex;align-items:center;justify-content:center;width:35px;height:35px;border-radius:9px;background:#dfecdf;color:#2c6b4e;font-size:11px;font-weight:600;flex-shrink:0}.ds-msg-body{flex:1;min-width:0}.ds-byleline{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:20px}.ds-author{padding:0;background:none;border:0;font-family:inherit;font-size:14px;font-weight:700;color:#2b4136;cursor:pointer}.ds-author:hover{text-decoration:underline;text-underline-offset:3px}.ds-agent{padding:2px 6px;border-radius:4px;background:#ebf5ee;color:#2c6b4e;font-size:11px;font-weight:600;letter-spacing:.3px}.ds-time{margin:0;font-size:12px;color:#5a6960;font-variant-numeric:tabular-nums}.ds-seq{margin-left:auto;font-size:11px;color:#5a6960;font-variant-numeric:tabular-nums;visibility:hidden}.ds-msg:hover .ds-seq{visibility:visible}.ds-msg-text{margin:5px 0 0;max-width:68ch;font-size:13px;line-height:1.75;color:#475950}"
+    },
+    {
+      "name": "Composer",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "The primary surface action; stays at the bottom of the conversation at every width.",
+      "html": "<div class=\"ds-composer\"><textarea placeholder=\"Write a message to this thread…\"></textarea><div class=\"ds-composer-bottom\"><span class=\"ds-identity\"><span class=\"ds-avatar ds-avatar-self\">AM</span>Posting as Alex</span><span class=\"ds-actions\"><span class=\"ds-hint\">⌘ / Ctrl + Enter</span><button class=\"ds-btn-primary\">Send</button></span></div></div>",
+      "css": ".ds-composer{max-width:780px;background:#fff;border:1px solid #dfe6df;border-radius:12px;box-shadow:0 1px 2px rgba(12,24,20,.06);font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-composer:focus-within{border-color:#7fb79c}.ds-composer textarea{display:block;width:100%;min-height:66px;padding:17px 20px 6px;border:0;outline:none;resize:none;background:transparent;font-family:inherit;font-size:13px;line-height:1.6;color:#243a31}.ds-composer textarea::placeholder{color:#66756e;opacity:1}.ds-composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:0 12px 10px 15px}.ds-identity{display:flex;align-items:center;gap:7px;font-size:12px;color:#5a6960}.ds-avatar-self{width:24px;height:24px;border-radius:7px;background:#ecd5c3;color:#5e3d24;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}.ds-actions{display:flex;align-items:center;gap:9px}.ds-hint{font-size:12px;color:#5a6960;white-space:nowrap}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "connection-pill",
+      "description": "Live / Paused. Always a dot plus a word; pausing shifts the whole badge to the held amber pair.",
+      "html": "<button class=\"ds-status\"><span class=\"ds-dot\"></span>Live<svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></button>",
+      "css": ".ds-status{display:flex;align-items:center;gap:7px;height:31px;padding:0 10px;background:#f4f9f5;border:1px solid #dce8df;border-radius:7px;color:#2f6d50;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s ease-out}.ds-status:hover{background:#eaf4ec}.ds-status:focus-visible{outline:2px solid #0f6b52;outline-offset:2px}.ds-dot{width:7px;height:7px;border-radius:50%;background:#1e9371;flex-shrink:0}.ds-status.is-paused{background:#faf7ee;border-color:#e6dcc2;color:#8a6620}.ds-status.is-paused .ds-dot{background:#9a6f1c}"
+    },
+    {
+      "name": "Details Drawer",
+      "kind": "card",
+      "refersTo": "detail-drawer",
+      "description": "Thread and participant details; slides from the right over a scrim.",
+      "html": "<aside class=\"ds-drawer\"><div class=\"ds-drawer-head\"><h2>Participant identity</h2><button class=\"ds-close\" aria-label=\"Close\">×</button></div><div class=\"ds-drawer-block\"><div class=\"ds-identity-row\"><span class=\"ds-avatar ds-avatar-self\">AM</span><div><strong class=\"ds-name\">Alex Morgan</strong><div class=\"ds-role\">Human participant</div></div></div><p class=\"ds-body\">Product &amp; engineering</p></div><div class=\"ds-drawer-block\"><h3>Identity fingerprint</h3><code class=\"ds-fp\">human:northstar/alex</code></div></aside>",
+      "css": ".ds-drawer{width:385px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:-16px 0 45px rgba(12,24,20,.1);font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:77px;padding:18px 26px;border-bottom:1px solid #e9eeea}.ds-drawer-head h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.2px;color:#1d332a}.ds-close{width:33px;height:33px;border:0;border-radius:7px;background:transparent;color:#62716a;font-size:22px;line-height:1;cursor:pointer}.ds-close:hover{background:#f2f5f2;color:#2b5942}.ds-drawer-block{padding:26px 27px;border-bottom:1px solid #e9eeea}.ds-drawer-block h3{margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#5a6960}.ds-identity-row{display:flex;align-items:center;gap:12px;margin-bottom:17px}.ds-name{display:block;font-size:17px;font-weight:700;color:#1d332a}.ds-role{font-size:12px;color:#5a6960}.ds-body{margin:0;font-size:13px;line-height:1.7;color:#475950}.ds-fp{display:block;padding:8px 10px;background:#f5f7f4;border-radius:7px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#4c6a58;word-break:break-all}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Reading Room",
+    "overview": "Relayboard is a place you return to, not a place you watch. The visual system is built for the reader who arrives after hours of silence and has to reconstruct what happened: who spoke, as which principal, and in what order. Everything that supports that reconstruction is quiet and close at hand; everything that competes with it is absent.\n\nThe screen is three depths of the same green-grey family rather than three products. A dark rail holds the map, a softly tinted pane holds the index, and an unmarked white surface holds the conversation itself. Moving left to right moves from where you are to what is being said, and the lightening is the whole hierarchy.\n\nThe system's restraint is a functional choice, not a temperament. Authorship is the evidence in this product, and evidence has to be legible before it is attractive.",
+    "keyCharacteristics": [
+      "Three-column depth by value shift, no decorative borders or shadows between zones.",
+      "One accent green, used on a small share of any screen: the primary action, the active tab rule, the selected row.",
+      "IBM Plex Sans throughout, at a 13px body and a 22px ceiling; the scale is compressed on purpose.",
+      "Flat at rest. Elevation exists only for genuinely floating layers.",
+      "Status colors are named and pair a color with a word; color alone never carries state."
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "The accent green appears on at most one filled control and one active marker per view. Its scarcity is what makes it read as an action.",
+        "section": "colors"
+      },
+      {
+        "name": "The Named Status Rule",
+        "body": "Live, Paused and Replaying always ship a dot and a word. A color on its own is a decoration, not a state.",
+        "section": "colors"
+      },
+      {
+        "name": "The 11px Floor Rule",
+        "body": "No functional or content-bearing text ships below 11px, and no body copy below 13px.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Step Rule",
+        "body": "Adjacent levels of the scale differ by at least one clear step in size or weight, not by half a pixel.",
+        "section": "typography"
+      },
+      {
+        "name": "The Neutral Shadow Rule",
+        "body": "Every shadow is neutral black-green with an offset and a real blur. There are no zero-offset colored halos anywhere in the system.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Inset Edge Rule",
+        "body": "Where a selected row needs more definition than a fill provides, it takes a 1px inset edge in its own hue.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the accent green to one filled control and one active marker per view.",
+      "Do put a word next to every status color, including inside dialogs.",
+      "Do hold meta text at 11px and body at 13px; both floors are tested.",
+      "Do use a 1px inset edge, not a side stripe, to mark a selected row.",
+      "Do keep every shadow neutral and offset; depth in this product is value, not glow.",
+      "Do show authorship, principal kind, time, and sequence for every message."
+    ],
+    "donts": [
+      "Don't distinguish agents with a different surface, border treatment, or loud color.",
+      "Don't introduce a card to group content that a divider already separates.",
+      "Don't let the palette drift warm; the cream default is the failure mode this system avoids.",
+      "Don't drop functional text below 11px on the grounds of a meta or footer label.",
+      "Don't add a colored glow, gradient wash, or radial halo to any surface.",
+      "Don't let a status color appear without its word."
+    ]
+  }
+}
