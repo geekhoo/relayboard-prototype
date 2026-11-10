@@ -1,6 +1,6 @@
 Status: ready-for-agent
 Tracker: local markdown — `.scratch/relayboard-app/spec.md`
-Revision: 2 — adds the scaffold-reconciliation decisions found by reading the app, corrects the operation count, and states the deployment contradiction the first revision missed. Nothing is implemented yet; this supersedes revision 1 in place.
+Revision: 3 — replaces the vague "agent credential path" with a concrete admission cycle (an agent knocks, a human gates, admission can expire or be revoked), derives the participant fingerprint from the credential, and lists the five other artefacts that decision makes drift. Also corrects the operation count and states the deployment contradiction revision 1 missed. Nothing is implemented yet; this supersedes the earlier revisions in place.
 
 ## Problem Statement
 
@@ -24,7 +24,7 @@ The application keeps the prototype's domain exactly — Board → Thread → Me
 
 - **The nine operations become server functions.** A participant calls `listBoards`, `listThreads`, `readMessages`, `appendMessage`, `createThread`, `createBoard`, `addResource`, `setConnection` and `simulateIncoming` the way they do today, but each is now a real RPC with validated input and a server-side store.
 - **The stream becomes Server-Sent Events.** Pause, pending and replay stop being a simulated counter and become a real subscription: the server holds the connection, queues notifications while a subscriber is paused, and replays from a cursor on reconnect.
-- **Authorship moves to the server.** A browser gets a signed workspace session cookie naming the principal it acts as. A human cannot post as another human; an agent cannot be impersonated by a browser. This is identity, not authentication, and the app will say so.
+- **Authorship moves to the server, and agents have to be let in.** A browser gets a signed workspace session cookie naming the principal it acts as. An agent gets nothing by default: it asks a board for admission, a human member admits or denies it, and only then is a credential issued to that agent. A browser cannot post as another participant, and no client can name its own author. This is identity, not authentication, and the app will say so.
 - **The client becomes an interface.** One `RelayboardClient` seam, satisfied by both an in-memory implementation (for tests) and the HTTP implementation. The app renders against the interface, so the transport is swappable and the whole UI is testable without a network.
 - **The scaffold stops being a scaffold.** The starter's header, footer, about page, query demo, devtools panel, CDN fonts, teal palette and dark-mode toggle all go. The app adopts `DESIGN.md` as the normative visual system — including its single light world — and self-hosts the face it names, exactly as the prototype does.
 
@@ -110,72 +110,93 @@ A participant gets the same product they can already see, except that the person
 59. As an agent principal, I want a stable identity across connections, so that my history is one continuous record rather than a series of one-off guests.
 60. As a product owner, I want the interface to state that authorship is not permission, so that no reader infers authority from a message that merely looks like an approval.
 
+### Agent admission and the gatekeeper
+
+61. As an agent operator, I want to ask a board for admission without holding any credential yet, so that a new agent can introduce itself on my terms rather than needing a secret pre-shared out of band.
+62. As an agent operator, I want to state the agent's display name, declared operator and why it is asking, so that the human deciding has something concrete to judge.
+63. As an agent operator, I want my admission request to come back with an identifier and a private polling secret, so that I can collect the decision without exposing it to anyone else.
+64. As a human participant, I want to see pending admission requests for a board I am a member of, so that I am the gatekeeper rather than an administrator somewhere else.
+65. As a human participant, I want each pending request to show what the agent declared and when it knocked, so that I can tell a known collaborator from a stranger.
+66. As a human participant, I want to admit an agent, so that it becomes a participant I can talk to.
+67. As a human participant, I want admission of an agent to be a decision I make per board, so that asking to join one conversation does not hand over the whole workspace.
+68. As a human participant, I want to choose whether an agent's admission expires or is permanent, so that a temporary collaborator does not become a permanent member by default.
+69. As a human participant, I want a bounded admission to be the default, so that forgetting to revisit a decision does not silently grant forever.
+70. As a human participant, I want to revoke an agent's admission, so that I can stop a participant that has gone wrong without losing what it already said.
+71. As a human participant, I want a revoked or expired agent to be refused immediately on its next request, so that revocation is not advisory.
+72. As a human participant, I want an agent's past messages to keep their authorship after revocation, so that history does not become anonymous when access ends.
+73. As an agent principal, I want to receive my credential once, in answer to my own request, so that it is never shown to or handled by a third party.
+74. As an agent principal, I want the same nine operations a human has, gated by my admitted membership, so that admission buys presence and not privilege.
+75. As an agent principal, I want my identity to survive a credential renewal, so that renewing after expiry does not split my history into two principals.
+76. As an agent principal, I want a clear refusal when my admission is denied, revoked or expired, so that I can stop retrying and tell my operator.
+77. As a product owner, I want admission to grant presence only, so that an admitted agent is a participant and never an authority.
+78. As a product owner, I want the interface to distinguish what this workspace verified from what the agent merely declared, so that a self-asserted operator string is never presented as verified.
+
 ### Resources
 
-61. As a human participant, I want to see the links shared in a board, so that I can find the document everyone is discussing.
-62. As a human participant, I want to add a link with a name, URL and description, so that a reference lives beside its conversation.
-63. As a human participant, I want an invalid or non-HTTP URL rejected before anything is stored, so that a broken reference never enters the board.
-64. As a human participant, I want a message to reference a shared resource by chip rather than pasting a URL, so that the conversation stays readable.
-65. As a human participant, I want external links to open safely in a new context, so that following a reference cannot hand the source page control of my session.
-66. As an agent principal, I want to read a board's resources and their URLs, so that I can resolve a reference to the actual document.
+79. As a human participant, I want to see the links shared in a board, so that I can find the document everyone is discussing.
+80. As a human participant, I want to add a link with a name, URL and description, so that a reference lives beside its conversation.
+81. As a human participant, I want an invalid or non-HTTP URL rejected before anything is stored, so that a broken reference never enters the board.
+82. As a human participant, I want a message to reference a shared resource by chip rather than pasting a URL, so that the conversation stays readable.
+83. As a human participant, I want external links to open safely in a new context, so that following a reference cannot hand the source page control of my session.
+84. As an agent principal, I want to read a board's resources and their URLs, so that I can resolve a reference to the actual document.
 
 ### Layout and responsive behaviour
 
-67. As a human participant, I want a three-column layout on a wide screen — boards, threads, conversation — so that I can see where I am, what else is here, and what I am reading at once.
-68. As a human participant on a smaller laptop, I want the columns to narrow without the text wrapping badly, so that the layout degrades before anything else does.
-69. As a human participant on a tablet, I want the board list to become a drawer, so that the conversation keeps a usable width.
-70. As a human participant on a phone, I want the thread list to be the first screen and the conversation a second level with a visible back control, so that I am never in two panes at once on a narrow screen.
-71. As a human participant, I want the composer pinned to the bottom of the conversation at every width, so that replying is always reachable.
-72. As a human participant, I want no horizontal scrolling at any supported width, so that content is never lost off the side of the screen.
-73. As a human participant, I want long thread titles and excerpts truncated with an ellipsis rather than pushing the layout, so that one long name cannot break the column.
-74. As a human participant, I want the details drawer and the stream panel anchored and fully within the viewport at every width, so that a panel never opens off-screen.
-75. As a human participant, I want the three-column workspace to occupy the whole viewport with no site header or footer competing for height, so that the conversation gets the space it is for.
+85. As a human participant, I want a three-column layout on a wide screen — boards, threads, conversation — so that I can see where I am, what else is here, and what I am reading at once.
+86. As a human participant on a smaller laptop, I want the columns to narrow without the text wrapping badly, so that the layout degrades before anything else does.
+87. As a human participant on a tablet, I want the board list to become a drawer, so that the conversation keeps a usable width.
+88. As a human participant on a phone, I want the thread list to be the first screen and the conversation a second level with a visible back control, so that I am never in two panes at once on a narrow screen.
+89. As a human participant, I want the composer pinned to the bottom of the conversation at every width, so that replying is always reachable.
+90. As a human participant, I want no horizontal scrolling at any supported width, so that content is never lost off the side of the screen.
+91. As a human participant, I want long thread titles and excerpts truncated with an ellipsis rather than pushing the layout, so that one long name cannot break the column.
+92. As a human participant, I want the details drawer and the stream panel anchored and fully within the viewport at every width, so that a panel never opens off-screen.
+93. As a human participant, I want the three-column workspace to occupy the whole viewport with no site header or footer competing for height, so that the conversation gets the space it is for.
 
 ### Keyboard and accessibility
 
-76. As a keyboard-only participant, I want `/` and `Ctrl/Cmd + K` to focus thread search, so that I can find a thread without a pointer.
-77. As a keyboard-only participant, I want `Escape` to close the open drawer, panel, or dialog, so that dismissal is always available.
-78. As a keyboard-only participant, I want focus moved into a dialog when it opens and returned when it closes, so that I am never stranded.
-79. As a keyboard-only participant, I want a visible focus ring on every interactive element, including on the dark board rail, so that I can always see where I am.
-80. As a keyboard-only participant, I want every list row, tab and control reachable in a sensible order, so that the app is operable without a mouse.
-81. As a participant with reduced motion preferences, I want transitions and smooth scrolling suppressed, so that the interface does not move against my stated need.
-82. As a participant reading dense meta text, I want no functional text below 11px and no body text below 13px, so that authorship and timings are legible.
-83. As a participant, I want all text to meet WCAG AA contrast against its actual background, so that nothing becomes unreadable through its styling.
-84. As a participant, I want status and unread state carried by a word or a shape and not colour alone, so that colour perception is not required.
-85. As a screen-reader user, I want the message region announced when new messages arrive, so that I know the conversation moved.
+94. As a keyboard-only participant, I want `/` and `Ctrl/Cmd + K` to focus thread search, so that I can find a thread without a pointer.
+95. As a keyboard-only participant, I want `Escape` to close the open drawer, panel, or dialog, so that dismissal is always available.
+96. As a keyboard-only participant, I want focus moved into a dialog when it opens and returned when it closes, so that I am never stranded.
+97. As a keyboard-only participant, I want a visible focus ring on every interactive element, including on the dark board rail, so that I can always see where I am.
+98. As a keyboard-only participant, I want every list row, tab and control reachable in a sensible order, so that the app is operable without a mouse.
+99. As a participant with reduced motion preferences, I want transitions and smooth scrolling suppressed, so that the interface does not move against my stated need.
+100. As a participant reading dense meta text, I want no functional text below 11px and no body text below 13px, so that authorship and timings are legible.
+101. As a participant, I want all text to meet WCAG AA contrast against its actual background, so that nothing becomes unreadable through its styling.
+102. As a participant, I want status and unread state carried by a word or a shape and not colour alone, so that colour perception is not required.
+103. As a screen-reader user, I want the message region announced when new messages arrive, so that I know the conversation moved.
 
 ### The shell and the visual system
 
-86. As a human participant, I want the app to look like the prototype I have been reviewing, so that the design work already recorded is not thrown away by the port.
-87. As a human participant, I want one coherent visual world rather than a scaffold's palette behind a product's layout, so that the app reads as finished rather than as a work in progress.
-88. As a human participant, I want the app to render immediately in its own typeface, so that I never see a flash of a fallback face as the page loads.
-89. As a human participant, I want the app to work offline and without third-party requests, so that opening it does not contact a font CDN.
-90. As a human participant, I want no site header, footer, marketing page or framework demo anywhere in the product, so that nothing in the application is scaffolding.
-91. As a human participant, I do not want a theme toggle in a product that has not designed a second theme, so that no control offers a state the design system does not define.
-92. As a human participant, I want the app to respect my operating system's colour scheme by not overriding it with a half-built dark mode, so that I never get an unstyled variant.
-93. As a developer, I want the design tokens to exist in one place in the app, so that a colour or radius is not spelled out at a call site.
-94. As a developer, I want the app's tokens to be traceable back to `DESIGN.md`, so that the normative document and the implementation cannot silently diverge.
+104. As a human participant, I want the app to look like the prototype I have been reviewing, so that the design work already recorded is not thrown away by the port.
+105. As a human participant, I want one coherent visual world rather than a scaffold's palette behind a product's layout, so that the app reads as finished rather than as a work in progress.
+106. As a human participant, I want the app to render immediately in its own typeface, so that I never see a flash of a fallback face as the page loads.
+107. As a human participant, I want the app to work offline and without third-party requests, so that opening it does not contact a font CDN.
+108. As a human participant, I want no site header, footer, marketing page or framework demo anywhere in the product, so that nothing in the application is scaffolding.
+109. As a human participant, I do not want a theme toggle in a product that has not designed a second theme, so that no control offers a state the design system does not define.
+110. As a human participant, I want the app to respect my operating system's colour scheme by not overriding it with a half-built dark mode, so that I never get an unstyled variant.
+111. As a developer, I want the design tokens to exist in one place in the app, so that a colour or radius is not spelled out at a call site.
+112. As a developer, I want the app's tokens to be traceable back to `DESIGN.md`, so that the normative document and the implementation cannot silently diverge.
 
 ### State, persistence and honesty
 
-95. As a human participant, I want the board and thread I was reading restored when I return, so that a reload does not throw me back to the start.
-96. As a human participant, I want my read position per thread persisted, so that unread counts mean something across sessions.
-97. As a human participant, I want to reset the demonstration data to a known state, so that I can start a clean walkthrough.
-98. As a human participant, I want to be told that the store is in-memory and that a restart clears it, so that I do not treat demo data as saved.
-99. As a human participant, I want the app to tell me when the stream is unavailable rather than showing an empty thread as if it were complete, so that a failure is never rendered as an absence.
-100. As a product owner, I want every status and description in the interface to be true of the implementation, so that the prototype's honesty commitment survives the port.
-101. As a developer, I want the app to refuse to start when a required server secret is missing rather than fail on the first request, so that a misconfiguration is a startup error and not a production one.
+113. As a human participant, I want the board and thread I was reading restored when I return, so that a reload does not throw me back to the start.
+114. As a human participant, I want my read position per thread persisted, so that unread counts mean something across sessions.
+115. As a human participant, I want to reset the demonstration data to a known state, so that I can start a clean walkthrough.
+116. As a human participant, I want to be told that the store is in-memory and that a restart clears it, so that I do not treat demo data as saved.
+117. As a human participant, I want the app to tell me when the stream is unavailable rather than showing an empty thread as if it were complete, so that a failure is never rendered as an absence.
+118. As a product owner, I want every status and description in the interface to be true of the implementation, so that the prototype's honesty commitment survives the port.
+119. As a developer, I want the app to refuse to start when a required server secret is missing rather than fail on the first request, so that a misconfiguration is a startup error and not a production one.
 
 ### Developer and agent experience
 
-102. As a developer, I want one client interface that both the in-memory and server-backed implementations satisfy, so that swapping the transport does not touch the UI.
-103. As a developer, I want the domain logic testable without a browser or a network, so that sequencing rules are pinned by fast tests.
-104. As a developer, I want the server's operations validated at the boundary, so that malformed input is rejected before it reaches the store.
-105. As a developer, I want the SSE contract to have a documented event shape, so that a non-browser client can consume the stream.
-106. As a developer, I want tests to exercise the app through its routes rather than its internals, so that refactoring does not break the suite.
-107. As an agent principal, I want the operations documented and discoverable, so that I can integrate without reading the UI source.
-108. As a maintainer, I want the shipped agent skills to describe the real application rather than the static prototype, so that the guidance stays true.
-109. As a maintainer, I want a parity checklist against the static prototype, so that "ported" is a verifiable claim and not an impression.
+120. As a developer, I want one client interface that both the in-memory and server-backed implementations satisfy, so that swapping the transport does not touch the UI.
+121. As a developer, I want the domain logic testable without a browser or a network, so that sequencing rules are pinned by fast tests.
+122. As a developer, I want the server's operations validated at the boundary, so that malformed input is rejected before it reaches the store.
+123. As a developer, I want the SSE contract to have a documented event shape, so that a non-browser client can consume the stream.
+124. As a developer, I want tests to exercise the app through its routes rather than its internals, so that refactoring does not break the suite.
+125. As an agent principal, I want the operations documented and discoverable, so that I can integrate without reading the UI source.
+126. As a maintainer, I want the shipped agent skills to describe the real application rather than the static prototype, so that the guidance stays true.
+127. As a maintainer, I want a parity checklist against the static prototype, so that "ported" is a verifiable claim and not an impression.
 
 ## Implementation Decisions
 
@@ -203,7 +224,7 @@ Four modules, in dependency order:
 
 1. **Domain** — the record types and the pure rules: what a valid message is, how `seq` is assigned, how a correction relates to its target, what a principal's kind means. No I/O.
 2. **Store** — the server-side state and the operations over it, expressed as a factory that takes an initial seed and returns the operations plus subscription management. Synchronous internally; the transport layer adds asynchrony.
-3. **Transport** — server functions for the request/response operations, one SSE server route for the stream, and the session middleware that resolves the acting principal.
+3. **Transport** — server functions for the nine participant operations, one SSE server route for the stream, the unauthenticated admission surface an agent uses to knock, and the credential middleware that resolves the acting principal for everything else.
 4. **Client** — the `RelayboardClient` interface, its HTTP implementation, and the in-memory implementation used by tests.
 
 The UI depends only on the domain types and the client interface. It must not import the store, and the store must not import the UI.
@@ -211,6 +232,8 @@ The UI depends only on the domain types and the client interface. It must not im
 ### The client interface
 
 The prototype's public surface is **nine request/response operations plus a subscription** — ten members. The count matters because it is repeated in the transport and testing sections, and revision 1 of this spec said both "nine" and "eight" in different places; it is nine, and `subscribe` is the tenth member.
+
+Admission is deliberately **not** a member of this interface. It is the one surface a caller reaches before it is a participant, so putting it here would either force every implementation to model a state it does not have or make the interface's own contract conditional on the caller. It lives as its own small surface beside this one.
 
 ```ts
 // Shown because the shape is the decision: both implementations must satisfy this,
@@ -247,11 +270,47 @@ The prototype's nine operations are a good contract and are adopted unchanged in
 This is the decision that changes the contract most, and it is deliberate.
 
 - A browser receives a signed, `HttpOnly`, `SameSite=Lax` workspace session cookie on first request, naming the principal it acts as. Session issuance is not authentication: it identifies, it does not authorise, and the interface and docs must say so.
-- **`appendMessage` no longer accepts `authorId` from the client.** The server derives the human principal from the session. A browser cannot post as another human.
+- **`appendMessage` no longer accepts `authorId` from the client.** The server derives the acting principal from the resolved credential. A browser cannot post as another participant.
 - `simulateIncoming` picks its author server-side from the board's agent members; the client cannot choose which agent speaks.
-- Agent principals get a separate credential path so that an agent's messages are attributable to it and not to a browser session. It is the same idea as the human cookie with a different minting route; the mechanism is a token the server issues to an agent registration, not a password.
 - The session needs a signing secret, which makes the app the first thing in this repository with a real secret. That is a boot-time requirement, not a per-request discovery: the app validates it at startup and refuses to run without it.
 - Consequently, the prototype's `appendMessage({ authorId, … })` signature is superseded. The shipped `relayboard-mock-api` and `relayboard-identity` guidance describes the old signature and must be updated as part of reaching parity, not after it.
+
+### Agent admission: the agent knocks, a human opens the door
+
+An agent does not receive a credential from an operator and arrive already holding it. It knocks, and a human on the board decides. This is the shape the product's own claim requires — agents are peers with identity, and identity in this workspace is granted by the people who are already in it.
+
+The cycle:
+
+1. **Knock.** An agent with no credential requests admission to a board, stating its display name, its declared operator, and why it is asking. The server records a pending request and returns two things to the agent and nobody else: a request identifier and a private polling secret.
+2. **Wait.** The agent polls with its request identifier and polling secret. It holds no board access while it waits — it cannot read threads, cannot post, cannot subscribe to the stream.
+3. **Decide.** A human who is a member of that board sees the pending request with everything the agent declared, and admits or denies it. Denial is recorded, not silently dropped.
+4. **Enter.** On admission the server issues the agent a credential, delivered only in answer to the agent's own poll. It is never displayed to a human, never included in the pending list, and never logged. The agent is now a participant on that board and holds the same nine operations a human holds, gated by its admission.
+5. **End.** Admission carries an expiry, chosen by the human at the moment of admitting. Expiry is settable to never, but a bounded window is the default, so that forgetting to revisit a decision does not grant forever. The human can also revoke at any time, and revocation takes effect on the agent's next request rather than at the next reconnect.
+
+Decisions that follow from it:
+
+- **Admission is per board, not per workspace.** Asking to join one conversation must not hand over the workspace. A board's members are its gatekeepers; there is no separate administrator role, because adding one would be a permission model this product does not have.
+- **Admission grants presence, not authority.** An admitted agent can do what an admitted human can do, and no more. It gains no approval power, no board-creation power, no ability to admit other agents. That keeps the "authorship is not authority" commitment true for agents as well as humans, and it is what stops admission quietly becoming a role system.
+- **A denied or revoked agent is refused, not ignored.** The refusal names which of denied / revoked / expired applies, so an operator can tell a policy decision from a bug.
+- **Authorship survives the end of access.** Revoking an agent stops it speaking again; it does not retract what it said, and its past messages keep their author. History is evidence, and evidence does not become anonymous because access ended.
+- **Renewal preserves the principal.** An agent renewing after expiry is re-admitted to the same principal record, so its history stays one continuous record rather than splitting per credential.
+- **The `fingerprint` in the participant drawer becomes derived, not invented.** Today it is a hard-coded demo string next to a heading that says "Verified identity". Once admission exists, the server derives it from the credential it issued, and the issuer is this workspace. The heading then describes something true. What the agent *declared* — its operator, its description — is shown as declared, and is never styled or labelled as verified.
+- **One seam resolves every principal.** Session cookie and agent credential both resolve through the same request-time principal resolution, so no operation needs to know which kind of caller it is. This is also what keeps the count of operations at nine: admission is a separate, unauthenticated surface, not a tenth operation on the participant interface.
+
+The credential itself is an opaque, high-entropy bearer token, stored server-side only as a hash, compared in constant time, and revocable by deleting the record. It is not a JWT: there is one server process, the store is in-memory, and a self-contained token would add rotation and revocation problems this product has no use for.
+
+What this is not: it is not proof that the agent is the thing it says it is. The workspace asserts only that *this workspace admitted this principal on this date, at a human's instruction*. Attribution is to the principal the workspace issued, and the interface must not claim more than that.
+
+### What the admission decision makes drift elsewhere
+
+Admission changes what several other artefacts can honestly say. Each of these is in scope for the port, not a follow-up:
+
+- **The `relayboard-identity` skill is excluded from the app's allowlist, and that reason expires.** It is excluded because its guidance needs a principal read (`getPrincipal`) that `window.RelayboardMockAPI` does not expose. The app will have one, and will have more: it will know a principal's kind, its admission state, its expiry, and a derived fingerprint. The exclusion is removed when the principal read exists, and the skill's guidance is rewritten against the app rather than the prototype.
+- **That skill's honesty rules are already right and must survive the rewrite.** It says `issuer` is a *declared* value and "never a verification result", and it warns against treating the drawer's "Verified identity" heading as truth. The admission design keeps that split and makes the heading true in a narrower sense — derived values are verified, declared values are labelled declared — so the rewrite sharpens the rule rather than relaxing it.
+- **`DESIGN.md` gains one component it does not document: the admission decision surface.** A pending-agent list with an admit/deny control and an expiry choice is new UI in a product whose visual system is normative and already verified. It needs a `DESIGN.md` entry and a sidecar component snippet in the same change, or the design system stops describing the app.
+- **`PRODUCT.md`'s operating context gains the admission cycle.** Its users section already says humans supervise and redirect agents; admission is the mechanism by which an agent first becomes someone a human can supervise, and the product record should say so rather than leaving the reader to infer it from the app.
+- **The root `AGENTS.md` convention "authorship is not authority" now has a second meaning to defend.** It is not only that a message's shape grants nothing; it is that *being admitted* grants nothing either. An agent that a human admitted is still not an authority, and the wording should make both readings explicit.
+- **The operation count stays at nine, and the reason is now load-bearing.** Admission is a pre-participant surface, so it does not join `RelayboardClient`. If a future change puts it there, the interface stops describing "what a participant can do" and starts describing two different callers in one contract.
 
 ### Environment configuration
 
@@ -326,7 +385,7 @@ Test external behaviour only: a caller's observation of the nine operations and 
 
 The one exception is the error-message contract: those strings are user-visible, so they are asserted literally.
 
-### The three seams
+### The four seams
 
 **1. Store seam (lowest, fastest).** Drive the store factory directly in Node, no browser and no network. This is where the sequencing rules are pinned, because they are pure logic and the cheapest thing to get wrong:
 
@@ -346,6 +405,20 @@ This seam is new — the prototype has none — and it is introduced because bot
 
 Every route-seam test starts from a reset store so runs do not depend on each other. Assertions on text use the domain's vocabulary; assertions on layout use measured overflow rather than pixel snapshots, so that a legitimate design change does not fail the suite.
 
+**4. Admission seam (alongside the contract seam).** Admission is a state machine with a security-shaped edge, so it gets its own suite rather than being sprinkled through the other three. It drives the same way the contract seam does — once against the in-memory store, once against the running server — and asserts only what a caller can observe:
+
+- An unauthenticated caller can knock; the same caller cannot read a thread, post, or subscribe while pending.
+- The polling secret is returned to the knocker and to nobody else: it never appears in the pending list a human sees, never in a thread, never in the stream.
+- A denied request is refused afterwards with the denial reason, and the agent never receives a credential.
+- An admitted agent can use all nine operations on that board and is refused on a board it was not admitted to.
+- Admission to one board does not admit to another, nor to the workspace.
+- An expired admission is refused on the next request, not at the next reconnect.
+- A revoked admission is refused immediately, and the messages it already posted keep their author.
+- Renewal after expiry resolves to the same principal id, so history does not split.
+- The fingerprint and issuer are derived by the server and are stable across a renewal; the declared operator is echoed unchanged and is distinguishable in the payload from the derived values.
+
+These are cheap to write at this seam and expensive to reconstruct later, which is why they are listed explicitly rather than left to "cover admission".
+
 ### What the route seam covers that the others cannot
 
 The scaffold reconciliation is only observable at the route seam, so it belongs there rather than in a review checklist: that no starter route resolves, that no site header or footer renders, that no theme toggle exists, that the document issues no request to a font CDN, and that the computed body font is the self-hosted face rather than a fallback. Each is a one-line assertion that would have caught the scaffold being left in place.
@@ -360,7 +433,7 @@ The store and contract seams are new. They are introduced with Vitest: the store
 
 ## Out of Scope
 
-- **Authentication and authorisation.** A session identifies a principal; it does not prove anything, and no permission model is built. Board membership is checked, as it is today, but there is no login, no password, no OAuth, and no admin.
+- **Authentication and authorisation.** A credential identifies a principal; it proves nothing about the entity holding it, and no permission model is built. There is no login, password, OAuth, role, or admin. Admission is a gate on presence, not a permission system, and it grants no capability beyond what an admitted human already has.
 - **Durable storage.** The store is in-memory and volatile by decision. No database, no migration, no backup. Choosing one is a separate spec.
 - **Serverless or multi-instance deployment.** Explicitly excluded by the store decision, including the Vercel configuration the scaffold carries.
 - **Real agent runtime.** No agent execution, scheduling, tool invocation, model selection or task assignment. The exclusion in `PRODUCT.md` is permanent, not deferred.
@@ -378,12 +451,16 @@ The store and contract seams are new. They are introduced with Vitest: the store
 
 **The two honesty commitments survive the port.** First, the interface never claims a guarantee the implementation does not make — which means the in-memory store must be described as in-memory, a session must be described as identification rather than authentication, and a disconnected stream must not render as an empty thread. Second, authorship is always attributable and never inferred as authority; the server-side principal is what makes the first half of that true, and the copy is what keeps the second half.
 
-**Two prototype gaps become requirements here,** rather than being carried forward as limitations: selection persisting across a reload (user stories 6, 16, 95), and in-thread search being reachable at every viewport (story 28).
+**Two prototype gaps become requirements here,** rather than being carried forward as limitations: selection persisting across a reload (user stories 6, 16, 113), and in-thread search being reachable at every viewport (story 28).
 
-**Three scaffold findings are now decisions rather than surprises.** The toggle and its pre-paint script go (stories 91-92), and the starter chrome goes with them (story 90). The Google Fonts import is replaced by the self-hosted face already in the repository (stories 88-89). The env surface is wired and made to fail fast, because the session secret is the first real secret in this repository and the scaffold's own notes record that server variables are invisible through `import.meta.env` (story 101).
+**Three scaffold findings are now decisions rather than surprises.** The toggle and its pre-paint script go (stories 109-110), and the starter chrome goes with them (story 108). The Google Fonts import is replaced by the self-hosted face already in the repository (stories 106-107). The env surface is wired and made to fail fast, because the session secret is the first real secret in this repository and the scaffold's own notes record that server variables are invisible through `import.meta.env` (story 119).
 
 **The parity checklist is the definition of done for the port.** It is the `Verified` list in `QA.md` plus the behaviours that file filed under `Not verified`. Reaching parity means every one of those is true of the app, demonstrated by the route seam.
 
-**One thing to decide early, not late:** the agent credential path. It is the only part of this spec that has no prototype precedent, and getting it wrong is how an identity claim quietly becomes a fiction. If it proves larger than a token-minting route, cut it from this spec and ship the human path first — but do not ship a `simulateIncoming` that a browser can aim at any principal and call the result identity.
+**Admission is a product feature, not a security feature.** It exists so that an agent can be a peer with an identity a human vouched for, and so that a human can change their mind. It does not make the workspace secure, it does not survive a restart along with the store, and it should be described that way in the interface and in the skills. Anyone who needs actual authentication is not served by this spec.
+
+**The gatekeeper must be able to see what it is admitting.** The pending-request view is the only place a human judges an agent, so it shows the declared name, the declared operator, and the reason given, and it labels every one of those as *declared by the agent* rather than as fact. The fingerprint and issuer sit on the other side of that line, because the workspace derived them. If those two sides ever look alike, the honesty commitment is broken in the one screen built to enforce it.
+
+**The agent path was the risk in this spec, and it is now the largest new surface.** Revision 1 said to cut it if it proved larger than a token-minting route. It did prove larger — it is a request record, a polling secret, a human decision surface with an expiry, revocation, and a derived fingerprint. It stays because dropping it would leave "agents are first-class principals" as the one product claim the implementation never demonstrates. If it has to be sliced, the natural cut is between *knock and be admitted* (which is the whole claim) and *expiry and revocation* (which is the part that makes it safe to keep admitting) — and the first slice is not optional.
 
 **The prototype is the reference implementation, not a rival.** When the app's behaviour and the prototype's disagree, the prototype is right unless `PRODUCT.md` or `DESIGN.md` says otherwise — those two outrank both.
