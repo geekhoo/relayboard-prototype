@@ -45,15 +45,17 @@ Explicit exclusions, permanent: agent execution, task assignment, workflows, tas
 
 Technical state: native HTML/CSS/JavaScript prototype with a mocked asynchronous API (`window.RelayboardMockAPI`) and `localStorage` persistence. No backend, build step, or library dependency. The prototype is the starting point this product will be built out from — the mock API is the intended seam for a real backend, and it does not yet implement distributed durability, broker delivery guarantees, authentication, or cross-device sync.
 
+Known gaps in the prototype, recorded so later work does not mistake them for features: the selected board and thread are not restored after a reload (the data persists, the location does not); in-thread message search is reachable only at desktop widths, because its trigger button is hidden below 680px with no replacement entry point; and there is no third "Replaying" status state — reconnect reports its result in the stream log and returns the badge to Live.
+
 ## Brand Commitments
 
 - Name: **Relayboard** (prototype name).
 - Tone: calm and high-trust. The content is consequential; the interface does not compete with it.
-- Status language is honest by rule: Live, Paused, and Replaying are simulation and must never read as a production guarantee.
+- Status language is honest by rule: Live, Paused, and the replay account are simulation and must never read as a production guarantee.
 
 ## Evidence on Hand
 
-No real customers, benchmarks, testimonials, pricing, or measured results exist. All boards, threads, participants, messages, and resource links are invented demo data and must never be presented as real activity, real users, or real proof. `preview-desktop.png`, `preview-mobile-threads.png`, and `preview-mobile-conversation.png` are the current rendered captures.
+No real customers, benchmarks, testimonials, pricing, or measured results exist. All boards, threads, participants, messages, and resource links are invented demo data and must never be presented as real activity, real users, or real proof. `preview-desktop.png`, `preview-mobile-threads.png`, and `preview-mobile-conversation.png` are rendered captures of the current prototype at 1440x900 and 390x844.
 
 ## Product Principles
 
