@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-10T04:39:01.059Z",
+  "generatedAt": "2026-11-10T07:06:17.180Z",
   "title": "Design System: Relayboard",
   "extensions": {
     "colorMeta": {
@@ -527,7 +527,7 @@
       },
       {
         "name": "The Named Status Rule",
-        "body": "Live, Paused and Replaying always ship a dot and a word. A color on its own is a decoration, not a state.",
+        "body": "Every status ships a dot and a word. A color on its own is a decoration, not a state. The shipped states are exactly two - Live and Paused (the latter carrying a pending count when non-zero). Replaying is named in the thread copy as an intended state but is not rendered; the reconnect path returns straight to Live.",
         "section": "colors"
       },
       {
