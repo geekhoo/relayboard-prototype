@@ -1,0 +1,110 @@
+library:
+  name: '@relayboard/skills'
+  version: 0.1.0
+generated_from:
+  domain_map: packages/relayboard-skills/skills/_artifacts/domain_map.yaml
+  skill_spec: packages/relayboard-skills/skills/_artifacts/skill_spec.md
+distribution:
+  mode: none
+review:
+  ignore:
+    # This package's maintainer record is package-scoped. Paths owned by other
+    # parts of the repository are not evidence for these skills and would
+    # otherwise surface as unmapped changes on every unrelated edit.
+    - 'apps/**'
+    - 'app.js'
+    - 'index.html'
+    - 'styles.css'
+    - 'fonts/**'
+    - 'preview-*.png'
+    - 'detect.json'
+    - 'README.md'
+    - 'PRODUCT.md'
+    - 'DESIGN.md'
+    - 'QA.md'
+    - '.dsh/**'
+    - '.impeccable/**'
+    # Repository-level tooling that records Intent review outcomes. It is not
+    # library guidance and changes no documented behaviour.
+    - 'scripts/**'
+    - 'INTENT.md'
+    - 'package.json'
+    - 'package-lock.json'
+    # Package code and build configuration are not skill source documentation;
+    # the skills cite docs/** only.
+    - 'packages/relayboard-skills/src/**'
+    - 'packages/relayboard-skills/tsconfig.json'
+    - 'packages/relayboard-skills/.gitignore'
+    - 'packages/relayboard-skills/package-lock.json'
+    - 'packages/relayboard-skills/.consumer-demo/**'
+    - 'packages/relayboard-skills/dist/**'
+    - 'packages/relayboard-skills/*.tgz'
+    # Agent instructions and the CI caller are Intent-owned outputs; the default
+    # ignore list only covers them at the repository root, not inside a package.
+    - 'packages/relayboard-skills/AGENTS.md'
+    - 'packages/relayboard-skills/.github/workflows/check-skills.yml'
+    - 'packages/relayboard-skills/README.md'
+skills:
+  - name: relayboard-thread-sequencing
+    slug: relayboard-thread-sequencing
+    domain: messaging-replay
+    package: packages/relayboard-skills
+    path: skills/relayboard-thread-sequencing/SKILL.md
+    description: >-
+      Use when reading, ordering, replaying, or resuming Relayboard thread
+      messages in the prototype, including per-thread canonical sequence
+      numbers, delivery cursors versus read watermarks, catching up after a
+      pause, and idempotent re-sends. Covers the window.RelayboardMockAPI read
+      path only; use relayboard-mock-api to post messages or create boards and
+      threads.
+    purpose: >-
+      Keep thread reads correct: order by the immutable per-thread sequence,
+      keep the delivery cursor separate from the human read watermark, catch up
+      with readMessages({ after }), and retry with the original idempotency key.
+    sources:
+      - docs/thread-sequencing.md
+      - docs/mock-api.md
+    requires: []
+  - name: relayboard-mock-api
+    slug: relayboard-mock-api
+    domain: api-contract
+    package: packages/relayboard-skills
+    path: skills/relayboard-mock-api/SKILL.md
+    description: >-
+      Use when calling window.RelayboardMockAPI in the Relayboard prototype to
+      list boards and threads, post or simulate messages, create boards and
+      threads, add resource links, or toggle the simulated stream — and when
+      deciding what the mock does and does not persist. Covers method shapes,
+      error messages and localStorage behaviour; use
+      relayboard-thread-sequencing for read ordering and cursors.
+    purpose: >-
+      Call the prototype's asynchronous mock client correctly: the nine method
+      signatures, the record shapes they return, the exact errors they throw,
+      the localStorage key and reset, and the guarantees the mock deliberately
+      omits.
+    sources:
+      - docs/mock-api.md
+      - docs/thread-sequencing.md
+    requires: []
+  - name: relayboard-identity
+    slug: relayboard-identity
+    domain: identity-provenance
+    package: packages/relayboard-skills
+    path: skills/relayboard-identity/SKILL.md
+    description: >-
+      Use when rendering or reasoning about Relayboard authorship and
+      provenance: deciding whether a message came from a human or an agent,
+      surfacing the principal id versus display name, showing the agent chip and
+      fingerprint, or reviewing a change that could imply verification,
+      permission or execution status for an agent. Use relayboard-mock-api to
+      write data; this skill covers what authoring information may be shown and
+      claimed.
+    purpose: >-
+      Keep authorship legible and honest: one principal model for humans and
+      agents, identity by durable id rather than name, the agent chip as the
+      only visual signal, provenance that never implies verification, permission
+      or execution.
+    sources:
+      - docs/identity-provenance.md
+    requires: []
+

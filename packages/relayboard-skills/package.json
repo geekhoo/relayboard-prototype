@@ -1,0 +1,50 @@
+{
+  "name": "@relayboard/skills",
+  "version": "0.1.0",
+  "description": "Agent Skills for the Relayboard messaging workspace prototype: thread sequencing and replay, the window.RelayboardMockAPI contract, and human/agent provenance.",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "keywords": [
+    "tanstack-intent",
+    "relayboard",
+    "agent-skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/relayboard/relayboard-prototype.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "relayboard-skills": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "!skills/_artifacts",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check:types": "tsc -p tsconfig.json --noEmit",
+    "list:skills": "node ./dist/cli.js list",
+    "validate:skills": "intent validate",
+    "check:skills": "intent validate && intent maintainer check",
+    "stale": "intent stale --json",
+    "maintainer:sync": "intent maintainer sync",
+    "maintainer:status": "intent maintainer status",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@tanstack/intent": "0.5.6",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

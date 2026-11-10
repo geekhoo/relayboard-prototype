@@ -22,6 +22,12 @@
 **/.impeccable/live/*.png
 # impeccable-ignore-end
 
+# Workspace root: the root package.json carries only the TanStack Intent
+# toolchain (see package.json#devDependencies). It is the repo-level owner of
+# the `check-skills` CI gate and of .intent/review-state.json, which Intent
+# always writes at the Git root.
+node_modules/
+
 # Platform-specific Impeccable engine binary (21 MB). The launcher re-downloads
 # it on first run and verifies it against scripts/engine-checksums.txt, so the
 # skill files are the only part worth tracking.

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "baseline": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+  "items": {
+    "skill:packages/relayboard-skills/skills/relayboard-identity/SKILL.md": {
+      "fingerprint": "9795bfc12958d615bfbaf57e018cb0a8fc9816bcbc1b0c00f0f60514aaed17da",
+      "snapshot": {
+        "packages/relayboard-skills/docs/identity-provenance.md": "ab8a6734775b7acc43ebbc445121a3921b6272525ec0699ccf450472c70ac93a",
+        "packages/relayboard-skills/skills/relayboard-identity/SKILL.md": "eb0ab6c64aa69062ca0448b2ea0f8859d5a72464700eb1c4a0948a602c01595b"
+      },
+      "head": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+      "outcome": "updated",
+      "reason": "Corrected a factual error (the seed has four humans, not five) and rewrote the practical section: the source document had implied a consumer could read principal kind, but window.RelayboardMockAPI exposes no principal record at all. Documented both honest options (render unknown, or extend the API) and forbade substituting a hard-coded id list, which is the content-based guess the product forbids.",
+      "evidence": [
+        "app.js:20-28 — seven seeded principals: four kind:human, three kind:agent",
+        "app.js:98-125 — all nine mock API methods return boards, threads, messages, resources or {connected,pending}; none returns a principal",
+        "app.js:93 — principalOf is an internal helper, not part of the API",
+        "docs/identity-provenance.md — updated in the same change",
+        "skills/relayboard-identity/SKILL.md — updated in the same change",
+        "npx intent validate packages/relayboard-skills/skills: 3 skill files, all passed"
+      ]
+    },
+    "skill:packages/relayboard-skills/skills/relayboard-mock-api/SKILL.md": {
+      "fingerprint": "22ebe9a16a93cb196d0799f59432c6de09cf3fdf7e6560d6b22166249b131fed",
+      "snapshot": {
+        "packages/relayboard-skills/docs/mock-api.md": "d48d088a90af2f24249bba561dedf1d6abe31058b549b097b4b11fdd2ee33b70",
+        "packages/relayboard-skills/docs/thread-sequencing.md": "dd3e935ab8dafbc9dc9e68f63ce81b6435aaa903df9a9adad46688ad2709a029",
+        "packages/relayboard-skills/skills/relayboard-mock-api/SKILL.md": "3ad77dea6fdff4ff03cf68c0360c3088facf359f104d3b91e5b1915987d34be7"
+      },
+      "head": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+      "outcome": "updated",
+      "reason": "Added the validation-ordering detail that was in the source document but missing from the guidance: the idempotency lookup runs before thread, membership and empty-text checks, and a rejected message never consumes a sequence number.",
+      "evidence": [
+        "app.js:104-109 — idempotency lookup precedes thread/membership/empty-text checks; seq is computed but the message is not pushed on failure",
+        "docs/mock-api.md:65-69 — the same rule, already documented",
+        "skills/relayboard-mock-api/SKILL.md — updated in the same change",
+        "npx intent validate packages/relayboard-skills/skills: 3 skill files, all passed"
+      ]
+    },
+    "skill:packages/relayboard-skills/skills/relayboard-thread-sequencing/SKILL.md": {
+      "fingerprint": "0bd9777642fd8c85dc65d4a011622b9d6e414fe264b2bac6274eb597f1a498aa",
+      "snapshot": {
+        "packages/relayboard-skills/docs/mock-api.md": "d48d088a90af2f24249bba561dedf1d6abe31058b549b097b4b11fdd2ee33b70",
+        "packages/relayboard-skills/docs/thread-sequencing.md": "dd3e935ab8dafbc9dc9e68f63ce81b6435aaa903df9a9adad46688ad2709a029",
+        "packages/relayboard-skills/skills/relayboard-thread-sequencing/SKILL.md": "cdf147830216a1dca47383be561676c15f1fb423cb6ff783e0cbd817e5e44f3d"
+      },
+      "head": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+      "outcome": "no-change",
+      "reason": "Re-read against the current prototype source: seq assignment, the readMessages({ after }) cursor, the stream.cursors versus seen split, visibleMessages gating and idempotent re-send are all still accurate. No edit was needed; the changed paths are the shared docs, which the other two skills own.",
+      "evidence": [
+        "app.js:95-97 — markRead/seen versus pendingFor/cursors still two watermarks",
+        "app.js:101 — readMessages filters seq > after and sorts ascending",
+        "app.js:107-112 — seq = last(threadId).seq + 1, cursor advanced only when connected",
+        "app.js:130 — visibleMessages keeps own messages and seq <= cursor while paused",
+        "docs/thread-sequencing.md — re-read, no correction required",
+        "npx intent validate packages/relayboard-skills/skills: 3 skill files, all passed"
+      ]
+    },
+    "planning:packages/relayboard-skills/skills/_artifacts": {
+      "fingerprint": "cb80db168b4f5ed0c152f692e28641df0b18af5e67749ec61310972f3586232b",
+      "snapshot": {
+        "packages/relayboard-skills/docs/identity-provenance.md": "ab8a6734775b7acc43ebbc445121a3921b6272525ec0699ccf450472c70ac93a",
+        "packages/relayboard-skills/docs/mock-api.md": "d48d088a90af2f24249bba561dedf1d6abe31058b549b097b4b11fdd2ee33b70",
+        "packages/relayboard-skills/docs/thread-sequencing.md": "dd3e935ab8dafbc9dc9e68f63ce81b6435aaa903df9a9adad46688ad2709a029",
+        "packages/relayboard-skills/skills/_artifacts/domain_map.yaml": "e88a0a3bafe318efe3e5f686d9ae0f2175c2d818b87bb774e96f07c01aaee16d",
+        "packages/relayboard-skills/skills/_artifacts/skill_spec.md": "126ed9e1398e0303d603ab860d400a4ab801902278714659ba74065d18b29830",
+        "packages/relayboard-skills/skills/_artifacts/skill_tree.yaml": "df67e6daa7ea7b94b32a51c8917045326c96ce342a9d556512942ab60c1eef1f",
+        "packages/relayboard-skills/skills/relayboard-identity/SKILL.md": "eb0ab6c64aa69062ca0448b2ea0f8859d5a72464700eb1c4a0948a602c01595b",
+        "packages/relayboard-skills/skills/relayboard-mock-api/SKILL.md": "3ad77dea6fdff4ff03cf68c0360c3088facf359f104d3b91e5b1915987d34be7",
+        "packages/relayboard-skills/skills/relayboard-thread-sequencing/SKILL.md": "cdf147830216a1dca47383be561676c15f1fb423cb6ff783e0cbd817e5e44f3d"
+      },
+      "head": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+      "outcome": "updated",
+      "reason": "Planning records brought in line with what was actually done and measured: the spec now states that the review was recorded per item at the repository root (with the exact commands and their output), the recorded-checks table reflects the passing in-repository result instead of an open gate, and the history records the identity correction, the mock-api ordering addition, and the app being wired as the first consumer.",
+      "evidence": [
+        "skills/_artifacts/skill_spec.md — sections \"Why the review was recorded at the repository root\", \"Checks recorded\" and \"History\" updated in the same change",
+        "skills/_artifacts/domain_map.yaml — identity gap names the missing principal read",
+        "skills/_artifacts/skill_tree.yaml — review.ignore covers repository tooling",
+        "npm run skills:check: 0 authoring issues, 0 pending review items (after recording)",
+        "npx intent validate packages/relayboard-skills/skills: 3 skill files, all passed"
+      ]
+    },
+    "source:.gitignore": {
+      "fingerprint": "6c04d95c19962169c872061bb8e9f414b84b02b96f288756c37b6af095d410ee",
+      "snapshot": {
+        ".gitignore": "72db3147ebf60415c4cc11965f07c4eb836f85f148e8b337ad36682097b0a348"
+      },
+      "head": "5d9643ac9d910ff727ef8614d4fb5d5b74a5e039",
+      "outcome": "out-of-scope",
+      "reason": "The repository root .gitignore gained node_modules/ because the workspace root now has a package.json that installs the Intent toolchain. That is repository tooling for the CI gate, not evidence about Relayboard guidance, and it changes no documented behaviour.",
+      "evidence": [
+        ".gitignore — one added block with a comment explaining the workspace root package.json",
+        "package.json — root manifest, devDependencies only (@tanstack/intent, typescript)"
+      ]
+    }
+  }
+}

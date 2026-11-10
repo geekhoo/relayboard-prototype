@@ -1,0 +1,100 @@
+library:
+  name: '@relayboard/skills'
+  version: 0.1.0
+domains:
+  - slug: messaging-replay
+    summary: >-
+      Reading, ordering and resuming thread messages: canonical per-thread
+      sequence, delivery cursors versus read watermarks, replay after a pause,
+      idempotent re-sends.
+  - slug: api-contract
+    summary: >-
+      Calling window.RelayboardMockAPI: method shapes, validation errors,
+      localStorage persistence and reset, and the guarantees the mock omits.
+  - slug: identity-provenance
+    summary: >-
+      Authoring and provenance: one principal model for humans and agents,
+      durable identity versus display name, the agent chip, and the claims an
+      identity view must not make.
+skills:
+  - name: relayboard-thread-sequencing
+    slug: relayboard-thread-sequencing
+    domain: messaging-replay
+    description: >-
+      Order thread reads by the immutable per-thread sequence, keep delivery
+      cursors separate from read watermarks, catch up with
+      readMessages({ after }), and retry with the original idempotency key.
+    tasks:
+      - 'Read a thread in canonical order after a reconnect'
+      - 'Persist and advance a per-thread delivery cursor while catching up'
+      - 'Explain why unread counts and delivery cursors differ'
+      - 'Retry a send without appending a duplicate message'
+    covers:
+      - 'per-thread seq assignment in appendMessage'
+      - 'readMessages({ after }) cursor semantics'
+      - 'stream.cursors versus seen watermarks'
+      - 'idempotencyKey deduplication'
+    failure_modes:
+      - 'Advancing the cursor before the message is handled'
+      - 'Sharing one cursor across threads'
+      - 'Ordering by createdAt or array position'
+      - 'Claiming broker-grade replay the prototype does not implement'
+  - name: relayboard-mock-api
+    slug: relayboard-mock-api
+    domain: api-contract
+    description: >-
+      Call the nine asynchronous mock methods with the right payload shapes,
+      match their documented error messages, reset localStorage state, and
+      avoid assuming guarantees the prototype excludes.
+    tasks:
+      - 'List boards and threads through window.RelayboardMockAPI'
+      - 'Append a message with an idempotency key and handle the documented errors'
+      - 'Add a resource link and reference it from a message'
+      - 'Reset the demo state stored under relayboard-demo-v3'
+    covers:
+      - 'the nine method signatures and their simulated latencies'
+      - 'record shapes for boards, resources, threads and messages'
+      - 'verbatim error messages and their check order'
+      - 'idempotency lookup ordering ahead of validation'
+      - 'localStorage version gate and reset procedure'
+    failure_modes:
+      - 'Expecting createBoard/createThread/addResource inputs to be preserved'
+      - 'Subscribing to the internal CustomEvent target'
+      - 'Assuming a storage write failure surfaces to the caller'
+      - 'Calling methods that do not exist (updateMessage, delete*, auth)'
+  - name: relayboard-identity
+    slug: relayboard-identity
+    domain: identity-provenance
+    description: >-
+      Resolve authorship through the principal id and kind, mark agents only
+      with the AGENT chip, handle the unknown-principal fallback, and keep
+      provenance free of verification, permission and execution claims.
+    tasks:
+      - 'Render a message byline with author, kind, time and sequence'
+      - 'Distinguish a human author from an agent author without inspecting text'
+      - 'Resolve an unknown authorId safely'
+      - 'Review copy that could imply an agent was verified or authorised'
+    covers:
+      - 'the shared principal record for humans and agents'
+      - 'byline, people list, identity drawer and thread participant rendering'
+      - "the 'service' fallback kind for unresolved authors"
+      - 'product exclusions for execution, tasks and orchestration'
+      - 'the fact that the mock API exposes no principal record'
+    failure_modes:
+      - 'Treating issuer or fingerprint as a verification result'
+      - 'Showing agent runtime, tool or task state on the board'
+      - 'Reading a message as an approval or permission grant'
+      - 'Adding a second visual channel for agents beyond the chip'
+      - 'Substituting a hard-coded id list for the unreachable principal record'
+gaps:
+  - >-
+    `window.RelayboardMockAPI` exposes no principal read (no `getPrincipal` /
+    `listPrincipals`), so `kind`, `issuer` and `fingerprint` are unreachable
+    from consumer code. Both the identity skill and its source document say so
+    explicitly and name the two honest options (render unknown, or extend the
+    API as part of the backend seam). Adding that method would let the identity
+    task be completed end-to-end and is the obvious next batch item.
+  - >-
+    Accessibility behaviour of the byline and composer is documented in the
+    prototype README/QA but not yet a skill; it belongs to the app's own skills,
+    not to this package.

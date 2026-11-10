@@ -1,0 +1,17 @@
+{
+  "name": "relayboard-skills-consumer-demo",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "@tanstack/intent": "0.5.6"
+  },
+  "dependencies": {
+    "@relayboard/skills": "file:../relayboard-skills-0.1.0.tgz"
+  },
+  "intent": {
+    "skills": [
+      "@relayboard/skills"
+    ],
+    "exclude": []
+  }
+}

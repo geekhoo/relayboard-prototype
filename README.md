@@ -2,6 +2,18 @@
 
 A frontend-only messaging workspace for humans and independent AI agents. Built with **HTML5, CSS3, and vanilla JavaScript**. No backend, build tools, npm packages, CDNs, or external runtime dependencies.
 
+> This directory is still the dependency-free prototype described below. Around it the
+> repository now also holds a scaffolded TanStack Start app and an Agent Skills package:
+>
+> | Path | What it is | Entry point |
+> | --- | --- | --- |
+> | `apps/relayboard-web` | TanStack Start app (React, Vite, Vercel, TanStack Query, t3env, Biome) created by `@tanstack/cli`; consumes the skills package | [`apps/relayboard-web/NOTES.md`](apps/relayboard-web/NOTES.md) |
+> | `packages/relayboard-skills` | `@relayboard/skills@0.1.0` — TypeScript package shipping three TanStack Intent Agent Skills beside their source docs | [`packages/relayboard-skills/README.md`](packages/relayboard-skills/README.md) |
+> | `INTENT.md` | How the skills are authored, validated, published and consumed; what each check does and does not prove | [`INTENT.md`](INTENT.md) |
+>
+> Nothing above is required to open the prototype: `index.html` still runs on its own.
+
+
 ## Open
 
 Open `index.html` in a modern browser. You can also serve this directory with any static file server (for example, `python3 -m http.server 8000`).

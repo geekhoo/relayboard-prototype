@@ -1,0 +1,11 @@
+# Install and build artifacts
+node_modules/
+dist/
+
+# Packed tarball produced by `npm pack`
+*.tgz
+
+# The consumer demo keeps its project files (package.json, run-demo.ps1, README)
+# but not its installed dependencies or generated lockfile.
+.consumer-demo/node_modules/
+.consumer-demo/package-lock.json
