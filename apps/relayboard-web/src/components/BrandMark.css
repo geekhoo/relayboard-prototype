@@ -1,0 +1,26 @@
+/* Anatomy only: the three bars, and the descending heights that make the mark read as a
+   mark. Layout, size and rotation are utilities at the call site. */
+.brand-mark {
+	/* A glyph cap, not a surface radius: the bars are 6px wide, and the smallest surface
+	   radius in DESIGN.md §Shapes (4px) would round them into pills. */
+	--brand-mark-bar-radius: 2px;
+}
+
+.brand-mark__bar {
+	display: block;
+	width: 6px;
+	border-radius: var(--brand-mark-bar-radius);
+	background-color: currentColor;
+}
+
+.brand-mark__bar:nth-child(1) {
+	height: 17px;
+}
+
+.brand-mark__bar:nth-child(2) {
+	height: 25px;
+}
+
+.brand-mark__bar:nth-child(3) {
+	height: 12px;
+}

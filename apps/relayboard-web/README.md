@@ -1,4 +1,4 @@
-Welcome to your new TanStack Start app!
+Relayboard — the TanStack Start application.
 
 # Getting Started
 
@@ -25,8 +25,7 @@ This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
 If you prefer not to use Tailwind CSS:
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
+1. Replace the Tailwind import in `src/styles.css` with your own styles
 3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
 4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
 
@@ -60,16 +59,17 @@ console.log(env.VITE_APP_TITLE);
 
 
 
-## Deploy to Vercel
+## Deployment
 
-1. Push this repo to GitHub, GitLab, or Bitbucket
-2. In Vercel, choose **Add New > Project** and import the repo
-3. Keep the detected TanStack Start framework settings
-4. Add production values from `.env.example` under **Settings > Environment Variables**
-5. Deploy
+Not Vercel. The app targets one long-running Node process — the store is in memory and the
+stream is a long-lived Server-Sent Events connection — so a serverless, horizontally-scaled
+platform is a target it cannot hold. `vite.config.ts` pins Nitro's `node-server` preset so a
+build cannot silently become one.
 
-Vercel runs the build script and deploys Nitro's output as Vercel Functions and
-static assets. The included `vercel.json` makes framework detection explicit.
+```bash
+npm run build
+node .output/server/index.mjs
+```
 
 Variables prefixed with `VITE_` are included in the browser bundle. Keep secrets
 unprefixed so they remain server-only.
