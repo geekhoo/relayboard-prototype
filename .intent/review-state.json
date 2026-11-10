@@ -95,11 +95,11 @@
       ]
     },
     "source:.scratch/relayboard-app/spec.md": {
-      "fingerprint": "7e1da70b42302f94cc092d2e7d766d259280239ed83d13b83c4fffc569d5925f",
+      "fingerprint": "d71ba2ca489e66a07b2b927fd50c7db72f8617442701d7a2e00d451e22ebc05b",
       "snapshot": {
-        ".scratch/relayboard-app/spec.md": "d9961eae7958409c42b26f4e4129dc234cffff7e9b22b6b163d53a44ec6f3aac"
+        ".scratch/relayboard-app/spec.md": "fe1f7785b6987d25e549dc14d6f20a82fac5e6324671c37830143173151cb0af"
       },
-      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "head": "2d02bf0ff7c9af55ba07c74d94deeadc08dd802c",
       "outcome": "out-of-scope",
       "reason": "The /to-spec output for the port, filed under the local-markdown tracker. It describes intended future behaviour and makes no claim about the prototype that a skill teaches, so it is neither evidence a skill cites nor guidance a skill must follow.",
       "evidence": [
@@ -109,11 +109,11 @@
       ]
     },
     "source:docs/agents/domain.md": {
-      "fingerprint": "c2b699b56a302f61f122bfb1f3456013fb12a91c7ef725fe89b65979c240b87d",
+      "fingerprint": "7be34a7fd7691d9d8b24943cbe6c61e490e89213a7599e643db22bdec420cdfa",
       "snapshot": {
-        "docs/agents/domain.md": "a61faa1855d053d31f7602366a8de82dd63a9100ab44150e53afed1abd5ec76d"
+        "docs/agents/domain.md": "4a5c2b3fef0d888959178c29c4541217e9602c985532caa3d45e70ade1e17793"
       },
-      "head": "49a1149ff9826f674a86d8b0800bf6b4def03209",
+      "head": "2d02bf0ff7c9af55ba07c74d94deeadc08dd802c",
       "outcome": "out-of-scope",
       "reason": "Consumer rules telling the engineering skills where the glossary and ADRs live. It governs how skills are driven in this repository; it is not a source document that any Relayboard skill cites, and it states the single-context layout decision rather than any product fact.",
       "evidence": [
@@ -122,11 +122,11 @@
       ]
     },
     "source:docs/agents/issue-tracker.md": {
-      "fingerprint": "509541e9d7599642580e6203ae85a648d55a710a5a8fe1d2fa4d697a521d8f95",
+      "fingerprint": "a19485234c4fd694d43923db99ee30ef8391b465746d25da9af0c37ec086516d",
       "snapshot": {
-        "docs/agents/issue-tracker.md": "54feef9a754cbdcac2d3b542ba5ef8e407b26d2aa00ed450781f85ec261d8496"
+        "docs/agents/issue-tracker.md": "6c5982d2c09e12acd7771a2540df7df4aa7f5d4913f551ebefc631201cf6114e"
       },
-      "head": "49a1149ff9826f674a86d8b0800bf6b4def03209",
+      "head": "2d02bf0ff7c9af55ba07c74d94deeadc08dd802c",
       "outcome": "out-of-scope",
       "reason": "The local-markdown issue tracker convention for this repository (paths, numbering, Status: lines, wayfinder operations). Repository process documentation, not a source any skill cites.",
       "evidence": [
@@ -355,6 +355,20 @@
         "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
         "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
         "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:GLOSSARY.md": {
+      "fingerprint": "861eded79dad3a1c30f59813c63d3c0731229e3bbd631886bdaf11dd4a712810",
+      "snapshot": {
+        "GLOSSARY.md": "76170ba8288ec1078da3df35ad02461fd893836c63c603a027525bf37ee41aee"
+      },
+      "head": "2d02bf0ff7c9af55ba07c74d94deeadc08dd802c",
+      "outcome": "out-of-scope",
+      "reason": "The repository glossary: definitions of the domain terms, not guidance a skill cites. It does not assert behaviour, only what a word means here, and no SKILL.md lists it in `sources`. It stays deliberately outside the package because the prototype, the app and the skills package share one vocabulary rather than three.",
+      "evidence": [
+        "GLOSSARY.md — grouped term definitions, with prototype-only and app-only terms marked",
+        "docs/agents/domain.md — records the single-context layout decision that puts the glossary at the repository root",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md does not list GLOSSARY.md"
       ]
     }
   }

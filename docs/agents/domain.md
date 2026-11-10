@@ -5,9 +5,9 @@ How the engineering skills should consume this repo's domain documentation when 
 **Layout: single-context.** One `GLOSSARY.md` at the repo root plus `docs/adr/`,
 even though the repository holds three packages. They share one domain
 vocabulary — the prototype, `apps/relayboard-web` and `packages/relayboard-skills`
-all speak in Board / Thread / Message / Principal / `seq`, so splitting the
-glossary per package would create three copies of the same terms that could
-drift apart.
+all speak in Board / Thread / entry / Principal / Resource / `seq` / a named
+permission, so splitting the glossary per package would create three copies of
+the same terms that could drift apart.
 
 ## Before exploring, read these
 

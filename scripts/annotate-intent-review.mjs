@@ -118,20 +118,37 @@ const PLANNING_TOOLING_ONLY = {
  * Path-prefix rules. Anything under `.scratch/` is planning material for the
  * local-markdown issue tracker: specs and tickets describe intended future
  * behaviour and are never a source a skill cites, so they are recorded as
- * out-of-scope without a per-file entry. The check is a prefix, not a list, so
- * a new ticket does not need a code change to pass the gate.
+ * out-of-scope without a per-file entry. `docs/agents/` is the same category —
+ * consumer rules for how the engineering skills are driven in this repository.
+ * The check is a prefix, not a list, so a new ticket or a new agent doc does not
+ * need a code change to pass the gate.
  */
 const PATH_RULES = [
   {
-    test: (p) => p.startsWith('.scratch/'),
+    test: (p) => p.startsWith('.scratch/') || p.startsWith('docs/agents/'),
     annotation: {
       outcome: 'out-of-scope',
       reason:
-        'Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.',
+        'Repository planning or process material: a spec, a ticket, or a consumer rule for how the engineering skills are driven in this repository. It describes intended future behaviour or repository workflow, makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`.',
       evidence: [
-        'AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout',
+        'AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and points the `## Agent skills` block at `docs/agents/`',
         'docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`',
-        'grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/',
+        'grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/ or docs/agents/',
+      ],
+    },
+  },
+  {
+    // The root glossary defines the vocabulary the skills speak in, so it is
+    // genuinely relevant — but it is a dictionary, not guidance a skill cites.
+    test: (p) => p === 'GLOSSARY.md',
+    annotation: {
+      outcome: 'out-of-scope',
+      reason:
+        'The repository glossary: definitions of the domain terms, not guidance a skill cites. It does not assert behaviour, only what a word means here, and no SKILL.md lists it in `sources`. It stays deliberately outside the package because the prototype, the app and the skills package share one vocabulary rather than three.',
+      evidence: [
+        'GLOSSARY.md — grouped term definitions, with prototype-only and app-only terms marked',
+        'docs/agents/domain.md — records the single-context layout decision that puts the glossary at the repository root',
+        'grep `sources` over packages/relayboard-skills/skills/*/SKILL.md does not list GLOSSARY.md',
       ],
     },
   },

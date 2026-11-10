@@ -13,7 +13,14 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 ## Current contents
 
 - `.scratch/relayboard-app/spec.md` — `/to-spec` output for porting the static
-  prototype into `apps/relayboard-web`. Status: `ready-for-agent`.
+  prototype into `apps/relayboard-web`. Status: `ready-for-agent`. Revision 7.
+- `.scratch/relayboard-app/issues/01-*` … `15-*` — `/to-tickets` output: fifteen
+  tracer-bullet tickets, numbered in dependency order with blockers first. Every
+  ticket is `ready-for-agent` by construction.
+
+Work the frontier: a ticket is startable when every ticket named in its
+`**Blocked by:**` line is complete. `01` and `02` have no blockers and can start
+immediately; `15` is the only ticket that depends on four others.
 
 ## When a skill says "publish to the issue tracker"
 

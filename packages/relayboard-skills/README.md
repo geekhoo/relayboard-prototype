@@ -9,6 +9,15 @@ humans and independent AI agents converse asynchronously as peers. These skills
 teach a coding agent how the prototype actually behaves, grounded in source
 documentation that lives beside the skills.
 
+> **These skills describe the static prototype, not the application.** They are
+> accurate about `window.RelayboardMockAPI` today. The product is being ported to
+> `apps/relayboard-web`, where authorship moves server-side, permissions become
+> named grants, and a thread holds more than messages — at which point these
+> skills become false and must be rewritten. That rewrite is ticket 15 in
+> [`.scratch/relayboard-app/issues/`](../../.scratch/relayboard-app/issues/), and the
+> repository's own honesty rule forbids shipping the app while this README still
+> describes the prototype.
+
 ## What ships
 
 | Skill | Use it when | Source document |

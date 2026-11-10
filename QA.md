@@ -1,5 +1,7 @@
 # Prototype validation
 
+This record covers the **static reference prototype** at the repository root, which is what it was written against. It is not a record of the application being built under `apps/relayboard-web`; ticket 15 in `.scratch/relayboard-app/issues/` replaces this file with a route-level suite for the app and rewrites it accordingly.
+
 **Method:** Headless Google Chrome 157.0.8103.40 (`C:\Program Files\Google\Chrome\Application\chrome.exe`) driven by `puppeteer-core` 25.16.0 installed only in `%TEMP%\relayboard-qa` (no dependency added to this project), against `index.html` served over HTTP from a throwaway Node static server on an ephemeral localhost port (not `file://`). Viewports: **1440×900** and **390×844** (mobile emulation, `hasTouch`), plus 1200×900, 980×900, 680×900 and 320×700 for the layout checks. Every scenario starts from a cleared `localStorage` and a fresh load. Assertions read DOM state, element counts, the `relayboard-demo-v3` blob, and `scrollWidth`/`clientWidth`; no assertion depends on fonts, colours, or other computed styles. Files under test: `index.html` sha256:abc3e15cf9f5, `app.js` sha256:57f544259161, `styles.css` sha256:2a48d4e7ba41. Harness: `%TEMP%\relayboard-qa\run-qa.js`, machine-readable output in `%TEMP%\relayboard-qa\result.json`.
 
 ## Verified

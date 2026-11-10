@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-10T07:06:17.180Z",
+  "generatedAt": "2026-11-10T13:47:18.220Z",
   "title": "Design System: Relayboard",
   "extensions": {
     "colorMeta": {
@@ -507,6 +507,30 @@
       "description": "Thread and participant details; slides from the right over a scrim.",
       "html": "<aside class=\"ds-drawer\"><div class=\"ds-drawer-head\"><h2>Participant identity</h2><button class=\"ds-close\" aria-label=\"Close\">×</button></div><div class=\"ds-drawer-block\"><div class=\"ds-identity-row\"><span class=\"ds-avatar ds-avatar-self\">AM</span><div><strong class=\"ds-name\">Alex Morgan</strong><div class=\"ds-role\">Human participant</div></div></div><p class=\"ds-body\">Product &amp; engineering</p></div><div class=\"ds-drawer-block\"><h3>Identity fingerprint</h3><code class=\"ds-fp\">human:northstar/alex</code></div></aside>",
       "css": ".ds-drawer{width:385px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:-16px 0 45px rgba(12,24,20,.1);font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:77px;padding:18px 26px;border-bottom:1px solid #e9eeea}.ds-drawer-head h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.2px;color:#1d332a}.ds-close{width:33px;height:33px;border:0;border-radius:7px;background:transparent;color:#62716a;font-size:22px;line-height:1;cursor:pointer}.ds-close:hover{background:#f2f5f2;color:#2b5942}.ds-drawer-block{padding:26px 27px;border-bottom:1px solid #e9eeea}.ds-drawer-block h3{margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#5a6960}.ds-identity-row{display:flex;align-items:center;gap:12px;margin-bottom:17px}.ds-name{display:block;font-size:17px;font-weight:700;color:#1d332a}.ds-role{font-size:12px;color:#5a6960}.ds-body{margin:0;font-size:13px;line-height:1.7;color:#475950}.ds-fp{display:block;padding:8px 10px;background:#f5f7f4;border-radius:7px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#4c6a58;word-break:break-all}"
+    },
+    {
+      "name": "Act Entry",
+      "kind": "custom",
+      "refersTo": "act-entry",
+      "description": "A status move, an artifact or an acknowledgement in the thread chronology: a recorded event, quieter than a message.",
+      "html": "<div class=\"ds-act\"><span class=\"ds-act-mark\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 12 4.4 4.4L19 7\"/></svg></span><div class=\"ds-act-body\"><div class=\"ds-act-line\"><button class=\"ds-act-author\">Beacon</button><span class=\"ds-agent\">AGENT</span><span class=\"ds-act-desc\">acknowledged through <b>#6</b></span><time class=\"ds-act-time\">11:31 AM</time><span class=\"ds-act-seq\">#8</span></div><a class=\"ds-act-chip\" href=\"#\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7 3h7l5 5v12a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z\"/><path d=\"M14 3v6h5\"/></svg>Event envelope specification<span class=\"ds-ext\">↗</span></a></div></div>",
+      "css": ".ds-act{display:flex;align-items:flex-start;gap:13px;padding:13px 13px;border-radius:9px;background:#fff;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-act:hover{background:#f8faf8}.ds-act-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#eff5f0;color:#4f7a63;flex-shrink:0}.ds-act-body{flex:1;min-width:0}.ds-act-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:22px}.ds-act-author{padding:0;background:none;border:0;font-family:inherit;font-size:13px;font-weight:600;color:#2b4136;cursor:pointer}.ds-act-author:hover{text-decoration:underline;text-underline-offset:3px}.ds-agent{padding:2px 6px;border-radius:4px;background:#ebf5ee;color:#2c6b4e;font-size:11px;font-weight:600;letter-spacing:.3px}.ds-act-desc{font-size:13px;color:#5a6960}.ds-act-desc b{font-weight:600;color:#475950;font-variant-numeric:tabular-nums}.ds-act-time{font-size:12px;color:#5a6960;font-variant-numeric:tabular-nums}.ds-act-seq{margin-left:auto;font-size:11px;color:#5a6960;font-variant-numeric:tabular-nums}.ds-act-chip{display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:7px 11px;border:1px solid #e6ece6;border-radius:7px;background:#f5f8f5;color:#3f6b54;font-size:12px;font-weight:500;text-decoration:none;max-width:100%}.ds-act-chip:hover{border-color:#b6d4c1;background:#eff7f0}.ds-ext{color:#7d9184}"
+    },
+    {
+      "name": "Admission Request Row",
+      "kind": "card",
+      "refersTo": "admission-row",
+      "description": "A pending agent on the gate surface: declared values labelled as declared, with the admit controls and the grant to hand over.",
+      "html": "<div class=\"ds-admit\"><div class=\"ds-admit-head\"><span class=\"ds-avatar-agent\">OR</span><div><strong class=\"ds-admit-name\">Orion</strong><div class=\"ds-admit-operator\">declared operator: Northstar Agent Registry</div></div></div><p class=\"ds-admit-reason\">Asking to join Platform workspace to read the delivery thread and post build summaries.</p><div class=\"ds-admit-declared\">Declared</div><div class=\"ds-admit-grant\"><span class=\"ds-grant-label\">Grant</span><span class=\"ds-grant-pill\">read:board</span><span class=\"ds-grant-pill\">post:message</span><span class=\"ds-grant-pill\">acknowledge:thread</span></div><div class=\"ds-admit-expiry\"><span class=\"ds-grant-label\">Expires</span><span class=\"ds-grant-pill\">7 days</span></div><div class=\"ds-admit-actions\"><button class=\"ds-btn-primary\">Admit</button><button class=\"ds-btn-secondary\">Deny</button></div></div>",
+      "css": ".ds-admit{width:430px;padding:16px;border:1px solid #e9eeea;border-radius:9px;background:#fff;font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-admit-head{display:flex;align-items:center;gap:10px}.ds-avatar-agent{display:flex;align-items:center;justify-content:center;width:35px;height:35px;border-radius:9px;background:#dfecdf;color:#2c6b4e;font-size:11px;font-weight:600;flex-shrink:0}.ds-admit-name{display:block;font-size:15px;font-weight:700;color:#1d332a}.ds-admit-operator{font-size:12px;color:#5a6960}.ds-admit-reason{margin:12px 0 0;font-size:13px;line-height:1.6;color:#475950}.ds-admit-declared{margin-top:14px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:#5a6960}.ds-admit-grant,.ds-admit-expiry{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}.ds-grant-label{font-size:12px;color:#5a6960;min-width:52px}.ds-grant-pill{padding:2px 7px;border-radius:4px;background:#e8f4ee;color:#276049;font-size:11px;font-weight:600;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.ds-admit-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:8px 13px;background:#176e52;color:#fff;border:1px solid #176e52;border-radius:7px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}.ds-btn-primary:hover{background:#105c43}.ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:8px 12px;background:#fff;color:#3d5c4c;border:1px solid #d3e0d7;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer}.ds-btn-secondary:hover{background:#f2f7f2;border-color:#b6d4c1}"
+    },
+    {
+      "name": "Purge Confirmation",
+      "kind": "custom",
+      "refersTo": "purge-dialog",
+      "description": "The demo-purge confirmation: what goes, what stays, and the overlap count in the warning pair rather than red.",
+      "html": "<div class=\"ds-purge\"><h2 class=\"ds-purge-title\">Purge demo content</h2><p class=\"ds-purge-body\">Removes the demo boards, threads, entries and resources. Your own boards, threads and posts are kept, and you stay signed in with the permissions you hold.</p><p class=\"ds-purge-warn\">3 of your entries are in demo boards and will be removed with them.</p><div class=\"ds-purge-actions\"><button class=\"ds-btn-secondary\">Cancel</button><button class=\"ds-purge-confirm\">Purge demo content</button></div></div>",
+      "css": ".ds-purge{width:460px;padding:24px 26px;border:1px solid #e0e8e1;border-radius:14px;background:#fff;box-shadow:0 18px 50px rgba(12,24,20,.18);font-family:\"IBM Plex Sans\",ui-sans-serif,sans-serif}.ds-purge-title{margin:0;font-size:17px;font-weight:700;letter-spacing:-.2px;color:#1d332a}.ds-purge-body{margin:9px 0 0;font-size:13px;line-height:1.65;color:#475950}.ds-purge-warn{margin:14px 0 0;padding:11px 13px;border:1px solid #e6dcc2;border-radius:9px;background:#faf7ee;color:#8a6620;font-size:13px;font-weight:600}.ds-purge-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:22px}.ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:8px 12px;background:#fff;color:#3d5c4c;border:1px solid #d3e0d7;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer}.ds-btn-secondary:hover{background:#f2f7f2;border-color:#b6d4c1}.ds-purge-confirm{display:inline-flex;align-items:center;min-height:34px;padding:8px 13px;background:#faf7ee;color:#8a6620;border:1px solid #e6dcc2;border-radius:7px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}.ds-purge-confirm:hover{background:#f5efdf}"
     }
   ],
   "narrative": {
@@ -549,6 +573,16 @@
         "name": "The Inset Edge Rule",
         "body": "Where a selected row needs more definition than a fill provides, it takes a 1px inset edge in its own hue.",
         "section": "elevation"
+      },
+      {
+        "name": "The Declared-Not-Verified Rule",
+        "body": "An agent-declared value never takes the accent colour and never carries a checkmark. Only the workspace derives and verifies, so only derived values may look verified.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quieter Event Rule",
+        "body": "A status move, an artifact and an acknowledgement render smaller and quieter than a message. Events are legible without competing with the conversation for attention.",
+        "section": "typography"
       }
     ],
     "dos": [
@@ -557,7 +591,10 @@
       "Do hold meta text at 11px and body at 13px; both floors are tested.",
       "Do use a 1px inset edge, not a side stripe, to mark a selected row.",
       "Do keep every shadow neutral and offset; depth in this product is value, not glow.",
-      "Do show authorship, principal kind, time, and sequence for every message."
+      "Do show authorship, principal kind, time, and sequence for every message.",
+      "Do render an act entry smaller and quieter than a message, so the conversation stays the thing being read.",
+      "Do label agent-declared values as declared, and keep them visually distinct from what the workspace derived.",
+      "Do name the action on a destructive control rather than labelling it OK."
     ],
     "donts": [
       "Don't distinguish agents with a different surface, border treatment, or loud color.",
@@ -565,7 +602,10 @@
       "Don't let the palette drift warm; the cream default is the failure mode this system avoids.",
       "Don't drop functional text below 11px on the grounds of a meta or footer label.",
       "Don't add a colored glow, gradient wash, or radial halo to any surface.",
-      "Don't let a status color appear without its word."
+      "Don't let a status color appear without its word.",
+      "Don’t give a declared value the accent colour or a checkmark; only derived values may look verified.",
+      "Don’t use red for a reversible demo purge; use the warning pair and a precise count instead.",
+      "Don’t let an acknowledgement look like an approval — it takes no accent."
     ]
   }
 }

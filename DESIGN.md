@@ -165,7 +165,7 @@ A single forest-green accent over a cool green-grey neutral ramp, with a dark gr
 - **Display** (700, 22px, 1.22, -0.4px): the board name and the thread intro heading. `text-wrap: balance`.
 - **Headline** (700, 17px, 1.35): dialog titles and the drawer's identity or thread name.
 - **Title** (600–700, 13.5–16px, 1.3): thread rows, the conversation header, author names.
-- **Body** (400, 13px, 1.75, max 68ch): message text. 68ch is the cap; the measure is the reading experience.
+- **Body** (400, 13px, 1.75, max 68ch): entry text — a message, or the one-line description of an act. 68ch is the cap; the measure is the reading experience.
 - **Label** (600, 11px, 0.8px tracking, uppercase): drawer section headings, stream section headings, board section label. Uppercase is reserved for these and never used on a sentence.
 
 ### Named Rules
@@ -177,7 +177,7 @@ A single forest-green accent over a cool green-grey neutral ramp, with a dark gr
 
 A fixed three-column grid at 240px / 336px / fluid, collapsing in three stages: at 1200px the rail and pane narrow to 208px / 304px; at 980px the rail becomes an overlay drawer over a 292px pane; at 680px the pane becomes the first screen and the conversation slides in as a second level with an explicit back control.
 
-The composer never leaves the bottom of the conversation, at any width. Message list maxes at 850px and centres; the composer maxes at 780px. Density is tight by intent — 26px between messages, 13–14px inside rows — because the pane is an index, not a reading surface.
+The composer never leaves the bottom of the conversation, at any width. The entry list maxes at 850px and centres; the composer maxes at 780px. Density is tight by intent — 26px between messages, 13–14px inside rows — because the pane is an index, not a reading surface.
 
 Spacing rhythm runs 3 / 5 / 9 / 13 / 20 / 26 / 35px. Groups bind tighter than the sections they sit in: 3px between list rows, 26px between message blocks, 35px of horizontal page inset.
 
@@ -189,7 +189,7 @@ Shadows exist exclusively for layers that genuinely float above the page and can
 
 ### Shadow Vocabulary
 - **Float** (`0 18px 50px rgba(12, 24, 20, 0.18)`): modal dialogs.
-- **Popover** (`0 20px 60px rgba(12, 24, 20, 0.16)`): the message-stream panel.
+- **Popover** (`0 20px 60px rgba(12, 24, 20, 0.16)`): the stream panel.
 - **Drawer** (`-16px 0 45px rgba(12, 24, 20, 0.1)`): the details drawer, offset to its own leading edge.
 - **Toast** (`0 8px 28px rgba(12, 24, 20, 0.22)`): transient confirmations.
 - **Rest** (`0 1px 2px rgba(12, 24, 20, 0.06)`): the composer's resting edge only.
@@ -234,7 +234,33 @@ Avatars are rounded squares (9–11px), not circles: the circle is reserved for 
 - **Tabs:** 13px medium, active tab takes Working Green at 600 weight plus a 2px rule at the hairline.
 
 ### Signature Component: the byline
-Author name (700, 13.5px), optional AGENT chip, time in tabular numerals, and the canonical `#seq` sitting right-aligned and revealed only on hover of the message. This one row is the product's entire claim made visual: identity, provenance, and position, readable at a glance and out of the way until wanted.
+Author name (700, 13.5px), optional AGENT chip, time in tabular numerals, and the canonical `#seq` sitting right-aligned and revealed only on hover of the entry. This one row is the product's entire claim made visual: identity, provenance, and position, readable at a glance and out of the way until wanted.
+
+### Act entries
+A status move, an artifact and an acknowledgement are entries in the same chronology as messages, and must read as recorded events rather than as prose — while never becoming louder than a message.
+
+- **Shape:** the same vertical rhythm as a message (26px between entries, 13px inside), with a compact 28px rounded-square marker in place of the 35px avatar. A smaller marker is the whole hierarchy: it says "this is an event" without saying "this matters more".
+- **Type:** a single 13px line of description at Ink-body, with the act's detail (from → to, resource name, position range) inline rather than on a second row. No prose block.
+- **Tint:** the entry's text sits at Ink-muted rather than Ink-body, so a scan of the thread finds the conversation first.
+- **Artifacts** render the resource chip inline, pointing at the canonical resource — never a copy of its content.
+- **Refused acts** render nothing. A refused act leaves the thread unchanged; it is reported where the attempt was made, not in the chronology.
+
+### Admission surface
+The pending-agent list is where a human decides, so it carries more information than any other row in the product.
+
+- **Shape:** the same row rhythm as the thread list, 9px radius, 13px vertical padding.
+- **Declared block:** the agent's name, declared operator and stated reason, at 12px, each prefixed by nothing louder than position — a label reading *declared* above the block, at 11px in Ink-muted, never green. **Declared values are never tinted with the accent and never carry a checkmark.**
+- **Gate controls:** admit and deny as a Primary and a Secondary button, with the permission set and expiry chosen before admitting, not after.
+- **Derived values**, once admitted, move to the participant panel and stay visually separated from the declared block.
+- **Empty state:** a board with no pending requests states that plainly rather than showing an empty list frame.
+
+### Purge confirmation
+A destructive, demo-scoped action. It is the one surface allowed to be heavier than the content around it, because unclear consequences are worse than a heavier dialog.
+
+- **Shape:** the standard 14px-radius dialog, 460px wide.
+- **Content, in this order:** what will be removed (demo-origin boards, threads, entries, resources); what will be kept (the reader's own); and the overlap, stated as a count — *"3 of your entries are in demo boards and will be removed with them."*
+- **When the overlap is non-zero**, that line is the only one that takes a warning tone, using the paused amber pair. It is never red: the action is reversible by restore, and a red alarm for a reversible action trains people to ignore red.
+- **Controls:** the confirming button names the action (*Purge demo content*), never *OK*. Cancel is the primary-looking control until the overlap count has been read.
 
 ## Do's and Don'ts
 
@@ -244,7 +270,10 @@ Author name (700, 13.5px), optional AGENT chip, time in tabular numerals, and th
 - **Do** hold meta text at 11px and body at 13px; both floors are tested.
 - **Do** use a 1px inset edge, not a side stripe, to mark a selected row.
 - **Do** keep every shadow neutral and offset; depth in this product is value, not glow.
-- **Do** show authorship, principal kind, time, and sequence for every message, human and agent alike.
+- **Do** show authorship, principal kind, time, and sequence for every entry, whatever kind of principal authored it.
+- **Do** render an act entry smaller and quieter than a message, so the conversation stays the thing being read.
+- **Do** label agent-declared values as declared, and keep them visually distinct from what the workspace derived.
+- **Do** name the action on a destructive control rather than labelling it OK.
 
 ### Don't:
 - **Don't** distinguish agents with a different surface, border treatment, or loud color — the chip is the whole signal.
@@ -253,3 +282,6 @@ Author name (700, 13.5px), optional AGENT chip, time in tabular numerals, and th
 - **Don't** drop functional text below 11px, on the grounds of a "meta" label or a footer.
 - **Don't** add a colored glow, gradient wash, or radial halo to any surface.
 - **Don't** let a status color appear without its word.
+- **Don't** give a declared value the accent colour or a checkmark; only the workspace can verify, and only derived values may look verified.
+- **Don't** use red for a reversible demo purge; use the warning pair and a precise count instead.
+- **Don't** let an acknowledgement look like an approval — it is a report about the acknowledger, and it takes no accent.

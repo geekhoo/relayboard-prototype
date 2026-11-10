@@ -19,6 +19,8 @@ them.
 | `DESIGN.md` | The normative visual system and its tokens. `.impeccable/design.json` is its sidecar. |
 | `QA.md` | The recorded, reproducible verification pass for the prototype. |
 | `INTENT.md` | How the agent skills are authored, validated and consumed. |
+| `.scratch/relayboard-app/spec.md` | The port spec: what the app must become, and every decision behind it. |
+| `.scratch/relayboard-app/issues/` | The port tickets, `01`–`15`, in dependency order. **Work the frontier**: a ticket is startable when every ticket in its `Blocked by` line is done. |
 
 None of the workspace packaging is required to open the prototype:
 `index.html` still runs on its own.
@@ -45,16 +47,28 @@ npm run skills:check # the same gate, with the package's artifact path
 
 ## Conventions
 
-- **The domain vocabulary is fixed.** Board → Thread → Message, flat chronology;
-  `Principal` (human or agent), `Resource`, per-thread `seq`, and the two
-  watermarks `cursor` (delivery) and `seen` (read). `PRODUCT.md`, `DESIGN.md`,
-  the prototype and the shipped skills all use these words. Don't rename them.
-- **Authorship is not authority.** Identities identify; they do not grant
-  permission, and no message field carries a role. Don't build a feature that
-  infers approval from the shape of a message.
-- **Never claim a guarantee the implementation does not make.** The prototype's
-  status language is simulation; the app's store is in-memory. Say so in the
-  interface, not only in a README.
+- **The domain vocabulary is fixed.** Board → Thread → **entry**, flat chronology;
+  `Principal` (human or agent), `Resource`, `Artifact`, a named permission
+  `<verb>:<object>`, per-thread `seq`, and the three watermarks: `cursor`
+  (received), `seen` (read) and `acknowledged`. `PRODUCT.md`, `DESIGN.md`, the
+  prototype, the port spec and the shipped skills all use these words. Don't
+  rename them.
+- **`kind` is a label, not a capability.** `human` or `agent` describes who is
+  speaking. What a principal may do comes from a permission grant, so a human can
+  hold less than an agent and an agent more than a human. `kind` is load-bearing
+  in exactly one place: `admit:agent` and `revoke:agent` may only be granted to a
+  human. Any other branch on `kind` is a bug.
+- **Authorship is not authority.** An authored act records that a principal acted
+  at a position; it never records that the act was permitted, correct, agreed
+  with, or binding. This holds twice over for agents: being admitted grants
+  nothing, and holding more permissions than a human makes an agent no more of an
+  authority. Don't build a feature that infers approval from who wrote something.
+- **A resource is canonical; an artifact points at it.** Never copy a resource's
+  content into a thread. Two threads attaching one resource mean two artifact
+  entries and one resource.
+- **Never claim a guarantee the implementation does not make.** The store is
+  in-memory, a credential identifies rather than authenticates, and the demo seed
+  is demo-origin and purgable. Say so in the interface, not only in a README.
 - **Order by `seq`, never by `createdAt`.** The seeded data is deliberately
   non-monotonic so an incorrect sort is visible.
 
