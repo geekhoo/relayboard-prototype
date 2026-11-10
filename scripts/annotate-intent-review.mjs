@@ -114,10 +114,36 @@ const PLANNING_TOOLING_ONLY = {
   ],
 }
 
+/**
+ * Path-prefix rules. Anything under `.scratch/` is planning material for the
+ * local-markdown issue tracker: specs and tickets describe intended future
+ * behaviour and are never a source a skill cites, so they are recorded as
+ * out-of-scope without a per-file entry. The check is a prefix, not a list, so
+ * a new ticket does not need a code change to pass the gate.
+ */
+const PATH_RULES = [
+  {
+    test: (p) => p.startsWith('.scratch/'),
+    annotation: {
+      outcome: 'out-of-scope',
+      reason:
+        'Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.',
+      evidence: [
+        'AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout',
+        'docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`',
+        'grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/',
+      ],
+    },
+  },
+]
+
 const annotate = (item) => {
   const exact = ITEM_OUTCOMES[item.id]
   if (exact) return exact
   if (item.kind === 'planning') return PLANNING_TOOLING_ONLY
+  for (const rule of PATH_RULES) {
+    if (item.path && rule.test(item.path)) return rule.annotation
+  }
   return null
 }
 

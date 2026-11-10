@@ -1,5 +1,6 @@
 Status: ready-for-agent
 Tracker: local markdown — `.scratch/relayboard-app/spec.md`
+Tickets: `.scratch/relayboard-app/issues/01-*` … `15-*` (dependency order, blockers first)
 Revision: 7 — the demo seed is separable from what the reader creates: every entry records its origin, and a purge removes only demo-origin content while leaving the reader’s own boards, threads, posts, resources, identity and grants intact. Carries revisions 2-6 forward. Nothing is implemented yet; this supersedes the earlier revisions in place.
 
 ## Problem Statement

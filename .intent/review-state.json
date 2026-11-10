@@ -95,11 +95,11 @@
       ]
     },
     "source:.scratch/relayboard-app/spec.md": {
-      "fingerprint": "833a9f6b6b29a082bd6a7e18105296e13c04ca290f5e743c212d3f5b999914ac",
+      "fingerprint": "7e1da70b42302f94cc092d2e7d766d259280239ed83d13b83c4fffc569d5925f",
       "snapshot": {
-        ".scratch/relayboard-app/spec.md": "8192b32cd737cbcfb47d1bc8c208a467ca36e7503713b02c2375e7f4baa52a67"
+        ".scratch/relayboard-app/spec.md": "d9961eae7958409c42b26f4e4129dc234cffff7e9b22b6b163d53a44ec6f3aac"
       },
-      "head": "505dafa5b7ef55f1b89cfefa884aca248c63bf67",
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
       "outcome": "out-of-scope",
       "reason": "The /to-spec output for the port, filed under the local-markdown tracker. It describes intended future behaviour and makes no claim about the prototype that a skill teaches, so it is neither evidence a skill cites nor guidance a skill must follow.",
       "evidence": [
@@ -145,6 +145,216 @@
       "evidence": [
         "written by /setup-matt-pocock-skills; the default label vocabulary was kept unchanged",
         "grep sources over packages/relayboard-skills/skills/*/SKILL.md — docs/agents/* is absent from every sources list"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/01-scaffold-to-relayboard-shell.md": {
+      "fingerprint": "2a8d50ab2e0870bf3921d9fb40d62cff7847a4936bbb0bd2d8f1ad0893fb6e77",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/01-scaffold-to-relayboard-shell.md": "4b30a551beda0b2a14ea216b89aee389f8461760877f99313ec9edccfb4c51bc"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/02-store-and-canonical-sequence.md": {
+      "fingerprint": "fd456650d1495b7a2441a138e63dd326fadd2901aa801e08bea9f841ca7e4b8a",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/02-store-and-canonical-sequence.md": "4542b5b84fa6070518d25f25c61080cb394e0fd50b30fce2c725179422fa828a"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/03-client-interface-and-in-memory-client.md": {
+      "fingerprint": "b37984b30bb67353a68348459d92d53af80b602d67d9dda99dfe3717c33fc2de",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/03-client-interface-and-in-memory-client.md": "4245355a80ceb44f1c0a64385b5ec32bfa4bacc34be5652cc92bff716b456f02"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/04-navigation-boards-and-threads.md": {
+      "fingerprint": "e6e13899e96274913c71b4075bedbb00c5e55884ca2cb2a886875f716b8fa788",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/04-navigation-boards-and-threads.md": "9e4b497a36282f8025ef188faa682f4e6a4e18803d7ede21c75040aad9941034"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/05-read-and-post.md": {
+      "fingerprint": "ad389c93ee89680e3c255c7c350274138500dd97900aed7e237c45d943c811b0",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/05-read-and-post.md": "f513723b521aa9d719dfa1c70977956e9499a23402eda441d53b1f826e2c697c"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/06-operations-over-http.md": {
+      "fingerprint": "b0fcc3d502d0270314010967ebbaf1afe94ef7e3af878018fefb6ece39277ed5",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/06-operations-over-http.md": "074e40c3852ff03a4101ef1a27d9b7b7f1896ec50655593c5632c3c45487ea44"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/07-scoped-permissions.md": {
+      "fingerprint": "ce925610b6a72e60b024560890fe3b9e7f33f61e509e6a87bf09bf070d17320d",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/07-scoped-permissions.md": "9b76d788698f7271f347bdd740b6c6d483c19f0cb15e432cb5ba5822198ef41d"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/08-admission-and-the-gate.md": {
+      "fingerprint": "bb99d2c681f402d7061f907aaf4bca64a5979d6c412bca2fba5afbba9040c3c5",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/08-admission-and-the-gate.md": "e9993ba0773bb6465c36a783d1f67a22e9234145d2f96d47e62281fc05380a0a"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/09-create-boards-threads-resources.md": {
+      "fingerprint": "1357970fd8d24c9ff2bcd8cbae18dd5780b956508697e992715ecd30e0f87606",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/09-create-boards-threads-resources.md": "3e5a04486191ec3226dafaf32f084ceb3e2b472ae039d7a30bf4f67788be3fef"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/10-authored-acts-in-chronology.md": {
+      "fingerprint": "f6bd30c6dd063e3e72b88c4a7d340e3c301baf7922fbe9f2e4eca139349d0cc4",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/10-authored-acts-in-chronology.md": "b684be4aae108daf92b479c7afc39ed79a6f5d29b3a40e4d106d77977eff3516"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/11-live-pause-replay-sse.md": {
+      "fingerprint": "1bc01c4c203f5abdcb73d001fd931f24e0242a68a64354b3e2f6eb41279d0818",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/11-live-pause-replay-sse.md": "72fccd3ec187ebc1fd5c9a3b6913e8360584a5bf2607017c1ecfb31988025b79"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/12-participant-identity-and-progress.md": {
+      "fingerprint": "da8fb10a03a1c903c07159ecfa7a3966939b4888452021ca7eab3d15b9a2eb79",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/12-participant-identity-and-progress.md": "0f530459fa25191b4bea1faa024129d27820923238f1bf2d5010e7bf267024b9"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/13-responsive-and-keyboard.md": {
+      "fingerprint": "1beaff653450596e3d350311e86d3e1f68a214cd48dc1ccac0e9b0fda627155f",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/13-responsive-and-keyboard.md": "b8ac229e90b4425837f90476bb3ba4c88d1be08b7f53fe31eb30e5046e17e01d"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/14-demo-purge-and-restore.md": {
+      "fingerprint": "1c3da7ece3051467ca8781fab7d2286ef53dd8c9c1fdee9dc128f0425ce280c9",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/14-demo-purge-and-restore.md": "6b46a9cfa1c4becdbe2dd082a2e811b021223ec343852845bb26d05797438f68"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
+      ]
+    },
+    "source:.scratch/relayboard-app/issues/15-parity-and-documentation.md": {
+      "fingerprint": "aab0072f662831db4e3dc0c617cb376af9a3e2c3728e543db4474a2e74bad454",
+      "snapshot": {
+        ".scratch/relayboard-app/issues/15-parity-and-documentation.md": "3e227c1be53edbab9376980289536995b0ad5ee2821106a2c058f3367879b8d5"
+      },
+      "head": "46e362f63e5b7b3f48113226d155d1f98a8a4276",
+      "outcome": "out-of-scope",
+      "reason": "Planning material under the local-markdown issue tracker: a spec or a ticket describing intended future behaviour. It makes no claim about the current implementation that a skill teaches, and no SKILL.md lists it in `sources`, so it is neither evidence a skill cites nor guidance a skill must follow.",
+      "evidence": [
+        "AGENTS.md — declares `.scratch/<feature>/` as the local issue tracker and `.scratch/<feature>/issues/NN-<slug>.md` as the ticket layout",
+        "docs/agents/issue-tracker.md — records the conventions for spec and ticket files under `.scratch/`",
+        "grep `sources` over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/"
       ]
     }
   }
