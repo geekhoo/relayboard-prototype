@@ -189,6 +189,16 @@
 	text-decoration: none;
 }
 
+/* A message's references, in a row beneath its prose. The prototype put a chip inline in the message
+   body (app.js L53); this puts it on its own line so a chip never breaks a sentence, which is what
+   DESIGN.md §251 asks of an artifact's chip one level up. */
+.entry__references {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs);
+	margin: var(--spacing-xs) 0 0;
+}
+
 .entry__resource-chip:hover {
 	border-color: var(--color-ink-faint);
 }

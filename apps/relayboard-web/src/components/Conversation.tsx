@@ -656,13 +656,17 @@ const actLead = (
 function ResourceChip({
 	resource,
 	resourceId,
+	lead = false,
 }: {
 	readonly resource: Resource | undefined;
 	readonly resourceId: string;
+	/** Whether a space precedes it, for a second or later chip in a row. */
+	readonly lead?: boolean;
 }) {
 	if (!resource) {
 		return (
 			<span className="entry__resource-chip" data-resource-id={resourceId}>
+				{lead ? " " : null}
 				{resourceId}
 			</span>
 		);
@@ -677,6 +681,7 @@ function ResourceChip({
 			rel="noopener noreferrer"
 			target="_blank"
 		>
+			{lead ? " " : null}
 			{resource.name}
 		</a>
 	);
@@ -751,7 +756,34 @@ function EntryItem({
 					</span>
 				</div>
 				{entry.kind === "message" ? (
-					<p className="entry__text">{entry.text}</p>
+					<>
+						<p className="entry__text">{entry.text}</p>
+						{/*
+						 * **A message can name resources too, and until this line it did not show them.** The seed
+						 * carries four message-level `references` (transcribed from `app.js` L53) and this component
+						 * rendered a chip only for an `artifact` entry — so a seeded message's reference was invisible in
+						 * the app while the record said it pointed at something. Found by 15a's line 27, fixed here as
+						 * the defect it is rather than left as a note in a test.
+						 *
+						 * The **same chip, the same canonical href, the same `noopener`**: a reference is a reference
+						 * whichever kind of entry carries it, and two treatments for one idea would make the reader
+						 * learn which kind attaches a resource rather than what a resource link looks like.
+						 */}
+						{entry.references.length === 0 ? null : (
+							<p className="entry__references" data-entry-references>
+								{entry.references.map((reference, index) => (
+									<ResourceChip
+										key={reference.resourceId}
+										resource={resourceOf(reference.resourceId)}
+										resourceId={reference.resourceId}
+										// A space between chips when there is more than one, so two adjacent chips read
+										// as two references rather than as one long one.
+										lead={index > 0}
+									/>
+								))}
+							</p>
+						)}
+					</>
 				) : (
 					// **One 13px line at Ink-muted, with the act's detail inline** (DESIGN.md §251). Not a prose
 					// block and not a second row: the detail — the transition, the position range, the resource

@@ -724,14 +724,34 @@ test.describe("S5: resources", () => {
 		// 09:19 and the prototype's own assertion. `rel` is the part that matters: a new context that does
 		// not hand the destination the opener reference.
 		//
-		// **A finding, recorded rather than papered over.** The seed carries four message-level
-		// `references` (the prototype's own resource chips, `app.js` L53) and the app renders a chip only
-		// for an `artifact` entry — so a seeded *message's* reference is invisible in the app while an
-		// artifact's renders. The line is asserted through the path the app offers (attaching a resource,
-		// which is how a resource enters a thread) and the unrendered seed references are reported rather
-		// than fixed inside a test-only ticket.
+		// **Two halves, because the first version of this test found a defect.** The seed carries four
+		// message-level `references` (transcribed from `app.js` L53) and the conversation rendered a chip
+		// only for an `artifact` entry — so a seeded message's reference was invisible while the record said
+		// it pointed at something. The attach path worked and hid it. So: the attach path first, then the
+		// **seed's own reference**, which is the assertion that would have failed before the fix.
 		const { page, close } = await asPrincipal(browser, baseURL, "alex");
 		try {
+			await page.goto(threadUrl());
+
+			// **The seed's own reference, first.** This is the half that was missing: `delivery` carries
+			// `res-1` and `res-2` on two of its messages, and neither rendered before this ticket.
+			const seeded = page.locator(
+				"[data-entry-references] .entry__resource-chip",
+			);
+			await expect(seeded.first()).toBeVisible();
+			const seededHref = await seeded.first().getAttribute("href");
+			expect(seededHref ?? "").toMatch(/^https?:\/\//);
+			await expect(seeded.first()).toHaveAttribute("rel", /noopener/);
+			// And it names a real resource: its href is one of the board's own resource URLs.
+			await page.goto(boardUrl("view=resources"));
+			await expect(
+				page.locator(".resource-row__url", {
+					hasText: seededHref ?? "no-href",
+				}),
+			).toHaveCount(1);
+
+			// **And the attach path**, which puts a new artifact chip in the chronology and must carry the
+			// same safety attributes: a reference is a reference whichever kind of entry carries it.
 			await page.goto(threadUrl());
 			const select = page.locator("[data-act='attach']");
 			await expect(select).toBeVisible();
@@ -739,13 +759,14 @@ test.describe("S5: resources", () => {
 			await select.selectOption(value ?? "");
 			await page.locator("[data-act-perform='attach']").click();
 
-			const chips = page.locator(".entry__resource-chip");
-			await expect(chips.first()).toBeVisible();
-			const first = chips.first();
-			await expect(first).toHaveAttribute("href", /^https?:\/\//);
-			await expect(first).toHaveAttribute("target", "_blank");
-			await expect(first).toHaveAttribute("rel", /noopener/);
-			await expect(first).toHaveAttribute("rel", /noreferrer/);
+			const artifactChip = page
+				.locator("[data-entry-act] .entry__resource-chip")
+				.first();
+			await expect(artifactChip).toBeVisible();
+			await expect(artifactChip).toHaveAttribute("href", /^https?:\/\//);
+			await expect(artifactChip).toHaveAttribute("target", "_blank");
+			await expect(artifactChip).toHaveAttribute("rel", /noopener/);
+			await expect(artifactChip).toHaveAttribute("rel", /noreferrer/);
 		} finally {
 			await close();
 		}

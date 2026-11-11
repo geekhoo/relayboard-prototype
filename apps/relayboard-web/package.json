@@ -1,67 +1,64 @@
 {
-  "name": "relayboard-web",
-  "private": true,
-  "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
-  "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "vite build",
-    "build": "vite build",
-    "start": "node .output/server/index.mjs",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check",
-    "check:styles": "node ../../scripts/check-app-styles.mjs",
-    "check:boot": "node ../../scripts/check-boot.mjs",
-    "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui",
-    "check:bundle": "node ../../scripts/check-client-bundle.mjs",
-    "intent:list": "intent list",
-    "intent:load": "intent load"
-  },
-  "dependencies": {
-    "@relayboard/skills": "file:vendor/relayboard-skills-0.1.0.tgz",
-    "@t3-oss/env-core": "^0.13.10",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-query": "5.107.1",
-    "@tanstack/react-router": "1.170.46",
-    "@tanstack/react-router-ssr-query": "1.167.3",
-    "@tanstack/react-start": "1.169.5",
-    "nitro": "3.0.260610-beta",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "tailwindcss": "^4.1.18",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.4.5",
-    "@playwright/test": "1.65.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0",
-    "vitest": "^5.1.0"
-  },
-  "intent": {
-    "exclude": [
-      "@relayboard/skills#relayboard-identity"
-    ],
-    "skills": [
-      "@tanstack/*",
-      "@relayboard/skills"
-    ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
-  }
+	"name": "relayboard-web",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"scripts": {
+		"dev": "vite dev --port 3000",
+		"generate-routes": "vite build",
+		"build": "vite build",
+		"start": "node .output/server/index.mjs",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit",
+		"format": "biome format",
+		"lint": "biome lint",
+		"check": "biome check",
+		"check:styles": "node ../../scripts/check-app-styles.mjs",
+		"check:boot": "node ../../scripts/check-boot.mjs",
+		"e2e": "playwright test",
+		"e2e:ui": "playwright test --ui",
+		"check:bundle": "node ../../scripts/check-client-bundle.mjs",
+		"intent:list": "intent list",
+		"intent:load": "intent load"
+	},
+	"dependencies": {
+		"@relayboard/skills": "file:vendor/relayboard-skills-0.1.0.tgz",
+		"@t3-oss/env-core": "^0.13.10",
+		"@tailwindcss/vite": "^4.1.18",
+		"@tanstack/react-query": "5.107.1",
+		"@tanstack/react-router": "1.170.46",
+		"@tanstack/react-router-ssr-query": "1.167.3",
+		"@tanstack/react-start": "1.169.5",
+		"nitro": "3.0.260610-beta",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"tailwindcss": "^4.1.18",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.5",
+		"@playwright/test": "1.65.0",
+		"@types/node": "^22.10.2",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.0.1",
+		"typescript": "^6.0.2",
+		"vite": "^8.0.0",
+		"vitest": "^5.1.0"
+	},
+	"intent": {
+		"skills": [
+			"@tanstack/*",
+			"@relayboard/skills"
+		]
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"lightningcss"
+		]
+	}
 }
