@@ -232,7 +232,7 @@ export interface Store {
 	 * Called after every commit, with the entry and the thread it landed in.
 	 *
 	 * The store keeps **no queue** for anyone: a subscriber that is paused is withheld
-	 * the event and resumes from its own `cursor` (spec L358). This is the notification
+	 * the event and resumes from its own `cursor` (spec L360). This is the notification
 	 * that a stream is built on, not a backlog — 11a's route and 11b's panel are its
 	 * consumers, and 03 proves the in-memory stream can be driven by it.
 	 */
@@ -461,6 +461,9 @@ export const createStore = (
 				boardId: input.boardId,
 				title: input.title.trim(),
 				creatorId: input.creatorId,
+				// A thread made through the app is not pinned: pinning is a seeded state until
+				// something offers it as an action, and inventing that action here would be 09's.
+				pinned: false,
 				createdAt: new Date().toISOString(),
 				origin: "owner" as const,
 			});

@@ -9,7 +9,7 @@ import { getStore } from "#/server/store/instance";
  * This is the **one seam every operation goes through**, and it is deliberately not written
  * against cookies alone: the browser presents a session cookie and an agent will present a
  * credential (08a), and both arrive here as an opaque token that resolves to a principal. The
- * enforcement path never asks which kind the principal is (spec L404).
+ * enforcement path never asks which kind the principal is (spec L406).
  *
  * ## Why the secret is required at import time
  *
@@ -26,8 +26,26 @@ import { getStore } from "#/server/store/instance";
  * participant reads it (see `SessionNote`). Any stronger claim would be false.
  */
 
-/** Read and validated at import: absent or too short is a boot failure naming the variable. */
-const SECRET = requireSessionSecret();
+/**
+ * Read and validated at import **on the server**: absent or too short is a startup failure naming
+ * the variable.
+ *
+ * ## Why the guard is `import.meta.env.SSR`, which is not a weakening of it
+ *
+ * The first version read the secret unconditionally at module scope, and that shipped the throw
+ * into the **client** bundle: `src/client/http.ts` imports the server functions, those import this
+ * module, and a bundler keeps a module's top-level statements even when it strips the server
+ * function bodies. The result was measured in a served build — the client entry threw on load, so
+ * React never hydrated and every control on the page was inert: the search box accepted text into
+ * the DOM and wrote nothing to the URL, and the unread filter did nothing at all. A startup guard
+ * that disables the whole application is not a guard.
+ *
+ * The condition is a build-time constant, so the server bundle contains the call and the client
+ * bundle does not: `scripts/check-boot.mjs` still proves the built entry refuses to load without a
+ * secret, and the client — which can serve no request and has no environment to validate — carries
+ * no secret at all. What the guard promises is unchanged: a server without a secret serves nothing.
+ */
+const SECRET = import.meta.env.SSR ? requireSessionSecret() : "";
 
 /** The cookie's name. Namespaced so it cannot collide with anything else on the origin. */
 export const SESSION_COOKIE = "relayboard_session";
@@ -106,13 +124,13 @@ const selectablePrincipalIds = (): readonly string[] =>
  * The principal a request acts as, issuing one when the request has none.
  *
  * Round-robin over the seed's selectable principals, **cyclic and stable within one store
- * instance** (spec L370): a counter on the process, so the first browser is one principal, the
+ * instance** (spec L372): a counter on the process, so the first browser is one principal, the
  * second another, and the third wraps. A test that opens two browsers therefore knows it has
  * two different participants rather than one participant in two windows — which is what makes
  * "two participants, one workspace" a claim the app can check.
  *
  * A cookie naming a principal the workspace no longer holds resolves to **nothing** and is
- * refused rather than silently reassigned (spec L371), so a stale cookie cannot quietly become
+ * refused rather than silently reassigned (spec L373), so a stale cookie cannot quietly become
  * somebody else.
  */
 const rotation = { next: 0 };

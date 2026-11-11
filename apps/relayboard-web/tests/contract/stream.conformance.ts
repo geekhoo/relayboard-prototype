@@ -5,7 +5,7 @@ import type { RelayboardClient } from "#/client";
  * The stream conformance suite — **skipped pending 11a**.
  *
  * The stream is a server route returning `text/event-stream`, not a server function
- * (spec L341), so it is a different transport from the operations and arrives at a
+ * (spec L343), so it is a different transport from the operations and arrives at a
  * different ticket. This file exists now rather than then for one reason: 06c has to be
  * able to skip the stream *explicitly* rather than weaken the operations suite to
  * accommodate a transport that does not exist yet, and 11a turns this skip into a run

@@ -71,7 +71,7 @@ export interface Principal {
 	/**
 	 * Whether a browser session may be issued this principal.
 	 *
-	 * A fact about the demo seed, not a capability: spec L366 says the first request
+	 * A fact about the demo seed, not a capability: spec L368 says the first request
 	 * names a principal "selected round-robin from those the seed marks as
 	 * browser-selectable", with L370 making the selection cyclic and stable within one
 	 * store instance. It says nothing about what the principal may do, which is its
@@ -137,6 +137,16 @@ export interface Thread {
 	readonly title: string;
 	/** The principal that started the thread, kept so the thread intro can name it. */
 	readonly creatorId: PrincipalId;
+	/**
+	 * Whether the thread is pinned.
+	 *
+	 * Carried because the prototype carries it (`app.js` L35 pins exactly one seeded thread) and
+	 * renders a pin beside it. It is a **label, not a sort key**: measured against the prototype,
+	 * the thread list's sort (L142) orders by the latest entry's timestamp and never consults this
+	 * — so a pinned thread appears wherever its recency puts it, and the pin only marks it. Ticket
+	 * 04b records that as the decision it was asked for rather than dropping the field silently.
+	 */
+	readonly pinned: boolean;
 	readonly createdAt: string;
 	readonly origin: Origin;
 }

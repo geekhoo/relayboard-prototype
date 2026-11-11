@@ -49,7 +49,7 @@
 
 @media (width <= 680px) {
 	/* A phone is one screen: the pane is the first level and the conversation the second, of
-	   the same route (spec L543). The rail has no room to sit beside them, so it is parked
+	   the same route (spec L545). The rail has no room to sit beside them, so it is parked
 	   off-canvas until 13a's drawer gives it a way on and off. Off-canvas is a navigation
 	   dead end for now, and a 240px column overlapping the pane's text would be worse. */
 	.workspace-frame {

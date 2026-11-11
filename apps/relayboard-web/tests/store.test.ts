@@ -76,6 +76,7 @@ const delivery: Thread = {
 	title: "Durable message delivery",
 	creatorId: "maya",
 	createdAt: "2026-11-11T05:00:00.000Z",
+	pinned: false,
 	origin: "demo",
 };
 
@@ -85,6 +86,7 @@ const identity: Thread = {
 	title: "Agent identity and authorship",
 	creatorId: "alex",
 	createdAt: "2026-11-11T06:30:00.000Z",
+	pinned: false,
 	origin: "demo",
 };
 
@@ -94,6 +96,7 @@ const components: Thread = {
 	title: "Conversation components",
 	creatorId: "alex",
 	createdAt: "2026-11-11T04:15:00.000Z",
+	pinned: false,
 	origin: "demo",
 };
 

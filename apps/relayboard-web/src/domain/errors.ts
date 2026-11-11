@@ -2,7 +2,7 @@
  * The documented error strings, in one place.
  *
  * They are user-visible: the interface shows them, the spec's validation contract
- * (spec L507-518) pins their wording and their order, and a retry or a stale link
+ * (spec L509-520) pins their wording and their order, and a retry or a stale link
  * produces one. Keeping them here rather than inside the store is what lets the
  * store, the transport's error mapping and the tests all assert the same literal
  * without any one of them becoming the copy of record.
@@ -21,7 +21,7 @@ export const errorMessages = {
 	notABoardMember: "This participant is not a board member",
 	/** The text was empty, or held nothing but whitespace. */
 	messageEmpty: "Message cannot be empty",
-	/** The board a create operation names does not exist in this workspace (spec L514). */
+	/** The board a create operation names does not exist in this workspace (spec L516). */
 	boardNotFound: "Board not found",
 } as const;
 

@@ -1,0 +1,186 @@
+/* The index pane's own frame. Every value is a token from DESIGN.md; nothing here is a colour
+   literal, and no frame clips its content (check-app-styles enforces both). */
+
+.board-pane {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	padding: var(--spacing-md);
+	min-width: 0;
+}
+
+.board-pane__header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+}
+
+.board-pane__title {
+	margin: 0;
+	font-size: var(--text-headline);
+	font-weight: 600;
+	line-height: var(--text-headline--line-height);
+	color: var(--color-ink-strong);
+}
+
+.board-pane__description {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: var(--text-body--line-height);
+	color: var(--color-ink-muted);
+}
+
+/* The three views. A row of links, not a tab widget: there is no tablist role and no arrow-key
+   contract, because these are addresses rather than panels (spec L543 makes the view a parameter
+   of the URL, so each one is navigable on its own). */
+.board-pane__views {
+	display: flex;
+	gap: var(--spacing-md);
+	border-block-end: 1px solid var(--color-line-soft);
+	padding-block-end: var(--spacing-xs);
+}
+
+.board-pane__view {
+	font-size: var(--text-body);
+	color: var(--color-ink-muted);
+	text-decoration: none;
+	text-transform: capitalize;
+}
+
+.board-pane__view:hover {
+	color: var(--color-ink-body);
+}
+
+/* The active view carries an underline as well as a colour step, so the state is not colour
+   alone — the same rule the thread row's inset edge follows. */
+.board-pane__view[aria-current="page"] {
+	color: var(--color-ink-strong);
+	font-weight: 600;
+	text-decoration: underline;
+	text-decoration-thickness: 2px;
+	text-underline-offset: 4px;
+}
+
+.board-pane__controls {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.board-pane__search {
+	flex: 1;
+	min-width: 0;
+}
+
+.board-pane__search-input {
+	width: 100%;
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-body);
+}
+
+.board-pane__filter {
+	flex-shrink: 0;
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+/* The pressed state: a fill AND a heavier border, so a reader who cannot see the tint still sees
+   the control changed. */
+.board-pane__filter[aria-pressed="true"] {
+	border-color: var(--color-accent-chip-bg);
+	background-color: var(--color-accent-chip-bg);
+	color: var(--color-accent-chip);
+	font-weight: 600;
+}
+
+.board-pane__list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* A resource row points at its content rather than holding it: name, address, description, and
+   nothing that could be mistaken for the content itself. */
+.resource-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+	padding: var(--spacing-sm);
+	border: 1px solid var(--color-line-soft);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+}
+
+.resource-row__name {
+	font-size: var(--text-body);
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.resource-row__url {
+	font-size: var(--text-label);
+	color: var(--color-accent-ink);
+	text-decoration: underline;
+	overflow-wrap: anywhere;
+}
+
+.resource-row__description {
+	margin: 0;
+	font-size: var(--text-body);
+	color: var(--color-ink-muted);
+}
+
+.person-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-xs) 0;
+	font-size: var(--text-body);
+	color: var(--color-ink-body);
+}
+
+/* A tag, not a badge of authority: the word says who is speaking, and grants nothing. */
+.person-row__kind {
+	padding: 0 var(--spacing-xs);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface-tint);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	font-weight: 600;
+}
+
+/* The three absences, and the stated refusal. One treatment, because they are all the same thing
+   structurally: this view has nothing it can show, and it says why. */
+.board-pane__empty {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-xl) var(--spacing-md);
+	text-align: center;
+}
+
+.board-pane__empty-title {
+	margin: 0;
+	font-size: var(--text-body);
+	font-weight: 600;
+	color: var(--color-ink-body);
+}
+
+.board-pane__empty-detail {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: var(--text-body--line-height);
+	color: var(--color-ink-muted);
+}

@@ -23,6 +23,7 @@ describe("the board route's search parameters", () => {
 			view: "threads",
 			q: "",
 			unread: false,
+			thread: "",
 		});
 	});
 
@@ -94,6 +95,22 @@ describe("the board route's search parameters", () => {
 		}
 	});
 
+	it("carries the open thread, so a deep link restores which conversation is open", () => {
+		// The thread is a search parameter rather than a path segment (spec L545: the pane and the
+		// conversation are two levels of ONE address), so opening a thread is a navigation that
+		// changes the search rather than a second route.
+		expect(parseBoardSearch({ thread: "delivery" }).thread).toBe("delivery");
+		expect(parseBoardSearch({}).thread).toBe("");
+		// It survives a hand-edited value without crashing, like every other parameter.
+		for (const raw of [null, 42, {}, [], true]) {
+			expect(typeof parseBoardSearch({ thread: raw }).thread).toBe("string");
+		}
+		// A repeated parameter takes the first, matching the rule for `q`.
+		expect(parseBoardSearch({ thread: ["delivery", "identity"] }).thread).toBe(
+			"delivery",
+		);
+	});
+
 	it("keeps only the parameters it knows, so a URL cannot smuggle state into the view", () => {
 		// The parsed object is what the component receives, so an unknown parameter must not
 		// survive into it: a second data source read off the URL would be a state channel
@@ -102,6 +119,7 @@ describe("the board route's search parameters", () => {
 			view: "people",
 			q: "",
 			unread: false,
+			thread: "",
 		});
 	});
 });

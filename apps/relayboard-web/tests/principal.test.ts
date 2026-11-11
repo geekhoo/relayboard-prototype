@@ -29,7 +29,7 @@ beforeEach(() => {
 
 describe("round-robin session issuance", () => {
 	it("walks the seed's selectable principals in order, and wraps", () => {
-		// spec L366, L370: cyclic and stable within one store instance, so a test that opens two
+		// spec L368, L370: cyclic and stable within one store instance, so a test that opens two
 		// browsers knows it got two different participants rather than one in two windows.
 		const issued = [1, 2, 3, 4].map(
 			() => resolveSession(undefined).principal.id,
@@ -69,7 +69,7 @@ describe("round-robin session issuance", () => {
 
 describe("a session that cannot be resolved", () => {
 	it("is refused, not reassigned, when it names a principal the workspace does not hold", () => {
-		// spec L371: a stale cookie must resolve to nobody rather than quietly becoming somebody
+		// spec L373: a stale cookie must resolve to nobody rather than quietly becoming somebody
 		// else. This is the case a purge or a reseed could produce, and the difference between
 		// "refused" and "silently reassigned" is the difference between a bug report and a
 		// mystery.

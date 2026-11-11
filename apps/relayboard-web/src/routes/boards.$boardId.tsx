@@ -1,134 +1,152 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useActingPrincipalId, useRelayboardClient } from "#/client/context";
-import { primeRail, threadsQuery } from "#/components/-rail-queries";
+import { useActingPrincipalId } from "#/client/context";
+import { primeRail } from "#/components/-rail-queries";
+import { primePane, threadRowsQuery } from "#/components/-thread-queries";
+import { BoardPane } from "#/components/BoardPane";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
-import { BOARD_VIEWS, parseBoardSearch } from "./-board-search";
+import { type BoardView, parseBoardSearch } from "./-board-search";
 
 /**
  * One board, at `/boards/$boardId`.
  *
- * The board is a **path segment** and the view, the search text and the unread filter are
- * search parameters (spec L540-542), so the whole location is in the address: reload,
- * bookmark and paste all land where the reader was, and back/forward walks the views.
+ * The board is a **path segment**; the view, the search text, the unread filter and the open thread
+ * are search parameters (spec L542-545), so the whole location is in the address: reload, bookmark
+ * and paste all land where the reader was, and back/forward walks the views.
  *
- * The search is parsed by `-board-search`, which is total — a hand-edited value is
- * normalised rather than refused — so this route can render whatever the URL holds.
+ * The search is parsed by `-board-search`, which is total — a hand-edited value is normalised
+ * rather than refused — so this route can render whatever the URL holds.
  *
- * A board id that does not exist is a **not-found state inside the frame**, not a framework
- * error page (spec L544): `notFound()` from the loader lands on the route's error component,
- * which renders the same three columns with a way back rather than a bare stack trace.
+ * ## Two different not-founds, and why they are in different places
+ *
+ * A **board** id that does not exist is a whole-frame state: there is no board to show a rail-marked
+ * pane for, so `notFound()` from the loader lands on `BoardNotFound`, which renders the same three
+ * columns with a way back (spec L546).
+ *
+ * A **thread** id that does not exist is a conversation-column state, *inside* the board that does
+ * exist. The board is real, its thread list is real and the reader can pick another thread from it;
+ * hiding all of that behind a full-frame error would be a worse place to land than the one they
+ * were trying to reach. That is 04b's criterion, and the shape of it — the pane stays usable — is
+ * the reason the thread is a search parameter rather than a second route.
  */
 export const Route = createFileRoute("/boards/$boardId")({
-	// The search is validated on the way in, before the component sees it: the validator
-	// returns the parsed value, so an unknown view or an absurd query is normalised in the
-	// address itself rather than only in the render.
+	// The search is validated on the way in, before the component sees it: the validator returns the
+	// parsed value, so an unknown view or an absurd query is normalised in the address itself rather
+	// than only in the render.
 	validateSearch: (search: Record<string, unknown>) => parseBoardSearch(search),
-	loader: async ({ params, context }) => {
-		// The loader asks the client rather than the store, so a board that does not exist is
-		// known before the component renders and the not-found state is a real route state
-		// rather than a flicker of an empty frame.
+	// The open thread is a **reload trigger**: it is part of what the loader's answer depends on, so
+	// moving from one thread to another re-runs the loader and resolves the new id against the same
+	// board's rows. Declared as a dep rather than read from the raw query string inside the loader,
+	// so the loader asks the same parsed question the component asks and cannot disagree with it.
+	loaderDeps: ({ search }) => ({ thread: search.thread }),
+	loader: async ({ params, context, deps }) => {
+		// The loader asks the client rather than the store, so a board that does not exist is known
+		// before the component renders and the not-found state is a real route state rather than a
+		// flicker of an empty frame.
 		const boards = await context.client.listBoards();
 		const board = boards.find((candidate) => candidate.id === params.boardId);
-		// The rail's two reads are primed before the answer is decided, so the server's first
-		// paint carries the boards and their unread counts. That matters most in the not-found
-		// case: the frame's whole promise is that the reader can go somewhere else from a stale
-		// link, and a rail that arrived a moment later would leave them looking at a dead end.
+		// The rail's reads are primed before the answer is decided, so the server's first paint
+		// carries the boards and their unread counts. That matters most in the not-found case: the
+		// frame's whole promise is that the reader can go somewhere else from a stale link, and a
+		// rail that arrived a moment later would leave them looking at a dead end.
 		await primeRail(context.queryClient, context.client);
 		if (!board) {
 			throw notFound();
 		}
-		// The pane's own read is primed for the same reason. Without this the pane renders its
-		// "0 threads" copy on the server and corrects itself on hydration — a flash of text that
-		// is simply false about the board the reader is looking at, which the in-memory client
-		// happens to hide because its queries resolve in the same tick. Found by measuring the
-		// HTTP transport, and worth fixing before the UI is switched to it in 06c.
-		await context.queryClient.ensureQueryData(
-			threadsQuery(context.client, board.id),
+		// The pane's three reads are primed for the same reason, and they are primed for **all three
+		// views** rather than the one the URL names: the tabs are links, so switching view is a
+		// client-side navigation that runs no loader of its own. Without this the resources and
+		// people views would render their empty copy on the server and fill in after hydration —
+		// the defect 06a and 06b both paid for, in its third costume.
+		await primePane(context.queryClient, context.client, board.id);
+		// A thread id is resolved against this board's own rows, not against a global thread lookup:
+		// naming another board's thread here is the same case as naming one that does not exist, and
+		// both must not leak the thread's existence by rendering it.
+		const rows = await context.queryClient.ensureQueryData(
+			threadRowsQuery(context.client, board.id),
 		);
-		return { board };
+		// The open thread arrives as a loader dep, so it is the router's own parsed value rather than
+		// a second reading of the query string: the loader and the component ask the same question
+		// and cannot disagree.
+		const threadExists =
+			deps.thread === "" || rows.some((row) => row.thread.id === deps.thread);
+		return { board, threadExists };
 	},
 	component: BoardRoute,
 	notFoundComponent: BoardNotFound,
 });
 
 function BoardRoute() {
-	const { board } = Route.useLoaderData();
+	const { board, threadExists } = Route.useLoaderData();
 	const search = Route.useSearch();
-	const client = useRelayboardClient();
-	const threads = useQuery(threadsQuery(client, board.id));
+	const actingPrincipalId = useActingPrincipalId();
 
 	return (
 		<WorkspaceFrame
+			actingPrincipalId={actingPrincipalId}
 			activeBoardId={board.id}
-			actingPrincipalId={useActingPrincipalId()}
 			pane={
 				<BoardPane
-					name={board.name}
+					boardId={board.id}
 					description={board.description}
-					view={search.view}
-					threadCount={threads.data?.length ?? 0}
-					unread={search.unread}
+					name={board.name}
 					query={search.q}
+					thread={search.thread}
+					unreadOnly={search.unread}
+					view={search.view}
 				/>
+			}
+			conversation={
+				threadExists ? undefined : (
+					<ThreadNotFound
+						boardId={board.id}
+						search={search}
+						threadId={search.thread}
+					/>
+				)
 			}
 		/>
 	);
 }
 
 /**
- * The index pane's header and its honest state for this ticket.
+ * A thread the URL names that this board does not hold.
  *
- * The three views are rendered as tabs so the URL contract is visible and operable before
- * the lists exist; each tab is a link that changes the search parameter, which is what makes
- * back and forward move between views.
+ * Inside the frame and beside a working thread list: the reader can pick another thread without
+ * leaving, which is the whole point of putting this in the conversation column rather than
+ * replacing the board. The sentence names the id so a hand-edited or truncated link is obvious.
  */
-function BoardPane({
-	name,
-	description,
-	view,
-	threadCount,
-	unread,
-	query,
+function ThreadNotFound({
+	boardId,
+	search,
+	threadId,
 }: {
-	readonly name: string;
-	readonly description: string;
-	readonly view: "threads" | "resources" | "people";
-	readonly threadCount: number;
-	readonly unread: boolean;
-	readonly query: string;
+	readonly boardId: string;
+	readonly search: {
+		readonly view: BoardView;
+		readonly q: string;
+		readonly unread: boolean;
+		readonly thread: string;
+	};
+	readonly threadId: string;
 }) {
-	const { boardId } = Route.useParams();
 	return (
-		<div className="flex flex-col gap-md px-md py-lg">
-			<header className="flex flex-col gap-hair">
-				<h1 className="m-0 text-headline text-ink-strong">{name}</h1>
-				<p className="m-0 text-body text-ink-muted">{description}</p>
-			</header>
-			<nav aria-label="Board views" className="flex gap-sm">
-				{BOARD_VIEWS.map((candidate) => (
-					// A link, not a button: the view is a search parameter, so switching it is a
-					// navigation — back and forward move between views and the address is shareable
-					// (spec L541).
-					<Link
-						key={candidate}
-						to="/boards/$boardId"
-						params={{ boardId }}
-						search={{ view: candidate, q: query, unread }}
-						aria-current={candidate === view ? "page" : undefined}
-						className="text-body capitalize"
-					>
-						{candidate}
-					</Link>
-				))}
-			</nav>
+		<div className="flex flex-col gap-sm px-md py-lg">
+			<h1 className="m-0 text-headline text-ink-strong">Thread not found</h1>
 			<p className="m-0 text-body text-ink-muted">
-				{view === "threads"
-					? `${threadCount} thread${threadCount === 1 ? "" : "s"} in this board. The thread list lands here next.`
-					: view === "resources"
-						? "The board's resources land here next."
-						: "The board's participants land here next."}
+				This board has no thread with the address “{threadId}”. It may have been
+				removed, or the link may belong to another board.
 			</p>
+			<Link
+				className="text-body text-accent-ink underline"
+				params={{ boardId }}
+				// Back to the board's thread list with everything else as the reader left it: clearing
+				// the thread is the whole repair, and resetting their search as well would lose work
+				// they did to get here.
+				search={{ ...search, thread: "" }}
+				to="/boards/$boardId"
+			>
+				Choose a thread from the list
+			</Link>
 		</div>
 	);
 }
@@ -136,9 +154,8 @@ function BoardPane({
 /**
  * A board the URL names that this workspace does not hold.
  *
- * Inside the frame, with a way back: a stale link should read as "that board is gone" rather
- * than as a broken product (story 7). The rail still renders, so the reader can go anywhere
- * else from here.
+ * Inside the frame, with a way back: a stale link should read as "that board is gone" rather than
+ * as a broken product (story 7). The rail still renders, so the reader can go anywhere else.
  */
 function BoardNotFound() {
 	return (

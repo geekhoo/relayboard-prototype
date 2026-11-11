@@ -54,7 +54,7 @@ describe("the HTTP client", () => {
 
 	it("throws rather than returning an empty subscription for the stream", () => {
 		// An empty subscription is indistinguishable from a thread with no entries, which is
-		// the failure spec L516 forbids being rendered as an absence.
+		// the failure spec L518 forbids being rendered as an absence.
 		expect(() => client.subscribe({ onEvent: () => {} })).toThrow(/11a/);
 	});
 

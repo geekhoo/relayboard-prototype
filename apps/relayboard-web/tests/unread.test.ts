@@ -6,7 +6,7 @@ import { boardUnreadCounts, unreadInThread } from "#/components/-unread";
  * The unread badge's arithmetic, asserted on its own.
  *
  * The badge is the one number on the rail, and its rule is that it comes from `seen` and
- * nothing else (spec L500). That is cheap to get subtly wrong — the prototype subtracts its
+ * nothing else (spec L502). That is cheap to get subtly wrong — the prototype subtracts its
  * own posts instead — so the rule is tested directly rather than through a rendered rail,
  * and 04c's browser assertion then checks the pixels.
  */
@@ -22,6 +22,7 @@ const thread = (id: string, boardId: string): Thread => ({
 	title: `Thread ${id}`,
 	creatorId: "alex",
 	createdAt: "2026-11-11T05:00:00.000Z",
+	pinned: false,
 	origin: "demo",
 });
 

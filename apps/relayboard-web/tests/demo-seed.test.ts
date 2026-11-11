@@ -81,7 +81,7 @@ describe("the demo workspace", () => {
 			(principal) => principal.origin === "owner",
 		);
 
-		// Exactly one owner principal: the out-of-band provisioning of spec L427. It is
+		// Exactly one owner principal: the out-of-band provisioning of spec L429. It is
 		// a human like any other, and its grant is 07a's to add.
 		expect(owners).toHaveLength(1);
 		expect(owners[0]?.kind).toBe("human");
@@ -101,7 +101,7 @@ describe("the demo workspace", () => {
 			.filter((principal) => principal.browserSelectable)
 			.map((principal) => principal.id);
 
-		// spec L366, L370: the session round-robin walks the principals the seed marks.
+		// spec L368, L370: the session round-robin walks the principals the seed marks.
 		// The order is the list's order, which is what makes "the first browser is alex"
 		// a fact rather than a coin flip.
 		expect(selectable).toEqual(["alex", "maya"]);

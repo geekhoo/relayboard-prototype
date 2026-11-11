@@ -97,7 +97,7 @@ export const createInMemoryClient = (
 	 * Resolved once, at construction, and refused if the workspace does not hold it.
 	 *
 	 * A session naming a principal that no longer exists resolves to no principal and the
-	 * request is refused rather than silently becoming somebody else (spec L371). Issuing
+	 * request is refused rather than silently becoming somebody else (spec L373). Issuing
 	 * and resolving a session is 06b's; until then the only way to reach this is to build a
 	 * client for an id the workspace does not hold, which is exactly what this guards.
 	 */
@@ -260,7 +260,7 @@ export const createInMemoryClient = (
 			if (!thread) throw new Error(errorMessages.threadNotFound);
 			// The author is chosen here, server-side, from the board's agent members: the
 			// caller cannot say which agent speaks, so authoring an agent's words never
-			// becomes the caller's own claim (spec L375).
+			// becomes the caller's own claim (spec L377).
 			const agents = store
 				.listMembers(thread.boardId)
 				.filter((principal) => principal.kind === "agent");

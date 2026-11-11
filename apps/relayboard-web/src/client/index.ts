@@ -61,7 +61,7 @@ export type {
  * Three rules the signatures encode:
  *
  * 1. **No operation takes an author.** The acting principal is resolved by the
- *    transport and never named in a payload (spec L374), so a browser cannot post as
+ *    transport and never named in a payload (spec L376), so a browser cannot post as
  *    somebody else. The in-memory implementation takes that principal in its
  *    constructor; the HTTP one will take it from the session cookie.
  * 2. **Every operation that needs a grant declares it**, in one table below rather than
@@ -76,7 +76,7 @@ export type {
  * A board as a list returns it: the record, plus how many participants it has.
  *
  * The count is an addition *beside* the record rather than a field on it, because
- * `read:member` is a permission of its own (spec L423): a caller allowed to list boards
+ * `read:member` is a permission of its own (spec L425): a caller allowed to list boards
  * is not thereby allowed to list who is on them, so the list carries a number and never
  * a list. Keeping `memberCount` off the domain `Board` is what stops a later caller
  * reading the participants off the board payload, which is exactly the leak the
@@ -123,7 +123,7 @@ export interface DeclaredValues {
  * The board id is a parameter rather than a field of the result because "what may this
  * participant do here" is a question with no meaning without a "here": a grant is per
  * board, and a read that took only a principal id could not answer it. Taking the board
- * also means the grant returned was checked against that board (spec L323).
+ * also means the grant returned was checked against that board (spec L316).
  */
 export interface ParticipantRead {
 	/** The record. Its derived values — issuer, fingerprint — arrive with 08c and are computed, never seeded. */
@@ -222,10 +222,10 @@ export interface SetConnectionInput {
 /**
  * The stream's event vocabulary.
  *
- * The eight names below are the **wire** vocabulary (spec L356) — exactly the set 11a
+ * The eight names below are the **wire** vocabulary (spec L358) — exactly the set 11a
  * asserts a server route emits — plus one that is deliberately not on the wire:
  * `stream-error` is reported *by the client* when it cannot reach the stream, so the
- * interface can show "disconnected" rather than an empty thread (spec L516). Naming it
+ * interface can show "disconnected" rather than an empty thread (spec L518). Naming it
  * here rather than inventing a second channel is what lets a subscriber handle every
  * outcome through one callback, and keeping it out of the eight is what keeps 11a's
  * literal-set assertion true.
@@ -269,7 +269,7 @@ export type StreamEvent =
 	| {
 			/**
 			 * **Not a wire event.** The client reports it when the transport fails, so a
-			 * failure is never rendered as an absence (spec L516).
+			 * failure is never rendered as an absence (spec L518).
 			 */
 			readonly type: "stream-error";
 			readonly message: string;
@@ -394,7 +394,7 @@ export type PermissionRequirement =
  * 1. **A named permission** — the common case. `appendMessage` requires `post:message`, and 07a
  *    enforces it at the boundary rather than in the UI.
  * 2. **`{ atLeastOneBoard: "read:board" }`** — the requirement is real but cannot be expressed as
- *    one name, because it is satisfied by holding the permission on *any* board (spec L338).
+ *    one name, because it is satisfied by holding the permission on *any* board (spec L339).
  *    `subscribe` and `setConnection` carry it: opening the stream needs no particular board, only
  *    that the caller can read one.
  * 3. **`{ none: "..." }`** — nothing is required, and the value is the reason. `readActingPrincipal`

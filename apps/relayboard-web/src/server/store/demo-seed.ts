@@ -36,14 +36,14 @@ import type {
  *    beside the grants.
  * 2. The prototype's single `seen` map and `stream.cursors` become per-principal
  *    watermarks ({@link demoWatermarks}), because a session names a principal
- *    (spec L366) and two browsers must be able to see different badges.
+ *    (spec L368) and two browsers must be able to see different badges.
  * 3. The prototype's presentation fields (`initials`, `style`, `issuer`, `fingerprint`,
  *    `pinned`) stay out: `issuer` and `fingerprint` are later *derived* values (08c),
- *    and a seeded one would be the invented string the spec rejects (spec L403).
+ *    and a seeded one would be the invented string the spec rejects (spec L405).
  *
  * ## The record is wrong about one thing, and this file works around it
  *
- * `AGENTS.md` L72 and spec L499 both say the seeded data is "deliberately
+ * `AGENTS.md` L72 and spec L501 both say the seeded data is "deliberately
  * non-monotonic" so that an incorrect sort by `createdAt` is visible, and 02c's fourth
  * criterion asks for a thread where timestamp order and `seq` order differ.
  *
@@ -135,7 +135,7 @@ const principals: readonly Principal[] = [
 		browserSelectable: false,
 	},
 	/**
-	 * The seeded superadmin (spec L427: "the store is seeded with one").
+	 * The seeded superadmin (spec L429: "the store is seeded with one").
 	 *
 	 * Its `origin` is `owner`, not `demo`: it is this installation's provisioning, not
 	 * demo content, and a purge must not delete the principal every session resolves
@@ -189,6 +189,8 @@ const threads: readonly Thread[] = [
 		title: "Durable message delivery",
 		creatorId: "maya",
 		createdAt: ago(500),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: true,
 		origin: "demo",
 	},
 	{
@@ -197,6 +199,8 @@ const threads: readonly Thread[] = [
 		title: "Agent identity & authorship",
 		creatorId: "alex",
 		createdAt: ago(1500),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -205,6 +209,8 @@ const threads: readonly Thread[] = [
 		title: "Reconnect and replay behavior",
 		creatorId: "daniel",
 		createdAt: ago(1700),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -213,6 +219,8 @@ const threads: readonly Thread[] = [
 		title: "Retention and message edits",
 		creatorId: "maya",
 		createdAt: ago(3400),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -221,6 +229,8 @@ const threads: readonly Thread[] = [
 		title: "Messaging API conventions",
 		creatorId: "daniel",
 		createdAt: ago(4500),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -229,6 +239,8 @@ const threads: readonly Thread[] = [
 		title: "November launch narrative",
 		creatorId: "sara",
 		createdAt: ago(800),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -237,6 +249,8 @@ const threads: readonly Thread[] = [
 		title: "Creative assets and references",
 		creatorId: "sara",
 		createdAt: ago(1700),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -245,6 +259,8 @@ const threads: readonly Thread[] = [
 		title: "Final copy review",
 		creatorId: "alex",
 		createdAt: ago(2800),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -253,6 +269,8 @@ const threads: readonly Thread[] = [
 		title: "Conversation components",
 		creatorId: "alex",
 		createdAt: ago(600),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 	{
@@ -261,6 +279,8 @@ const threads: readonly Thread[] = [
 		title: "Keyboard and screen-reader checks",
 		creatorId: "maya",
 		createdAt: ago(2600),
+		// Only `delivery` is pinned in the prototype (app.js L35).
+		pinned: false,
 		origin: "demo",
 	},
 ];

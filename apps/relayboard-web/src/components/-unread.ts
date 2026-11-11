@@ -3,7 +3,7 @@ import type { PrincipalPosition, Thread } from "#/client";
 /**
  * How many entries in a thread a participant has not yet read.
  *
- * The unread badge **counts from the `seen` watermark and from nothing else** (spec L500):
+ * The unread badge **counts from the `seen` watermark and from nothing else** (spec L502):
  * `seen` is how far a principal has read, so anything past it is unread. A client-side
  * counter beside it would be a second source of truth, and the two would disagree the
  * first time a thread was read in another tab.

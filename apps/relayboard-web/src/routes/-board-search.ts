@@ -1,10 +1,10 @@
 /**
  * The board route's search parameters, parsed and validated on the way in.
  *
- * The URL is the location (spec L538), so these four values are user-editable input: a
+ * The URL is the location (spec L540), so these four values are user-editable input: a
  * link can be pasted with anything in it. The parse is therefore **total** — every input
  * yields a renderable view, and an unknown value is normalised rather than refused — which
- * is what keeps a hand-edited URL from producing a broken screen (spec L542).
+ * is what keeps a hand-edited URL from producing a broken screen (spec L544).
  *
  * Pure on purpose. It has no import of the router, the client or React, so it can be
  * tested in Node and so nothing here can start a request.
@@ -28,6 +28,16 @@ export interface BoardSearch {
 	readonly view: BoardView;
 	readonly q: string;
 	readonly unread: boolean;
+	/**
+	 * The open thread, or `""` for none.
+	 *
+	 * In the **search**, not the path, because spec L545 makes the thread a second *level* of the
+	 * same board route rather than a second route: at a narrow viewport the pane and the conversation
+	 * are two levels of one address, and a thread as its own path would make the back control a
+	 * route change instead of a UI affordance. Opening a thread is still a navigation — it changes
+	 * the URL — which is 04b's criterion.
+	 */
+	readonly thread: string;
 }
 
 /** The view a reader sees when the URL says nothing, or says something unrecognisable. */
@@ -35,6 +45,7 @@ export const DEFAULT_BOARD_SEARCH: BoardSearch = {
 	view: "threads",
 	q: "",
 	unread: false,
+	thread: "",
 };
 
 const isBoardView = (value: unknown): value is BoardView =>
@@ -80,9 +91,13 @@ export const parseBoardSearch = (
 	const source = raw ?? {};
 	const view = source.view;
 	const q = text(source.q);
+	const thread = text(source.thread);
 	return {
 		view: isBoardView(view) ? view : DEFAULT_BOARD_SEARCH.view,
 		q: (q ?? "").trim().slice(0, MAX_SEARCH_LENGTH),
 		unread: flag(source.unread),
+		// A thread id is a short opaque string; anything longer than a search term is not one, and
+		// truncating an id would silently address a thread that does not exist.
+		thread: (thread ?? "").trim().slice(0, MAX_SEARCH_LENGTH),
 	};
 };

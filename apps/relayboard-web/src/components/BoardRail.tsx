@@ -60,7 +60,7 @@ export function BoardRail({
 					return (
 						<li key={board.id}>
 							<Link
-								// A board is a path segment (spec L540), so the row is a link and opening it
+								// A board is a path segment (spec L542), so the row is a link and opening it
 								// is a navigation rather than a state change.
 								to="/boards/$boardId"
 								params={{ boardId: board.id }}

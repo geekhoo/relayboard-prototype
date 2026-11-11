@@ -21,7 +21,7 @@
 /**
  * The fifteen named capabilities, each {@link PermissionName} for the verb on the object.
  *
- * The objects and their verbs, from spec L326-339:
+ * The objects and their verbs, from spec L327-341:
  *
  * | object | permissions |
  * | --- | --- |
@@ -60,7 +60,7 @@ export type PermissionName =
  *
  * A grant is the *only* thing that decides capability — two principals holding the same
  * grant behave identically, whatever their `kind`. It is scoped because a
- * workspace-wide "can post" would make board-level consent impossible (spec L394), and
+ * workspace-wide "can post" would make board-level consent impossible (spec L416), and
  * the scope is two-valued rather than absent because "no scope" is not a third state a
  * caller could ever want: a permission with no scope is a workspace-wide permission
  * nobody chose.

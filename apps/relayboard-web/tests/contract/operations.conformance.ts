@@ -149,7 +149,7 @@ export const describeOperationsConformance = (
 				// able to ask, which is how a client learns it has none.
 				["readActingPrincipal", "none"],
 				// Opening the stream, or reporting the connection, needs no particular board: only
-				// that the caller may read one (spec L338).
+				// that the caller may read one (spec L339).
 				["setConnection", "atLeastOneBoard"],
 				["subscribe", "atLeastOneBoard"],
 			]);

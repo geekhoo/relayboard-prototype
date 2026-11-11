@@ -60,7 +60,7 @@ export const sessionCookieFor = (principalId: string): string =>
  * Who is acting on this request, issuing a session if there is none.
  *
  * Refuses when the cookie is validly signed but names a principal this workspace no longer holds
- * (spec L371): a stale session must resolve to *nobody* rather than quietly becoming somebody
+ * (spec L373): a stale session must resolve to *nobody* rather than quietly becoming somebody
  * else.
  */
 export const actingPrincipal = (): Principal => {

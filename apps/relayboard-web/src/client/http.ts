@@ -157,11 +157,11 @@ export const createHttpClient = (): RelayboardClient => ({
 	}),
 
 	/**
-	 * The stream, which is a server route rather than a function (spec L355) and arrives in 11a.
+	 * The stream, which is a server route rather than a function (spec L357) and arrives in 11a.
 	 *
 	 * Throws rather than returning an empty subscription: an empty subscription is
 	 * indistinguishable from a thread with no entries, which is precisely the failure mode
-	 * spec L516 forbids. A caller that ignores this will get an exception at the call site,
+	 * spec L518 forbids. A caller that ignores this will get an exception at the call site,
 	 * which is where 11a's implementation will be.
 	 */
 	subscribe: (_handlers: StreamHandlers): Unsubscribe => {

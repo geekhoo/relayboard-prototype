@@ -64,7 +64,7 @@ describe("Principal", () => {
 		// The two fields past 02a are neither capabilities nor derived values:
 		// `description` is what the principal says about itself (declared, never
 		// verified — 12 renders it labelled as declared), and `browserSelectable` is a
-		// fact about the demo seed (spec L366: the session names a principal "selected
+		// fact about the demo seed (spec L368: the session names a principal "selected
 		// round-robin from those the seed marks as browser-selectable"), not a
 		// permission. Neither may be read as "what this principal may do".
 		expectTypeOf<Principal>().toEqualTypeOf<{
@@ -112,6 +112,7 @@ const thread: Thread = {
 	title: "Durable message delivery",
 	creatorId: "maya",
 	createdAt: "2026-11-11T05:00:00.000Z",
+	pinned: true,
 	origin: "demo",
 };
 
@@ -277,6 +278,9 @@ describe("Board and Thread", () => {
 			readonly title: string;
 			readonly creatorId: Principal["id"];
 			readonly createdAt: string;
+			// Carried because the prototype carries it (app.js L35) and renders a pin. It is a
+			// label, not a sort key: the thread list orders by the latest entry's timestamp.
+			readonly pinned: boolean;
 			readonly origin: Origin;
 		}>();
 		expect(Object.keys(thread).sort()).toEqual([
@@ -285,6 +289,7 @@ describe("Board and Thread", () => {
 			"creatorId",
 			"id",
 			"origin",
+			"pinned",
 			"title",
 		]);
 	});
@@ -315,7 +320,7 @@ describe("the watermarks", () => {
 });
 
 describe("the permission vocabulary", () => {
-	it("is the fifteen names of spec L326-339, and no other", () => {
+	it("is the fifteen names of spec L327-341, and no other", () => {
 		// Asserted as an exact union rather than as a list, because nothing in the domain
 		// executes yet: the vocabulary is a type, and 07a is the ticket that gives it
 		// enforcement. When 07a adds a runtime list, *this* is the assertion that keeps it
@@ -361,7 +366,7 @@ describe("the domain module", () => {
 	it("exports no runtime value except the documented error strings", () => {
 		// 02a could assert something stronger — that the module held no runtime value at
 		// all, so nothing in it could branch on anything — because every export was a
-		// type. 02b puts the documented error strings here (spec L518: "they live in one
+		// type. 02b puts the documented error strings here (spec L520: "they live in one
 		// place in the domain module"), so that assertion is now false by design and the
 		// guarantee it was standing in for is the narrower one below: the module's only
 		// executable content is a vocabulary, and a vocabulary cannot branch on a
@@ -392,7 +397,7 @@ describe("the domain module", () => {
 			threadNotFound: "Thread not found",
 			notABoardMember: "This participant is not a board member",
 			messageEmpty: "Message cannot be empty",
-			// The create path's own failure (spec L514), documented beside the others so
+			// The create path's own failure (spec L516), documented beside the others so
 			// there is still one place a user-visible string can come from.
 			boardNotFound: "Board not found",
 		});

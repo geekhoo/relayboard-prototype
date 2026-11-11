@@ -51,7 +51,7 @@ describe("the in-memory client", () => {
 
 	it("refuses to act as a principal the workspace does not hold", () => {
 		// A session bound to a principal id that no longer exists must resolve to nobody
-		// rather than to somebody else (spec L371). The client is fixed at construction, so
+		// rather than to somebody else (spec L373). The client is fixed at construction, so
 		// this is the moment that can be refused.
 		expect(() => createInMemoryClient({ principalId: "nobody" })).toThrow(
 			/nobody/,
@@ -232,7 +232,7 @@ describe("the in-memory subscription", () => {
 	it("reports a surface failure as stream-error rather than silence, once a transport exists to fail", () => {
 		// The vocabulary is declared here and one member of it is deliberately not a wire
 		// event: a client reports `stream-error` when it cannot reach the stream, so a
-		// failure is never rendered as an empty thread (spec L516). The in-memory transport
+		// failure is never rendered as an empty thread (spec L518). The in-memory transport
 		// cannot fail, so this asserts the shape the HTTP one will emit.
 		const failure: StreamEvent = {
 			type: "stream-error",

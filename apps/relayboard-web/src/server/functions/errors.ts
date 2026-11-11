@@ -3,13 +3,13 @@
  *
  * The spec requires three distinguishable families (06c: error mapping): a **validation**
  * failure (the request was malformed), a **resolution** failure (there is no principal to act
- * as — the one case a client must not retry silently, spec L494), and an **unknown object**
+ * as — the one case a client must not retry silently, spec L517), and an **unknown object**
  * (the request was well-formed and the thing it names is not here). A fourth exists for a
  * capability this build does not have yet, so it fails loudly rather than looking empty.
  *
  * Each is a `ServerError` carrying a stable `code`. The *message* is user-visible where the
  * domain already documented one — `Board not found`, `Thread not found` — because those
- * strings are observable behaviour (spec L518) and the transport must not reword them; the
+ * strings are observable behaviour (spec L520) and the transport must not reword them; the
  * code is what the client branches on, and the message is what a reader sees.
  */
 

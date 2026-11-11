@@ -46,7 +46,7 @@ export interface RouterContext {
 /**
  * Who a browser acts as until sessions exist.
  *
- * The seed marks its principals `browserSelectable` in a fixed order (02c), and spec L366
+ * The seed marks its principals `browserSelectable` in a fixed order (02c), and spec L368
  * selects round-robin from that list. Round-robin needs a store that persists across
  * requests — this ticket's singleton — and the cookie that carries the choice is 06b's.
  * Until then the first selectable principal is the honest answer, read from the seed so a
