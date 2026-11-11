@@ -8,7 +8,7 @@
 
 **Write scope:** the store module under `src/server/store/**` and its tests. Does not touch the domain types, which 02a landed.
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] A store factory exists that accepts a seed (`{ principals, boards, threads, entries, resources }`, and nothing else) and returns the operations; two factories from two different seeds do not share state.
 - [x] `seq` is per thread, starts at 1, and is gapless; appends to two threads each produce their own gapless sequences.

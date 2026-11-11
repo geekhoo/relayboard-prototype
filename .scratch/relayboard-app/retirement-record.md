@@ -1,3 +1,89 @@
+# The port, closed — what it set out to do, what it did, and what it did not finish
+
+**Read this first if you are arriving fresh; the record below is the detail it summarises.**
+
+## What it set out to do
+
+Replace the dependency-free static prototype at the repository root (`index.html`, `app.js`,
+`styles.css`) with a real application — a durable, topic-oriented messaging workspace where humans and
+independent AI agents converse asynchronously as peers — without losing a single behaviour the prototype
+had. The bar was not "looks the same". It was: **every behaviour `QA.md` recorded as verified must be
+exercised against the app through its routes**, and the two behaviours that file admitted as gaps must be
+fixed rather than carried forward.
+
+That was written down as `.scratch/relayboard-app/spec.md` (the decisions), 30 tickets in dependency order
+(the work), and `parity-checklist.md` — 64 assertions across `QA.md`'s 13 bullets, **frozen at `cb0564a`
+before the suite that grades it was written**, so the suite could not grade its own homework.
+
+## What it did
+
+**All 30 tickets are implemented and committed.** The application serves every operation the prototype had
+and several it could not have: a server-side store two browsers share, server-resolved authorship,
+Server-Sent Events with a real cursor and a server-held pause, four kinds of entry in one chronology,
+fifteen named permissions with scoped grants, an admission cycle with expiry, revocation and renewal, and a
+demo purge that separates what the reader made from what the app seeded.
+
+**307 criteria are ticked and 35 are left open, every one of them with the reason on its own line.** The
+gates run green: `check`, `check:styles`, `typecheck`, `npm test` (369 tests), `build`, `check:boot`,
+`check:bundle`, and `npm run e2e` (172 tests in 17 files), and `npm run skills:check` plus
+`npm run skills:validate` at the root.
+
+**How to read the open boxes: they are the port's own account of itself, not a debt it forgot.** Three
+kinds recur, and each is recorded where it happens rather than summarised here:
+
+- **A criterion that was wrong** — false, untestable, or weaker than the check that already existed. Six
+  were found and corrected before they were implemented; the corrections are in the criteria themselves,
+  with the original wording and the reason kept.
+- **A criterion asking for something the app deliberately does not do** — the frame sets `overflow: hidden`
+  (13a:14), the stream panel is inline content rather than an overlay (13a:20, 15a:13), the act controls are
+  not a dialog (13b:20). Each says which ticket made the decision and what is asserted instead.
+- **An assertion that exists nowhere yet** — a behaviour true of the code that no test would notice
+  changing. These are the ones worth reading: they are the difference between "done" and "proven".
+
+## The six things it did not finish
+
+Each is a criterion left open, and each names the file that argues it. None is invisible from inside the
+app: every one is a claim the app makes that nothing yet checks, or a surface it does not have.
+
+1. **A permission refusal and an absent session are distinguishable on the client, and nothing renders a
+   dropped stream.** The classifier now has five families and is on the path (`src/client/http.ts`), but
+   `stream-error` reaches `applyStreamEvent`'s default branch and no component consumes it — so a reader
+   whose stream has dropped still sees *Live*. Recorded at 11b:20.
+2. **A purge announces itself to subscribers that no longer listen.** `announceWorkspaceChange` is called and
+   `onWorkspaceChange` has no subscriber anywhere in `src`; the SSE route listens for access endings and
+   commits. Recorded at 14:17.
+3. **The revocation wire is asserted at no route.** Both ends are tested and the route is not; a browser
+   holds a cookie session rather than a revocable credential, which is the same limit that keeps an agent's
+   side of the admission cycle out of the browser. Recorded at 11c:20 and 08a:16.
+4. **A granted credential changing mid-stream does not reach an open connection.** What is emitted is an
+   *access ending*, not a permission change. Recorded at 11c:13.
+5. **A simulated entry carries no provenance of its own.** It goes through the real commit path — which is
+   the part that matters — and a reader tells it apart from the panel's copy rather than from the entry.
+   Recorded at 11c:18.
+6. **Two layout claims are asserted by measurement rather than by the property the criterion names**: the
+   frame's own clip (13a:14), and column narrowing, which no test compares across widths (13a:23). The
+   stream panel's vertical viewport fit is narrowed for the same reason (13a:20, and checklist lines 51–52
+   in `e2e/helpers/parity.ts`).
+
+**One more, and it is the one to fix first if you fix anything:** **4 of the 64 frozen parity assertions have
+no passing test of the shape the checklist describes.** Two are the checklist's own *not carried* (lines 5
+and 32) and two are `blocked-by-the-app` (lines 51 and 52, the stream panel's anchored-overlay geometry).
+The other 60 are covered, three of them at another seam. Every one of the four is named with its reason,
+and the suite fails if a line goes missing without one. Recorded at 15a:13.
+
+## And what it is worth knowing about the ticket set itself
+
+The tickets are the durable artefact here, not the diffs. Three things were true of them at the end and
+were not at the start:
+
+- **Every open box names the ticket or the reason that closes it, on its own line.** A box with no reason is
+  a box nobody can act on.
+- **The substitutions are in the criteria, not in footnotes.** Where the build differs from what the ticket
+  asked, the criterion carries both — so a reader who trusts the checklist is not misled by it.
+- **The citations resolve.** `spec.md` gained two lines during the port; the shift rule is written in
+  `reviews/sequence-plan.md` §5.21, and a citation was verified by content rather than by arithmetic.
+
+---
 # Retiring the static prototype — the carry-across record
 
 **What this is.** The dependency-free prototype at the repository root (`index.html`, `app.js`,

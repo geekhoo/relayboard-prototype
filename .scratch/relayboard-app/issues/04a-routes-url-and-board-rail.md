@@ -8,7 +8,7 @@
 
 **Write scope:** new route files under `src/routes/**`, the board-rail component with its co-located stylesheet, and a small accessor module beside the client. `src/routes/__root.tsx`'s **document shell** — `html`/`head`/`body`, the meta tags, the stylesheet link and `Scripts` — is 01's and stays untouched; the root route's **context type** may change, because the criterion below requires the client to travel on the router context and a route cannot read it otherwise. Type-only: an import and the generic, nothing in the shell.
 
-**Status:** done — verified, with one criterion open on purpose; see `## Comments`
+**Status:** done — verified, with 1 criterion open; see `## Comments`
 
 - [x] The route tree contains only Relayboard routes: nothing resolves for `/about` or `/demo/tanstack-query`, and `routeTree.gen.ts` reflects that.
 - [x] The wide viewport shows a full-bleed frame with no site chrome: the board rail on the left, and the thread pane and conversation regions present as labelled placeholders. Nothing new competes for vertical height with the frame.

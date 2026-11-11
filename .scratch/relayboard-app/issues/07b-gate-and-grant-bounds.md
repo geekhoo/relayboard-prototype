@@ -8,7 +8,7 @@
 
 **Write scope:** the grant and gate rules inside the store; the store-level `grant` operation this ticket introduces.
 
-**Status:** done — verified, with two criteria open; see `## Comments`
+**Status:** done — verified, with 2 criteria open; see `## Comments`
 
 - [x] Granting `admit:agent` to an agent principal is refused, with a message naming why. Granting it to a human succeeds. The same holds for `revoke:agent`, asserted separately for each.
 - [x] **Corrected while implementing it: the original clause "cannot admit, revoke, or grant anything" is false.** An agent already admitted cannot **hold the gate permissions and cannot hand them out** — `admit:agent` and `revoke:agent` may only be granted to a human, which refuses the grant to an agent whatever the granter holds, and an agent that does not hold them cannot pass them on either — and it **may** hand out what it actually holds, like any principal, because `kind` is a label rather than a capability (AGENTS.md). Both halves are asserted with a control that proves the difference: an agent is refused `admit:agent` for a human recipient, and the same agent successfully grants `read:board` on a board where it holds it. Asserted through the store's `grant` rather than through the UI.

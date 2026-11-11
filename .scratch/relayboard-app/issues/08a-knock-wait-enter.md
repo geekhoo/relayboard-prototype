@@ -8,7 +8,7 @@
 
 **Write scope:** a **new** admissions module and append-only additions to the store for principals and grants. Does not touch the entry-writing path, which 10a owns.
 
-**Status:** done — verified, with two criteria open; see `## Comments`
+**Status:** done — verified, with 2 criteria open; see `## Comments`
 
 - [x] A knock surface exists, distinct from `RelayboardClient`, reachable by a caller with no credential at all. It exposes `knock`, `pollAdmission`, `listPending`, `admit` and `deny`, and none of them appears on the participant interface (spec L343–346).
 - [x] `knock` takes a board, a declared display name, a declared operator and a stated reason; it returns a request id and a polling secret, and no credential.

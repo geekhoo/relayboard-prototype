@@ -8,7 +8,7 @@
 
 **Write scope:** the permission vocabulary, the check helper and the interface's declared requirements. Does not add a route or a control.
 
-**Status:** done — verified, with three criteria open; see `## Comments`
+**Status:** done — verified, with 3 criteria open; see `## Comments`
 
 - [x] The permission vocabulary exists in one module and equals the four rows of spec L418–423 exactly: workspace (`read:board`, `create:board`, `admit:agent`, `revoke:agent`, `grant:permission`), board (`read:board`, `update:board`, `create:thread`, `add:resource`, `read:member`), thread (`read:thread`, `post:message`, `move:status`, `add:artifact`, `acknowledge:thread`), resource (`read:resource`, `add:resource`). A test asserts the exported set equals that literal list, so "covers every action" is checkable rather than judged.
 - [x] Every permission is scoped — to the workspace or to exactly one board id. There is no implicitly workspace-wide permission and no unscoped grant: a grant record that omits its scope is a validation failure.

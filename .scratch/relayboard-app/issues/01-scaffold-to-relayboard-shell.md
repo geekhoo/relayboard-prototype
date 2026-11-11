@@ -6,7 +6,7 @@ Both reviews audited this ticket against the tree and found it right about every
 
 **Blocked by:** None (can start immediately)
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] No route resolves for `/about` or `/demo/tanstack-query`; the starter routes **and every rule that only they used** are gone — including the `.demo-*` block, `.island-shell`, `.display-title`, `.island-kicker`, `.page-wrap`, `.nav-link` and `.site-footer`, and the `@tailwindcss/typography` plugin that existed for their prose. *(M6)*
 - [x] No site header, footer, or devtools panel renders in development or in a production build, and **the devtools Vite plugin, the devtools integration module and the four devtools packages it wired are removed**, not left in place unconsumed. *(M4)*

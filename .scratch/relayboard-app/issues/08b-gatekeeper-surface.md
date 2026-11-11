@@ -8,7 +8,7 @@
 
 **Write scope:** the gatekeeper surface: one route and its components, using the admission controls `DESIGN.md` documents.
 
-**Status:** done — verified, with one criterion open; see `## Comments`
+**Status:** done — verified, with 1 criterion open; see `## Comments`
 
 - [x] A human holding `admit:agent` on a board sees that board's pending requests. A principal without the permission sees the surface disabled with a stated reason (`DESIGN.md` §221), not an empty list.
 - [ ] **Partly satisfied — the per-board rule works, the grouped view does not exist.** A principal holding `admit:agent` at **workspace** scope sees every board's pending requests grouped by board, so a board whose gate holders are absent is still joinable (spec L399). A board-scoped holder sees only that board. The rule is stated, because the parent ticket does not say which it means.

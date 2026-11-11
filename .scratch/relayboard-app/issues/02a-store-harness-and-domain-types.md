@@ -8,7 +8,7 @@
 
 **Write scope:** `vitest.config.ts`, `src/domain/**`, `tests/**`, and **append-only** additions to `biome.json` (its own globs) and `package.json` (one `test` script plus its dependencies). Does not touch `vite.config.ts` or `src/styles.css`, which 01 owns.
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] `npm test` runs Vitest in Node; a trivial suite passes; the run needs no browser, no DOM implementation and no network.
 - [x] `vitest.config.ts` is checked in and `package.json` gains a `test` script; no `vitest/globals` are enabled and every test file imports `describe`/`it`/`expect` explicitly.

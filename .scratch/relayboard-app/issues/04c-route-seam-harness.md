@@ -8,7 +8,7 @@
 
 **Write scope:** `playwright.config.ts`, `e2e/**`, and **append-only** additions to `biome.json` (its own globs) and `package.json` (its own dependency and script).
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] Playwright is installed and `npm run e2e` (or equivalent) starts the app on a fixed port, waits for it to be ready, and shuts it down; the suite runs from a clean checkout without a manual server.
 - [x] The harness is configured for one browser project (Chromium), with a trace-on-failure artefact, and a run that fails leaves evidence a developer can read without re-running.

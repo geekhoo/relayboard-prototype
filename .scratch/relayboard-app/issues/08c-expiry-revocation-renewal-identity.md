@@ -8,7 +8,7 @@
 
 **Write scope:** expiry, revocation and renewal inside the admissions module; the derived fingerprint and issuer.
 
-**Status:** done — verified, with two criteria open; see `## Comments`
+**Status:** done — verified, with 2 criteria open; see `## Comments`
 
 - [ ] **Partly satisfied — the expiry is real, the default has no subject.** An admission carries an expiry chosen at admission: a bounded window, or never. An admission admitted before this ticket existed is given a bounded default rather than becoming permanent (spec L393).
 - [x] An expired admission is refused on the principal's next request, not at the next reconnect and not at the next poll (spec L596).

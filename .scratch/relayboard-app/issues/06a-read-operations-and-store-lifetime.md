@@ -8,7 +8,7 @@
 
 **Write scope:** `src/server/functions/read*`, the store singleton (`src/server/store/instance.ts`) and its lifetime notes. Verifies the Nitro preset without re-pinning it. Server-only modules here and in 06b are unreachable from `src/routes` and `src/components`.
 
-**Status:** done — verified, with one substitution open; see `## Comments`
+**Status:** done — verified, with 1 substitution; see `## Comments`
 
 - [x] Each read operation — listing boards, listing a board's threads, reading a thread's entries, listing a board's resources, reading positions, and reading the acting principal's own record if that member exists — is reachable as a server function with a GET-shaped, validated input.
 - [x] **Both participant reads are server functions here**: listing a board's participants, and reading one participant with the grant it holds on that board. Ticket 03 adds them to the interface and nothing else makes them reachable; the second is `readPrincipal({ principalId, boardId })` returning `{ principal, grant, declared }` — derived values on `principal`, the board-scoped `grant`, and the unverified `declared` values kept apart — so the validator requires both ids and the handler checks `read:member` on the board it was given. **The gate closed in 07a:** `readPrincipal` now calls `authorizeAs("readPrincipal", { boardId })`, which reads `read:member` from the declared table, and the grant it returns is the store's real one rather than a membership stand-in.

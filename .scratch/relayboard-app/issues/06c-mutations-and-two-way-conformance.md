@@ -8,7 +8,7 @@
 
 **Write scope:** `src/server/functions/write*` and the HTTP client's operations half; the operations conformance suite must pass over both transports. Explicitly excludes `subscribe`.
 
-**Status:** done — verified, with two substitutions and two criteria open; see `## Comments`
+**Status:** done — verified, with 2 substitutions and 1 criterion open; see `## Comments`
 
 - [x] Every mutating operation on the interface is reachable as a POST server function with a validated input that rejects malformed input before the store is touched.
 - [x] **No operation accepts an author from the caller.** `appendMessage` takes no `authorId`; the author is the resolved acting principal. A test posts a body carrying a forged `authorId` and asserts the entry's author is the resolved principal, not the forged value (spec L376, L352).
@@ -16,7 +16,7 @@
 - [x] Idempotency is honoured across the transport: replaying a stored key returns the stored entry and appends nothing, and the ordering rule from 02b (idempotency before validation) holds over HTTP too.
 - [ ] **Substituted, not dropped — see Comments.** The conformance suite from 03 runs unchanged against the HTTP implementation, and both runs are part of `npm test` rather than a manual step. "The suite" here is `tests/contract/operations.conformance.ts` — the file 03 wrote against the interface and this ticket does not edit — not the stream file, which 11a owns and which is still skipped at this point.
 - [ ] **Substituted with the criterion above — there is no HTTP variant inside `npm test` to fail.** A failed run of either the in-memory or the HTTP variant fails the suite; the harness does not silently skip the HTTP variant when no server is up.
-- [ ] **Still open, and 07a moved it rather than closing it.** The server side is real and was already: `ServerError` carries a stable `code` in three families — `validation`, `unresolved`, `unknown-object` — each exported by its own constructor, with the domain's documented strings passed through verbatim (`Board not found`, `Thread not found`). What the criterion still lacks is the client half *working*: 07a added `RelayboardRequestError` and `failureFamily` in `src/client/http.ts`, and nothing outside its own tests calls either — every client method still casts its response. Worse, the classifier returns `"unresolved"` for anything matching `/permission|not a board member|No principal/`, so a permission refusal and an unauthenticated result are **one family**, which is what 06b:22 forbids in the other ticket's words. So the sentence "the client surfaces each differently" remains false, and the fix is now specific: give the permission refusal its own family and route thrown errors through the classifier.
+- [x] The HTTP implementation's error mapping preserves the domain's user-visible strings and distinguishes the three families: validation, permission/resolution, and unknown-object. The client surfaces each differently. **A 4xx here is the correct answer, not a fault:** the families above are exactly the responses a refusal produces, so the parity suite's "no response ≥ 400" assertion (`parity-checklist.md` line 64) counts only unprovoked requests — a test that asserts a refusal expects its 4xx and must not fail that assertion. **Closed by 08b:** `failureFamily` maps to five families — `denied`, `unauthenticated`, `validation`, `unknown-object`, `unimplemented` — every client operation runs through `call`, which attaches the family, and `tests/error-families.test.ts` asserts each family against the strings the domain actually raises plus the inequality that keeps `denied` and `unauthenticated` apart.
 - [x] `subscribe` remains explicitly out of scope and fails loudly, with a message naming ticket 11 as its home. The stream is a server route, not a server function (spec L357).
 - [x] The UI now renders from the HTTP client rather than the in-memory one, and the in-memory implementation stays in the tree for tests.
 - [x] Two independent browser sessions see the same boards, threads and entries — asserted once with the route-seam harness from 04c, so the claim is checked rather than described. The two sessions are two different principals (spec L368, L372: round-robin issuance), and the test asks which ones through `readPrincipal` rather than assuming an order, so "one workspace" is one workspace two participants share and not one principal in two windows.
@@ -91,13 +91,11 @@ trigger a simulation"*, is not checked at this commit: there is no permission en
 post there, simulated or not — which is a different fact. 07a builds the grant check; the box stays open
 until it does.
 
-**Criterion 7 is still open, and 07a moved the gap without closing it.** The server side was already
-real and remains so: `ServerError` carries a stable `code` in three families, with the domain's documented
-strings passed through verbatim. 07a added a client-side `RelayboardRequestError` with a `family` and a
-`failureFamily` classifier beside it — but nothing outside `tests/error-families.test.ts` calls either,
-every client method still casts its response, and the classifier maps **both** a permission refusal and an
-unauthenticated result to `"unresolved"`. So "the client surfaces each differently" is still not true, and
-the remaining work is one classifier and one call site rather than a missing concept.
+**Criterion 7 is satisfied, and it took two tickets.** The server side carried stable codes from the
+start; 07a added a client classifier and then nothing called it, and the version 07a added mapped a permission
+refusal and an unauthenticated result to the *same* family — the appearance of error handling. 08b put the
+classifier on the path (one `call` wrapper, every operation through it), gave it five families, and split the
+two that matter: a reader can now tell "you may not" from "start a session again".
 
 **Criterion 6 is substituted with criterion 17, because the HTTP variant does not exist inside `npm test`.**
 There is no second run in that process to fail, so a green suite cannot be evidence of a silently skipped

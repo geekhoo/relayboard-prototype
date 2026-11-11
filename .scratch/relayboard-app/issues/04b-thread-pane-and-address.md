@@ -8,7 +8,7 @@
 
 **Write scope:** the thread-pane route and its components, **each with its own co-located stylesheet**; layout and responsive stages as Tailwind utilities. Does not append to a shared stylesheet.
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] The open thread is in the URL, and reloading or pasting that URL restores the same board and thread.
 - [x] A thread id in the URL that does not exist, or that belongs to a different board than the one named, renders the not-found state inside the app frame.

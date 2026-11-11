@@ -12,7 +12,7 @@ Three things a reviewer found missing here are load-bearing, and fixing them aft
 
 **Write scope:** `src/client/**` — the interface, the in-memory implementation, and the two conformance suites. Later tickets add operations to this interface; this ticket establishes its shape and the two-file suite split.
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] A single `RelayboardClient` interface exists and is the only thing the UI is allowed to depend on for data.
 - [x] The interface carries the prototype's nine operations plus the operations the model requires: reading a thread as a chronology, listing a board's resources, attaching a resource, moving a status, acknowledging, and reading each principal's position.

@@ -8,7 +8,7 @@
 
 **Write scope:** the seed fixture and the store's seeding path only.
 
-**Status:** done — verified, see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] The seed reproduces the prototype's workspace: the seven principals of `app.js` L20–28 (four humans, three agents) with the same ids, names, kinds and declared descriptions; the three boards of L29–33; the ten threads of L34–45; the seven resources; and the entries of L52–82 with their `references` and the one `relation` at L57.
 - [x] The seed is passed to the store factory, not baked into it — `createStore()` with no seed yields an empty workspace, and a test asserts that.
