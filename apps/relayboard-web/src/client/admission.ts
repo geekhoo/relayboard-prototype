@@ -9,6 +9,7 @@ import {
 	decidedOn,
 	deny,
 	listPending,
+	revokeAdmission,
 } from "#/server/functions/admission";
 
 /**
@@ -43,6 +44,15 @@ export interface GateClient {
 		readonly requestId: string;
 		readonly reason: string;
 	}): Promise<void>;
+	/**
+	 * End an admission.
+	 *
+	 * Here rather than beside `knock` because it is a **gate holder's** act, like admit and deny: it
+	 * needs `revoke:agent` on the board, and the surface that offers it is the decisions list. Renewal is
+	 * deliberately absent — a renewal is the agent's own act, presenting its own expired credential, and
+	 * offering it here would invite a UI that renews on somebody else's behalf.
+	 */
+	revoke(requestId: string): Promise<void>;
 }
 
 export const createGateClient = (): GateClient => ({
@@ -61,5 +71,8 @@ export const createGateClient = (): GateClient => ({
 	},
 	deny: async (input) => {
 		await deny({ data: { requestId: input.requestId, reason: input.reason } });
+	},
+	revoke: async (requestId) => {
+		await revokeAdmission({ data: { requestId } });
 	},
 });

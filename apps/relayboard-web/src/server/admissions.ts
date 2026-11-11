@@ -32,8 +32,17 @@
  * in an error, never in a thread. That is the whole security property of the surface, so it is
  * asserted by listing what every other payload contains.
  */
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { BoardId, PermissionName, Principal, PrincipalId } from "#/domain";
+import type { Derived } from "#/server/credential";
+import {
+	type Clock,
+	deriveFingerprint,
+	hashToken,
+	mintToken,
+	sameHash as sameDigest,
+	systemClock,
+} from "#/server/credential";
+import { requireSessionSecret } from "#/server/env";
 import { registerAgentCredential } from "#/server/principal";
 import type { Store } from "#/server/store";
 
@@ -110,7 +119,11 @@ export class AdmissionRefused extends Error {
 		| "denied"
 		| "not-a-gate-holder"
 		| "not-pending"
-		| "already-collected";
+		| "already-collected"
+		/** A renewal presenting a credential that is still live. */
+		| "not-expired"
+		/** A renewal presenting a revoked admission's credential. */
+		| "revoked";
 
 	constructor(reason: AdmissionRefused["reason"], message: string) {
 		super(message);
@@ -127,11 +140,13 @@ interface KnockRecord {
 	requestedAt: string;
 	/** hash(pollingSecret). The secret itself is returned once and never stored. */
 	pollHash: string;
-	state: "pending" | "denied" | "admitted";
+	state: "pending" | "denied" | "admitted" | "revoked";
 	denialReason?: string;
 	/** Set on admission. The credential's hash; the token itself is never stored. */
 	credentialHash?: string;
 	principalId?: PrincipalId;
+	revokedBy?: PrincipalId;
+	revokedAt?: string;
 	/** Who decided it, so a board's decisions can be shown to the people who made them. */
 	decidedBy?: PrincipalId;
 	decidedAt?: string;
@@ -145,18 +160,10 @@ export interface AdmissionStore {
 	readonly store: Store;
 }
 
-const hash = (value: string): string =>
-	createHash("sha256").update(value).digest("hex");
-
-/** A high-entropy opaque token. 32 bytes of CSPRNG, base64url — 43 characters, ~256 bits. */
-const mint = (): string => randomBytes(32).toString("base64url");
-
-/** Constant-time comparison of two hex digests. */
-const sameHash = (left: string, right: string): boolean => {
-	const a = Buffer.from(left, "hex");
-	const b = Buffer.from(right, "hex");
-	return a.length === b.length && timingSafeEqual(a, b);
-};
+/** The credential primitives, aliased so the call sites read as they did. */
+const hash = hashToken;
+const mint = mintToken;
+const sameHash = sameDigest;
 
 /** The admission surface, over one workspace. */
 export interface Admissions {
@@ -205,6 +212,29 @@ export interface Admissions {
 		readonly deniedBy: PrincipalId;
 		readonly reason: string;
 	}): void;
+	/**
+	 * End an admission. The revoked principal is refused on its next request, and its entries keep their
+	 * author.
+	 */
+	revoke(input: {
+		readonly requestId: string;
+		readonly revokedBy: PrincipalId;
+	}): { readonly principalId: PrincipalId };
+
+	/**
+	 * Renew an expired admission, **proved by the expired credential itself**.
+	 *
+	 * Resolves to the **same principal id**, so history does not split per credential (spec L598). A
+	 * renewal that presented a name and operator and no credential is refused.
+	 */
+	renew(input: { readonly credential: string; readonly expiry: Expiry }): {
+		readonly credential: string;
+		readonly principalId: PrincipalId;
+	};
+
+	/** The values this workspace derived: who admitted it, and its fingerprint. */
+	derivedFor(principalId: PrincipalId): Derived | undefined;
+
 	/** Resolve a credential to the principal it was issued for, or `undefined`. */
 	resolveCredential(token: string): Principal | undefined;
 	/** What a principal holds, for the resolver to answer with. */
@@ -257,7 +287,18 @@ const stateFor = (store: Store): AdmissionsState => {
  * They are process state, on `globalThis`, for the same reason the store is: the dev server reloads
  * modules, and a knock that vanished on a reload would be a knock a human could never decide.
  */
-export const createAdmissions = (store: Store): Admissions => {
+/**
+ * Build the admission surface, on a clock.
+ *
+ * The clock is a parameter rather than `Date.now()` read inline, because **expiry is a clock and a test
+ * that waits is a test that flakes**: a suite that slept for a bounded window would take minutes and
+ * fail on a loaded machine. A test passes a clock it advances, so "an expired admission is refused on
+ * the principal's next request" is asserted in a millisecond.
+ */
+export const createAdmissions = (
+	store: Store,
+	now: Clock = systemClock,
+): Admissions => {
 	const state = stateFor(store);
 	// **The one registration that makes a credential resolvable.** The session resolver asks this
 	// module rather than importing it, because the import would be a cycle; registering here means a
@@ -273,6 +314,28 @@ export const createAdmissions = (store: Store): Admissions => {
 	});
 	const knockRecords = state.knocks;
 	const issued = state.issued;
+	// **The fingerprint's key.** The installation secret, read here rather than at module scope so the
+	// module has no import-time requirement of its own — 06b's resolver already enforces the secret at
+	// boot, and a second enforcement would be a second failure mode.
+	const secret = requireSessionSecret();
+
+	/**
+	 * The admission record a credential's hash belongs to.
+	 *
+	 * The issued map holds `hash(token) → principalId`; this finds the knock record that admitted that
+	 * principal, which is where the lifecycle lives. A second scan rather than a second map, so there is
+	 * one statement of what an admission is.
+	 */
+	const credentialFor = (tokenHash: string): KnockRecord | undefined => {
+		const principalId = issued.get(tokenHash);
+		if (principalId === undefined) return undefined;
+		return [...knockRecords.values()].find(
+			(record) =>
+				record.principalId === principalId &&
+				record.state !== "denied" &&
+				record.state !== "pending",
+		);
+	};
 
 	/** Whether a principal may decide an admission on a board — the gate rule's read half. */
 	const isGateHolder = (principalId: PrincipalId, boardId: BoardId): boolean =>
@@ -480,10 +543,136 @@ export const createAdmissions = (store: Store): Admissions => {
 		},
 
 		resolveCredential: (token) => {
-			const principalId = issued.get(hash(token));
-			return principalId === undefined
+			const record = credentialFor(hash(token));
+			if (!record) return undefined;
+			// **The lifecycle is checked at the credential, not at the UI.** A revoked, expired or
+			// denied admission stops resolving on the principal's *next request* (08c:14), which is the
+			// only place every operation already passes through — so nothing downstream has to
+			// remember to ask.
+			if (record.state === "revoked") return undefined;
+			if (
+				record.expiresAt !== undefined &&
+				Date.parse(record.expiresAt) <= now()
+			) {
+				return undefined;
+			}
+			// `principalId` is set by `admit` and by nothing else, and a record that reached the issued map
+			// without one could not have been issued a credential — so the assertion is a narrowing, not a
+			// possibility this trusts.
+			return record.principalId === undefined
 				? undefined
-				: store.readPrincipal(principalId);
+				: store.readPrincipal(record.principalId);
+		},
+
+		/**
+		 * End an admission. The door the credential came through is closed, not just its record.
+		 *
+		 * Three things this does and one it does not:
+		 *
+		 * - Refuses a caller without `revoke:agent` on the board, or at workspace scope.
+		 * - Marks the record revoked, so the credential **stops resolving on the next request** — the
+		 *   check is in `resolveCredential`, which every operation passes through.
+		 * - Leaves the principal, its grants and its entries exactly where they are. Revoking is not
+		 *   deleting: the entries it authored keep their author (08c:17), and a purged history would be
+		 *   a different act entirely (14).
+		 */
+		revoke: (input) => {
+			const record = requireKnock(input.requestId);
+			if (!isGateHolder(input.revokedBy, record.boardId)) {
+				throw new AdmissionRefused(
+					"not-a-gate-holder",
+					"Revoking an admission requires revoke:agent on that board, or at workspace scope",
+				);
+			}
+			if (record.state !== "admitted") {
+				throw new AdmissionRefused(
+					"not-pending",
+					"Only an admitted request can be revoked",
+				);
+			}
+			record.state = "revoked";
+			record.revokedBy = input.revokedBy;
+			record.revokedAt = new Date(now()).toISOString();
+			return { principalId: record.principalId as PrincipalId };
+		},
+
+		/**
+		 * Renew an admission, **proved by the expired credential itself**.
+		 *
+		 * This is the criterion the review corrected, and the correction is the whole design: a renewal
+		 * that matched the declared name and operator would let any caller inherit an existing
+		 * principal's history by typing its name. So the request carries the **credential**, its hash is
+		 * compared against the stored one in constant time, and the principal id comes from the record
+		 * rather than from anything the caller says.
+		 *
+		 * What is refused, each for its own reason:
+		 * - no credential (nothing to prove);
+		 * - a credential whose hash is unknown (not one of ours);
+		 * - a credential that is still live and not expired (renewal is for after expiry, so a caller
+		 *   cannot rotate a working credential to launder a compromised one);
+		 * - a credential belonging to a revoked admission (revocation is a decision, not a timeout).
+		 */
+		renew: (input) => {
+			const presented = hash(input.credential);
+			const record = credentialFor(presented);
+			if (!record || record.credentialHash === undefined) {
+				throw new AdmissionRefused(
+					"unknown-request",
+					"Renewal must present the credential it is renewing",
+				);
+			}
+			if (!sameHash(presented, record.credentialHash)) {
+				throw new AdmissionRefused(
+					"unknown-request",
+					"Renewal must present the credential it is renewing",
+				);
+			}
+			if (record.state === "revoked") {
+				throw new AdmissionRefused(
+					"revoked",
+					"This admission was revoked: revocation is a decision and a renewal cannot undo it",
+				);
+			}
+			const expired =
+				record.expiresAt !== undefined && Date.parse(record.expiresAt) <= now();
+			if (!expired) {
+				throw new AdmissionRefused(
+					"not-expired",
+					"This admission has not expired, so there is nothing to renew. A working credential must not be rotated by asking for a new one",
+				);
+			}
+			// **The same principal, a fresh credential, the same fingerprint.** The id comes from the
+			// record, so the agent's history stays one continuous record (spec L598); the fingerprint is
+			// derived from the id, so it is preserved by construction rather than by copying.
+			const token = mint();
+			record.credentialHash = hash(token);
+			record.expiresAt =
+				input.expiry.kind === "bounded"
+					? new Date(now() + input.expiry.hours * 60 * 60 * 1000).toISOString()
+					: undefined;
+			record.expiry = input.expiry;
+			issued.set(record.credentialHash, record.principalId as PrincipalId);
+			return {
+				credential: token,
+				principalId: record.principalId as PrincipalId,
+			};
+		},
+
+		/**
+		 * The values this workspace derived about an admitted principal.
+		 *
+		 * `issuer` comes from the grant that admitted it — the human who vouched — and `fingerprint` from
+		 * a keyed digest of the principal id. Neither is ever read from anything a caller supplied.
+		 */
+		derivedFor: (principalId) => {
+			const record = [...knockRecords.values()].find(
+				(candidate) => candidate.principalId === principalId,
+			);
+			if (!record?.decidedBy) return undefined;
+			return {
+				issuer: record.decidedBy,
+				fingerprint: deriveFingerprint(principalId, secret),
+			};
 		},
 
 		permissionsFor: (principalId, boardId) =>

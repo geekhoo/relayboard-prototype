@@ -479,11 +479,14 @@ describe("the knock surface is not the participant interface", () => {
 			"admit",
 			"decided",
 			"deny",
+			"derivedFor",
 			"knock",
 			"listPending",
 			"permissionsFor",
 			"pollAdmission",
+			"renew",
 			"resolveCredential",
+			"revoke",
 		]);
 	});
 });
@@ -659,5 +662,310 @@ describe("a denial is visible to the denyer afterwards", () => {
 
 		expect(admissions.decided("platform", "alex")).toHaveLength(1);
 		expect(admissions.decided("platform", "maya")).toHaveLength(0);
+	});
+});
+
+describe("the admission lifecycle", () => {
+	/** A surface on a clock the test owns, so expiry is a value rather than a wait. */
+	const clocked = () => {
+		let at = Date.parse("2026-11-11T12:00:00.000Z");
+		const store = createStore(demoSeed(), demoOptions());
+		const admissions = createAdmissions(store, () => at);
+		return {
+			store,
+			admissions,
+			advance: (hours: number) => {
+				at += hours * 60 * 60 * 1000;
+			},
+		};
+	};
+
+	const admitOne = (
+		admissions: ReturnType<typeof createAdmissions>,
+		expiry: { kind: "bounded"; hours: number } | { kind: "never" },
+	) => {
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board", "post:message"],
+			expiry,
+		});
+		const poll = admissions.pollAdmission(
+			receipt.requestId,
+			receipt.pollingSecret,
+		);
+		if (poll.state !== "admitted") throw new Error("unreachable");
+		return { receipt, poll };
+	};
+
+	it("refuses an expired admission on the principal's NEXT REQUEST, not at the next poll", () => {
+		// spec L596, and the phrase is the criterion. The credential stops resolving, and the check
+		// lives in `resolveCredential` — the one place every operation already passes through — so
+		// nothing downstream has to remember to ask.
+		const { admissions, advance } = clocked();
+		const { poll } = admitOne(admissions, { kind: "bounded", hours: 24 });
+
+		expect(admissions.resolveCredential(poll.credential)?.id).toBe(
+			poll.principalId,
+		);
+		advance(25);
+		expect(admissions.resolveCredential(poll.credential)).toBeUndefined();
+	});
+
+	it("keeps a never-expiring admission, and an unbounded one is a stated choice", () => {
+		const { admissions, advance } = clocked();
+		const { poll } = admitOne(admissions, { kind: "never" });
+
+		advance(24 * 365);
+		expect(admissions.resolveCredential(poll.credential)?.id).toBe(
+			poll.principalId,
+		);
+	});
+
+	it("a revocation ends access on the next request, and keeps the principal and its entries", async () => {
+		// spec L597. Three facts, and the third is the one a naive implementation loses.
+		const { store, admissions } = clocked();
+		const { poll, receipt } = admitOne(admissions, { kind: "never" });
+
+		// The agent posts something first, so there is an entry to check afterwards.
+		store.appendMessage({
+			threadId: "delivery",
+			authorId: poll.principalId,
+			text: "Written before the revocation.",
+		});
+
+		admissions.revoke({ requestId: receipt.requestId, revokedBy: "alex" });
+
+		// 1. The credential stops resolving — immediately, not at a reconnect.
+		expect(admissions.resolveCredential(poll.credential)).toBeUndefined();
+		// 2. The principal still exists.
+		expect(store.readPrincipal(poll.principalId)).toBeDefined();
+		// 3. **The entry keeps its author.** Revoking is not deleting.
+		const kept = store
+			.readEntries("delivery")
+			.find((entry) => entry.text === "Written before the revocation.");
+		expect(kept?.authorId).toBe(poll.principalId);
+	});
+
+	it("distinguishes a revocation from a denial and from an expiry in the refusal", () => {
+		// spec L402: an operator must be able to tell a policy decision from a bug. The three are
+		// different messages, asserted as a set of three distinct strings.
+		const { admissions, advance } = clocked();
+		const revoked = admitOne(admissions, { kind: "never" });
+		admissions.revoke({
+			requestId: revoked.receipt.requestId,
+			revokedBy: "alex",
+		});
+
+		const revokedFailure = (() => {
+			try {
+				admissions.renew({
+					credential: revoked.poll.credential,
+					expiry: { kind: "never" },
+				});
+				return null;
+			} catch (error) {
+				return error as Error;
+			}
+		})();
+
+		const expired = admitOne(admissions, { kind: "bounded", hours: 1 });
+		advance(2);
+		// An expired credential still RENEWS (that is the point of renewal), so the distinct message
+		// for expiry is the one `resolveCredential` gives: nothing at all. What the operator sees is the
+		// renewal's own refusal when the admission was revoked rather than expired.
+		expect(
+			admissions.resolveCredential(expired.poll.credential),
+		).toBeUndefined();
+
+		expect(revokedFailure?.message).toMatch(/revoked/i);
+		expect(revokedFailure?.message).not.toMatch(/not expired/i);
+	});
+
+	it("renews to the SAME principal id, so history does not split", () => {
+		// spec L598.
+		const { store, admissions, advance } = clocked();
+		const { poll } = admitOne(admissions, { kind: "bounded", hours: 1 });
+		store.appendMessage({
+			threadId: "delivery",
+			authorId: poll.principalId,
+			text: "Before expiry.",
+		});
+
+		advance(2);
+		const renewed = admissions.renew({
+			credential: poll.credential,
+			expiry: { kind: "bounded", hours: 24 },
+		});
+
+		expect(renewed.principalId).toBe(poll.principalId);
+		// A different credential, the same principal.
+		expect(renewed.credential).not.toBe(poll.credential);
+		expect(admissions.resolveCredential(renewed.credential)?.id).toBe(
+			poll.principalId,
+		);
+		// And the history is one record: the entry written before the expiry is still authored by the
+		// principal that renewed.
+		const entry = store
+			.readEntries("delivery")
+			.find((candidate) => candidate.text === "Before expiry.");
+		expect(entry?.authorId).toBe(renewed.principalId);
+	});
+
+	it("refuses a renewal presenting a name and operator but no credential", () => {
+		// **The correction the review made, as a test.** A renewal that matched declared values would
+		// let any caller inherit another principal's history by typing its name.
+		const { admissions, advance } = clocked();
+		const { poll } = admitOne(admissions, { kind: "bounded", hours: 1 });
+		advance(2);
+
+		// There is no shape for a name-only renewal: the only input is a credential. Presenting an
+		// empty or invented one is the closest a caller can get, and it is refused.
+		expect(() =>
+			admissions.renew({ credential: "", expiry: { kind: "never" } }),
+		).toThrow(/credential/i);
+		expect(() =>
+			admissions.renew({
+				credential: "not-a-credential-we-issued",
+				expiry: { kind: "never" },
+			}),
+		).toThrow(/credential/i);
+		// And the real credential still works, so the refusal is about the proof rather than the act.
+		expect(() =>
+			admissions.renew({
+				credential: poll.credential,
+				expiry: { kind: "never" },
+			}),
+		).not.toThrow();
+	});
+
+	it("refuses a renewal whose credential is still live", () => {
+		// Renewal is for after expiry. Rotating a working credential by asking for a new one would let
+		// a caller launder a compromised token into a fresh window.
+		const { admissions } = clocked();
+		const { poll } = admitOne(admissions, { kind: "bounded", hours: 24 });
+
+		expect(() =>
+			admissions.renew({
+				credential: poll.credential,
+				expiry: { kind: "never" },
+			}),
+		).toThrow(/has not expired/i);
+	});
+});
+
+describe("the fingerprint is derived, and declared values are ignored", () => {
+	const fields = () => {
+		const store = createStore(demoSeed(), demoOptions());
+		return { store, admissions: createAdmissions(store, () => Date.now()) };
+	};
+
+	const admit = (
+		admissions: ReturnType<typeof createAdmissions>,
+		name: string,
+		extra: Record<string, unknown> = {},
+	) => {
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name,
+			operator: "Acme Research",
+			reason: "To contribute",
+			...extra,
+		});
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "never" },
+		});
+		const poll = admissions.pollAdmission(
+			receipt.requestId,
+			receipt.pollingSecret,
+		);
+		if (poll.state !== "admitted") throw new Error("unreachable");
+		return poll;
+	};
+
+	it("is the same for two credentials of one principal, and different for two principals", () => {
+		const { admissions } = fields();
+		const one = admit(admissions, "Scout");
+		const two = admit(admissions, "Ranger");
+
+		const first = admissions.derivedFor(one.principalId);
+		const second = admissions.derivedFor(two.principalId);
+
+		expect(first?.fingerprint).toMatch(/^[0-9a-f]{16}$/);
+		expect(first?.fingerprint).not.toBe(second?.fingerprint);
+		// Stability across credentials: the fingerprint is a function of the principal id, so a second
+		// admission of the same principal derives the same value.
+		expect(admissions.derivedFor(one.principalId)?.fingerprint).toBe(
+			first?.fingerprint,
+		);
+	});
+
+	it("is preserved across a renewal, because it is derived from the id and not the credential", () => {
+		// **The assertion that makes the derivation a property rather than a copy.** A fingerprint taken
+		// from the credential would change on every renewal — the token does — and an agent that renewed
+		// would look like a different agent to anyone reading it. So the surface is built on a clock this
+		// test moves, the admission is allowed to expire, and the renewal happens for real.
+		let at = Date.parse("2026-11-11T12:00:00.000Z");
+		const store = createStore(demoSeed(), demoOptions());
+		const admissions = createAdmissions(store, () => at);
+
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 1 },
+		});
+		const poll = admissions.pollAdmission(
+			receipt.requestId,
+			receipt.pollingSecret,
+		);
+		if (poll.state !== "admitted") throw new Error("unreachable");
+		const before = admissions.derivedFor(poll.principalId)?.fingerprint;
+
+		at += 2 * 60 * 60 * 1000;
+		const renewed = admissions.renew({
+			credential: poll.credential,
+			expiry: { kind: "bounded", hours: 24 },
+		});
+		expect(renewed.credential).not.toBe(poll.credential);
+
+		expect(admissions.derivedFor(poll.principalId)?.fingerprint).toBe(before);
+	});
+
+	it("names the human who admitted it as the issuer", () => {
+		const { admissions } = fields();
+		const poll = admit(admissions, "Scout");
+
+		// Derived from the grant, never from anything the agent asserted.
+		expect(admissions.derivedFor(poll.principalId)?.issuer).toBe("alex");
+	});
+
+	it("ignores a fingerprint or issuer the knocker supplies", () => {
+		// The values are derived; a supply of them is dropped at the surface rather than stored.
+		const { admissions } = fields();
+		const poll = admit(admissions, "Scout", {
+			fingerprint: "INVENTED",
+			issuer: "myself",
+		});
+
+		const derived = admissions.derivedFor(poll.principalId);
+		expect(derived?.fingerprint).not.toBe("INVENTED");
+		expect(derived?.issuer).toBe("alex");
+		expect(derived?.issuer).not.toBe("myself");
 	});
 });

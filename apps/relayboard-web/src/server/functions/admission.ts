@@ -145,6 +145,53 @@ export const admit = createServerFn({ method: "POST" })
 		}
 	});
 
+/** End an admission. The revoked principal is refused on its next request. */
+export const revokeAdmission = createServerFn({ method: "POST" })
+	.validator(z.object({ requestId: z.string().min(1) }))
+	.handler(async ({ data }): Promise<{ principalId: string }> => {
+		const actor = session.actingPrincipal();
+		try {
+			return admissions().revoke({
+				requestId: data.requestId,
+				revokedBy: actor.id,
+			});
+		} catch (error) {
+			throw admissionError(error);
+		}
+	});
+
+/**
+ * Renew an expired admission, **presenting the expired credential itself**.
+ *
+ * Deliberately not `createServerFn`-authenticated: the caller has an expired credential and therefore
+ * no session. It presents the only proof of continuity it has, which is the design.
+ */
+export const renewAdmission = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			credential: z.string().min(1),
+			expiry: z.union([
+				z.object({
+					kind: z.literal("bounded"),
+					hours: z.number().int().positive(),
+				}),
+				z.object({ kind: z.literal("never") }),
+			]),
+		}),
+	)
+	.handler(
+		async ({ data }): Promise<{ credential: string; principalId: string }> => {
+			try {
+				return admissions().renew({
+					credential: data.credential,
+					expiry: data.expiry,
+				});
+			} catch (error) {
+				throw admissionError(error);
+			}
+		},
+	);
+
 /** Deny, with a reason the knocker will be told. */
 export const deny = createServerFn({ method: "POST" })
 	.validator(
