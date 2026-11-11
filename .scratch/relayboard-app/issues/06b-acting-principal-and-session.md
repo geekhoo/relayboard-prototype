@@ -8,7 +8,7 @@
 
 **Write scope:** `src/env.ts`, the two server-only modules it names — `src/server/env.ts` and `src/server/principal.ts` — session issuance and the request-time resolver. `src/server/store/**` stays 06a's.
 
-**Status:** done — verified, with one substitution and three criteria open; see `## Comments`
+**Status:** done — verified, with one substitution and two criteria open; see `## Comments`
 
 - [x] A required server-only session secret is declared in `env.ts`, and it is **not** `.optional()`. Its absence is a startup failure, not a first-request failure (spec L378, story 151).
 - [x] `runtimeEnv` includes the server's process environment, not only `import.meta.env`. `NOTES.md` §5(d) measured that a plain server variable read through `import.meta.env` comes back `null`; this ticket fixes that and records the measurement in place.
@@ -17,9 +17,9 @@
 - [x] `.env.example` exists and names the required variable; `.env` stays gitignored. `README.md`'s stale reference to a file the CLI never generated is corrected or removed.
 - [x] A first request without a session is issued a signed, `HttpOnly`, `SameSite=Lax` cookie naming the principal it acts as; a request with a valid cookie resolves to that principal. The first request receives the first selectable principal, the second a different one, and the third wraps to the first — stable within one store instance — so issuance walks 02c's `browserSelectable` order cyclically instead of handing every browser the same principal (spec L368, L372).
 - [x] The cookie's value is not readable from client JavaScript and is not echoed into any payload.
-- [ ] **Not satisfied as worded — the resolver yields the principal, not a permission set.** One request-time resolver yields a principal and its permission set, and both the browser cookie and an agent credential will go through it (the agent credential arrives in 08a; the resolver's shape must already allow it, and must not be written against cookies alone). **The permission-set half is 07a's**, which names this criterion among the boxes it closes; the resolver's shape is what this ticket owed.
+- [x] One request-time resolver yields a principal and its permission set, and both the browser cookie and an agent credential will go through it (the agent credential arrives in 08a; the resolver's shape must already allow it, and must not be written against cookies alone). **Closed by 07a:** `Resolution` carries `permissions`, filled from `getStore().grantsFor(principal.id)` on every path, so a request resolves once and the enforcement path cannot ask twice and get two answers.
 - [x] No operation asks which `kind` the principal is. The resolver exposes `kind` as a label on the principal, and the enforcement path does not branch on it.
-- [ ] **Half satisfied — refused at the resolver, not yet distinguishable by the client.** A request whose session cannot be resolved is rejected as unauthenticated, and that refusal is distinguishable by the client from a permission refusal and from a validation failure. Spec L494 makes this the one case where the client must not retry silently. **Being able to tell a permission refusal apart is 07a's**, which names this criterion among the boxes it closes.
+- [ ] **Still open, and 07a made the conflation visible rather than closing it.** The session resolver refuses an unresolvable request (`UnresolvedSession`, spec L517), and `PermissionDenied` carries the domain's permission string — but on the client both classify as the same family: `failureFamily` returns `"unresolved"` for anything matching `/permission|not a board member|No principal/`, so "you are not signed in" and "you may not do that" are one value to a caller. That is the opposite of what this criterion and spec L494 ask for. The server distinguishes them by name and code; the client does not distinguish them at all, and nothing imports `failureFamily` outside its own tests. Two fixes are open: give the permission refusal its own family, and have a caller use it.
 - [x] The resolver is reusable by a plain server function and by a server route, so 11a's SSE route can authenticate the same way without duplicating the logic.
 - [x] The interface states that a session identifies and does not authenticate (spec L368) — in copy a participant sees, not only in a comment.
 - [ ] **Not satisfied as worded — see Comments.** The conformance suite still passes unchanged: reads that require no principal behave as before, and a read that requires one is now asserted through a real resolved session.
@@ -73,13 +73,12 @@ built entry in a fresh process where the throw is fatal: absent fails, five char
 short, and a usable secret loads clean. The third case is what stops a guard that always throws from
 passing. It runs in CI after the build.
 
-**Criterion 9 is left unticked.** It asks for a resolver that "yields a principal **and its permission
-set**". `resolveSession` returns `{ principal, issued }` and `actingPrincipal()` returns the principal;
-`ResolvedPrincipal` declares a `permissions` field that nothing populates, because there are no grants
-yet — `readPrincipal` builds a grant from board *membership*. The clause that matters now, that the
-shape admits a second credential without being rewritten against cookies, is argued and true; the
-permission-set half arrives with 07a, and the box stays open rather than being ticked for the half that
-exists. **Nothing on the enforcement path asks `kind`** (criterion 10), and the one `kind` lookup in the
+**Criterion 9 is now satisfied, and it was 07a that satisfied it.** It asks for a resolver that "yields
+a principal **and its permission set**": `Resolution` carries `permissions`, filled from
+`getStore().grantsFor(principal.id)` on every path, so the set belongs to the session and an enforcement
+path cannot ask twice and get two answers. When this ticket was worked the field was declared and
+unpopulated, which is why the box was open; it is ticked now, with the ticket that closed it named here
+rather than left for a reader to work out. **Nothing on the enforcement path asks `kind`** (criterion 10), and the one `kind` lookup in the
 server — `simulateIncoming` choosing an agent to author as — is choosing a speaker, not deciding a
 capability.
 
@@ -101,11 +100,13 @@ resolution. The read that is asserted through a real session is in `e2e/particip
 different seam than the criterion names. Ticking it would be counting a green in the one file that cannot
 see the change.
 
-**Criterion 10 is half satisfied for the same reason, and it is recorded rather than waved through.**
-Yes, a request whose session cannot be resolved is rejected: `resolveSession` throws `UnresolvedSession`
-when a validly-signed cookie names a principal the workspace no longer holds, and when the seed marks
-nobody selectable. But *"that refusal is distinguishable by the client from a permission refusal and from a
-validation failure"* is not true yet — see the paragraph below.
+**Criterion 10 is still open, and 07a is what shows why the wording matters.** Yes, a request whose session
+cannot be resolved is rejected: `resolveSession` throws `UnresolvedSession` when a validly-signed cookie
+names a principal the workspace no longer holds, and when the seed marks nobody selectable. But *"that
+refusal is distinguishable by the client from a permission refusal and from a validation failure"* is
+**still false after 07a**, because the client now classifies both the session refusal and the permission
+refusal as one family — see the paragraph below, which is no longer a note about a missing feature but a
+statement about a defect in the classifier.
 
 **One refusal is not yet distinguishable by the client, and it matters.** `UnresolvedSession` is thrown by
 `resolveSession`, but nothing maps it to a transport-level code: `ServerError` has an `unresolved` family

@@ -8,13 +8,13 @@ Three behaviours the prototype has and `QA.md` grades as passing belong to no ot
 
 **Write scope:** the conversation route, the composer and the entry-list components, **each with its own co-located stylesheet**; layout and responsive stages as utilities. Does **not** own the details drawer or the participant panel, which 12 builds; this ticket renders into them.
 
-**Status:** done — verified, with two criteria open on purpose; see `## Comments`
+**Status:** done — verified; see `## Comments`
 
 - [x] Entries render ordered strictly by `seq`, never by timestamp.
 - [x] Every entry shows its author, the author's kind, the time and the sequence number.
 - [x] Agent-authored entries are marked as agent-authored without that marking implying lower status.
 - [x] Date dividers appear between days.
-- [ ] **The link renders; the jump it makes lands on nothing.** A message that references another can be jumped to from the referencing entry.
+- [x] A message that references another can be jumped to from the referencing entry. **Fixed as a defect during 07a:** entries now carry the `id` a relation points at, and the route-seam test clicks the link and measures where the reader lands rather than asserting the href's shape — the assertion that let the missing target through.
 - [x] **A thread opens with an intro naming who created it and when**, and how many entries it holds.
 - [x] **A thread-details panel shows creation date, entry count, last sequence and the thread's participants**, and is dismissable from the keyboard.
 - [x] **A search within the open thread filters its entries by term and reports a zero-match state**, distinguishing "no match" from "empty thread".
@@ -22,7 +22,7 @@ Three behaviours the prototype has and `QA.md` grades as passing belong to no ot
 - [x] `Ctrl/Cmd + Enter` sends; the Send control is disabled while the composer is empty.
 - [x] A posted message appears once, at its correct position, with its sequence number visible.
 - [x] Whitespace-only input is refused with a reason, and surrounding whitespace is trimmed.
-- [ ] **Not assertable until 07a, and recorded rather than skipped.** A failed send leaves the draft in place with the reason rather than clearing it.
+- [x] A failed send leaves the draft in place with the reason rather than clearing it. **Closed by 07a:** a principal without `post:message` makes a refusal reachable, and `e2e/permissions.spec.ts` asserts the reason appears, the draft survives and nothing was written — with a control that a member's send succeeds.
 - [x] **Submitting the same draft twice while the first is in flight appends one message**, and **retrying a committed post with its original idempotency key appends nothing** — these are two different guards and both are asserted separately, because one sentence cannot describe both.
 - [x] **Every criterion above is asserted in the route seam** (04c's harness), except the two send-guard criteria in the line above, which are asserted at the contract seam — so the densest behaviours in the set have a stated venue rather than being graded by reading the diff.
 ## Comments
@@ -47,15 +47,14 @@ What was checked, rather than assumed:
   disabled button — a disabled control tells a reader nothing about why.
 - Whitespace is trimmed and a whitespace-only draft is refused with that reason.
 
-**One criterion is left open, and it is the kind of half-pass this record exists to catch.** Criterion 17
-asks that "a message that references another can be jumped to from the referencing entry". The referencing
-entry renders a link, and the route-seam test asserts its `href` matches `/#entry-/`. **Nothing renders an
-`id` for it to land on:** `EntryItem` emits `data-entry-id` and `data-entry-seq`, and a scan of `src/**`
-finds no `id={`entry-${...}`}` anywhere. So the anchor renders, the test passes, and clicking it moves the
-reader nowhere — the target the link names has never existed. The fix is one attribute on `EntryItem` and
-is 05's to make; the test needs the second half too, asserting the target element exists, because
-`href` shape alone is exactly the assertion that let this through. Left unticked rather than silently
-ticked, since "the link is there" is not the criterion.
+****The relation anchor was broken, and 07a fixed it as a defect.** Criterion 17 asks that "a message that
+references another can be jumped to from the referencing entry". The referencing entry rendered a link and
+the route-seam test asserted its `href` matched `/#entry-/` — while **nothing rendered an `id` for it to land
+on**: `EntryItem` emitted `data-entry-id` and `data-entry-seq` and no `id` anywhere in `src/**`. The anchor
+rendered, the test passed, and clicking it moved the reader nowhere. That was found by checking the tree
+against the criterion rather than the commit message, recorded here as an open box, and closed in 07a: the
+entry now carries the id and the test **clicks the link and measures where the reader lands**, which is the
+assertion whose absence let the defect through.
 
 **Two rules this ticket had to choose rather than inherit, both stated where the choice lives:**
 
