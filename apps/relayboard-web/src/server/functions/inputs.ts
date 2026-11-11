@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { THREAD_STATUSES } from "#/domain";
 import { httpUrl, RESOURCE_TYPES } from "#/domain/forms";
 
 /**
@@ -98,10 +99,18 @@ export const attachResourceInput = z.object({
 	resourceId: z.string().min(1),
 });
 
+/**
+ * A status move, over the **closed set** rather than over strings.
+ *
+ * The store's guard is the authority, but it should never be reached with a value that is not a status:
+ * a wire payload is JSON and arrives untyped, so the boundary is where a fifth status would otherwise
+ * enter. Both ends are checked because `from` is the caller's belief about the thread, and a belief
+ * outside the set is a caller bug rather than a stale read.
+ */
 export const moveStatusInput = z.object({
 	threadId: z.string().min(1),
-	from: z.string().min(1),
-	to: z.string().min(1),
+	from: z.enum(THREAD_STATUSES),
+	to: z.enum(THREAD_STATUSES),
 });
 
 export const acknowledgeInput = z.object({

@@ -39,7 +39,12 @@ describe("the write schemas", () => {
 					description: "d",
 				},
 			},
-			{ schema: moveStatusInput, body: { threadId: "t", from: "a", to: "b" } },
+			// The closed set since 10a: a status move is validated against the two members, so a fixture using
+			// arbitrary strings would be testing a schema this build no longer has.
+			{
+				schema: moveStatusInput,
+				body: { threadId: "t", from: "open", to: "resolved" },
+			},
 			{ schema: acknowledgeInput, body: { threadId: "t", upTo: 1 } },
 			{ schema: simulateIncomingInput, body: { threadId: "t" } },
 		] as const;

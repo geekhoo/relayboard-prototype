@@ -47,6 +47,29 @@ export const conversationQuery = (
  * which is why this is a dependency of the conversation rather than something the message component
  * fetches for itself.
  */
+/**
+ * The thread's positions: where every principal has got on the three-rung ladder.
+ *
+ * Needed since 10b, because the acknowledge control has to know **both ends** of the range it would
+ * cover — "up to #7" only means something against where the reader already is — and because the
+ * acknowledgement's own entry states a range rather than a single position.
+ *
+ * Primed by the conversation loader with the rest of the thread, for the reason every column here is:
+ * a watermark that arrived after hydration would put a wrong number under the control for a moment,
+ * and 06a and 06b each paid for that defect once.
+ */
+export const conversationPositionsQuery = (
+	client: RelayboardClientBound,
+	threadId: ThreadId,
+) => ({
+	queryKey: [
+		"conversation-positions",
+		threadId,
+		client.actingPrincipalId,
+	] as const,
+	queryFn: () => client.readPositions(threadId),
+});
+
 export const conversationRosterQuery = (
 	client: RelayboardClientBound,
 	boardId: BoardId,

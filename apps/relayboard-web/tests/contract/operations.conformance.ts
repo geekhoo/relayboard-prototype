@@ -32,6 +32,17 @@ import type {
 /**
  * The conformance suite, written against the interface.
  *
+ * ## A limitation this suite has, and what it costs
+ *
+ * **It cannot test a refusal.** The subject supplies one client acting as one `actor`, so any
+ * "somebody else is refused" assertion here is trivially true: the outsider a test looks up can never
+ * be the caller, and the caller holds the permission under test. Measured: a refusal test was written
+ * here, the store's permission check was then deleted, and the suite stayed green.
+ *
+ * Refusals belong in `tests/store-contract.ts`, which has a real `strangerId`, or at the route seam.
+ * What belongs here is anything both transports must agree on **for a caller who may do it**: the
+ * shape of the answer, the position it takes, and the effect it has.
+ *
  * Everything here goes through `RelayboardClient`, and nothing here names an
  * implementation. 06c points this same file at the HTTP client and it must pass
  * unchanged; 11a's stream file is the other half, and the split exists precisely so

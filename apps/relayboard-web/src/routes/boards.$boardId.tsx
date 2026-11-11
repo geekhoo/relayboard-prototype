@@ -11,8 +11,16 @@ import {
 	useActingClient,
 	useActingPrincipalId,
 } from "#/client/context";
-import { primeConversation } from "#/components/-conversation-queries";
-import { boardsQuery, primeRail } from "#/components/-rail-queries";
+import {
+	conversationPositionsQuery,
+	conversationQuery,
+	primeConversation,
+} from "#/components/-conversation-queries";
+import {
+	boardsQuery,
+	primeRail,
+	unreadQuery,
+} from "#/components/-rail-queries";
 import {
 	heldGrantQuery,
 	primePane,
@@ -20,6 +28,7 @@ import {
 	threadRowsQuery,
 } from "#/components/-thread-queries";
 import { BoardPane } from "#/components/BoardPane";
+import type { ActInput } from "#/components/Conversation";
 import { Conversation } from "#/components/Conversation";
 import type { CreateInput } from "#/components/CreateDialog";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
@@ -148,6 +157,49 @@ function BoardRoute() {
 	 * create that did not finish. The navigation is what makes creating and using one continuous act,
 	 * and it is why this is here rather than in the dialog: the dialog does not know the address.
 	 */
+	/**
+	 * Perform one of the three acts, then refresh exactly what it changed.
+	 *
+	 * **Which query an act invalidates is the interesting part** — the same question 09 raised when
+	 * creating a board left the rail stale. An act appends an entry, so the conversation is stale; a
+	 * status move also changes the thread record and therefore the thread list; an acknowledgement
+	 * changes the reader's own watermark and therefore the unread counts. Refetching everything would
+	 * hide the mistake rather than answer the question, so each act names its own consequences.
+	 */
+	const onAct = async (input: ActInput) => {
+		if (input.kind === "attach") {
+			await actingClient.attachResource({
+				threadId: search.thread,
+				resourceId: input.resourceId,
+			});
+		} else if (input.kind === "move") {
+			await actingClient.moveStatus({
+				threadId: search.thread,
+				from: input.from,
+				to: input.to,
+			});
+			await queryClient.invalidateQueries({
+				queryKey: threadRowsQuery(actingClient, board.id).queryKey,
+			});
+		} else {
+			await actingClient.acknowledge({
+				threadId: search.thread,
+				upTo: input.upTo,
+			});
+			await queryClient.invalidateQueries({
+				queryKey: unreadQuery(actingClient).queryKey,
+			});
+		}
+		// The chronology itself, and the positions the acknowledgement control reads.
+		await queryClient.invalidateQueries({
+			queryKey: conversationQuery(actingClient, search.thread).queryKey,
+		});
+		await queryClient.invalidateQueries({
+			queryKey: conversationPositionsQuery(actingClient, search.thread)
+				.queryKey,
+		});
+	};
+
 	const onCreate = async (input: CreateInput) => {
 		if (input.kind === "board") {
 			const board = await actingClient.createBoard({
@@ -223,7 +275,12 @@ function BoardRoute() {
 			conversation={
 				threadExists ? (
 					search.thread === "" ? undefined : (
-						<Conversation boardId={board.id} threadId={search.thread} />
+						<Conversation
+							boardId={board.id}
+							heldOnBoard={heldPermissions.onBoard}
+							onAct={onAct}
+							threadId={search.thread}
+						/>
 					)
 				) : (
 					<ThreadNotFound

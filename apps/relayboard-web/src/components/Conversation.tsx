@@ -1,14 +1,22 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BoardId, Entry, PrincipalSummary, ThreadId } from "#/client";
+import type {
+	BoardId,
+	Entry,
+	PermissionName,
+	PrincipalSummary,
+	Resource,
+	ThreadId,
+} from "#/client";
 import { useActingClient } from "#/client/context";
 import {
+	conversationPositionsQuery,
 	conversationQuery,
 	conversationRosterQuery,
 } from "#/components/-conversation-queries";
 import { unreadQuery } from "#/components/-rail-queries";
 import { resourcesQuery } from "#/components/-thread-queries";
-import { entrySentence } from "#/domain";
+import type { ThreadStatus } from "#/domain";
 import {
 	conversationEmptyState,
 	draftToSend,
@@ -50,9 +58,15 @@ import "./Conversation.css";
 export function Conversation({
 	boardId,
 	threadId,
+	heldOnBoard,
+	onAct,
 }: {
 	readonly boardId: BoardId;
 	readonly threadId: ThreadId;
+	/** What the reader may do on this board — the bound for the three act controls. */
+	readonly heldOnBoard: readonly PermissionName[];
+	/** Perform one of the three writes, then let the route refresh what it changed. */
+	readonly onAct: (input: ActInput) => Promise<void>;
 }) {
 	// `useActingClient`, not `useRelayboardClient`: the router context's client carries a
 	// PROVISIONAL principal id (the seed's first browser-selectable one), because a context is built
@@ -99,15 +113,13 @@ export function Conversation({
 		[people],
 	);
 	/**
-	 * The board's resources, so an artifact can name what it points at.
+	 * The board's resources, so an artifact can render the **chip** rather than an id.
 	 *
 	 * An artifact entry holds a resource id and nothing else — the rule 09 established and 10a honours —
-	 * so the name has to come from the board's own list, which the pane's loader primes. Absent while
-	 * loading, and `entrySentence` then states the id rather than rendering an empty chip.
+	 * so both the name and the url come from the board's own list, which the pane's loader primes.
 	 */
-	const resourceNameOf = useCallback(
-		(id: string) =>
-			boardResources.data?.find((resource) => resource.id === id)?.name ?? id,
+	const resourceOf = useCallback(
+		(id: string) => boardResources.data?.find((resource) => resource.id === id),
 		[boardResources.data],
 	);
 
@@ -120,6 +132,17 @@ export function Conversation({
 		? conversationEmptyState(entries, visible, term)
 		: null;
 	const facts = thread ? threadFacts(thread, entries, people) : null;
+	/**
+	 * The reader's own **acknowledged** watermark.
+	 *
+	 * Read from the positions list the pane already has, so the control knows both ends of the range it
+	 * would cover: "up to #n" only means something against where the reader already is.
+	 */
+	const positions = useQuery(conversationPositionsQuery(client, threadId));
+	const myAcknowledged =
+		(positions.data ?? []).find(
+			(position) => position.principalId === client.actingPrincipalId,
+		)?.watermarks.acknowledged ?? 0;
 
 	// The unread counts are a consequence of having read this thread, so they are refreshed once the
 	// read has resolved — not before, because invalidating on a read that then fails would clear a
@@ -264,12 +287,31 @@ export function Conversation({
 								entry={entry}
 								isAgent={isAgentAuthored(entry, people)}
 								nameOf={nameOf}
-								resourceNameOf={resourceNameOf}
+								resourceOf={resourceOf}
 							/>
 						</div>
 					))
 				)}
 			</div>
+
+			{/*
+			 * **The three act-producing controls, where the act is made** (10b:20). Each is disabled with the
+			 * permission it needs named, which is the treatment 09 gave the create controls and the one 07a
+			 * declared: a control the reader cannot use is present and explained, never hidden and never a
+			 * refusal after the click.
+			 *
+			 * They sit above the composer rather than in a toolbar: an act and a message are both entries in one
+			 * chronology, so the controls that write them belong together rather than in a second surface.
+			 */}
+			<ActControls
+				heldOnBoard={heldOnBoard}
+				lastSeq={facts?.lastSeq ?? 0}
+				myAcknowledged={myAcknowledged}
+				onAct={onAct}
+				resources={boardResources.data ?? []}
+				status={thread?.status ?? "open"}
+				onFailure={setFailure}
+			/>
 
 			<form
 				className="conversation__composer"
@@ -317,6 +359,263 @@ export function Conversation({
 }
 
 /**
+ * The three act-producing controls: attach a resource, move the status, acknowledge.
+ *
+ * ## Why each is disabled rather than absent
+ *
+ * 09:21 and DESIGN.md §221: an action the reader lacks the permission for is **disabled with the
+ * missing permission named**, not hidden and not silently refused. That is 07a's declared affordance,
+ * and its justification is that a reader who cannot see a control cannot ask for the permission it
+ * needs. The permission names come from the table (`operationPermissions`), not from a literal here, so
+ * a change to the rule changes the sentence.
+ *
+ * ## Why the controls are one component
+ *
+ * Because they are one thing: three writes that all produce entries in one chronology. Splitting them
+ * across the pane, the header and a menu would be three surfaces for one act each and no place a reader
+ * could see what they may do here.
+ */
+function ActControls({
+	status,
+	lastSeq,
+	myAcknowledged,
+	heldOnBoard,
+	resources,
+	onAct,
+	onFailure,
+}: {
+	readonly status: ThreadStatus;
+	readonly lastSeq: number;
+	readonly myAcknowledged: number;
+	readonly heldOnBoard: readonly PermissionName[];
+	readonly resources: readonly Resource[];
+	readonly onAct: (input: ActInput) => Promise<void>;
+	readonly onFailure: (reason: string) => void;
+}) {
+	const [resourceId, setResourceId] = useState("");
+	const [problem, setProblem] = useState<string | null>(null);
+	/**
+	 * **One act per click, synchronously guarded** — the same defect 06c found in the composer and 08b
+	 * guarded in the decide controls. Third surface, same shape, and the guard is a ref because React
+	 * state is asynchronous: two activations in one tick would both read the old flag.
+	 */
+	const inFlight = useRef(false);
+
+	const may = (permission: PermissionName) => heldOnBoard.includes(permission);
+
+	const perform = async (input: ActInput) => {
+		if (inFlight.current) return;
+		inFlight.current = true;
+		setProblem(null);
+		try {
+			await onAct(input);
+		} catch (error) {
+			// **The refusal is reported where the attempt was made** (DESIGN.md §254), never as an entry:
+			// a refused act leaves the thread unchanged, so rendering it in the chronology would be a
+			// record of something that did not happen.
+			const reason = error instanceof Error ? error.message : String(error);
+			setProblem(reason);
+			onFailure(reason);
+		} finally {
+			inFlight.current = false;
+		}
+	};
+
+	const nextStatus: ThreadStatus = status === "open" ? "resolved" : "open";
+	const canAcknowledge = lastSeq > myAcknowledged;
+
+	return (
+		<div className="conversation__acts">
+			<div className="act-row">
+				<label className="act-row__field">
+					Attach a resource
+					<select
+						aria-disabled={!may("add:artifact")}
+						className="act-row__select"
+						data-act="attach"
+						value={resourceId}
+						disabled={!may("add:artifact")}
+						onChange={(event) => setResourceId(event.currentTarget.value)}
+					>
+						<option value="">Choose a resource…</option>
+						{resources.map((resource) => (
+							<option key={resource.id} value={resource.id}>
+								{resource.name}
+							</option>
+						))}
+					</select>
+				</label>
+				<button
+					aria-disabled={!may("add:artifact")}
+					className="act-row__button"
+					data-act-perform="attach"
+					disabled={!may("add:artifact") || resourceId === ""}
+					type="button"
+					onClick={() => void perform({ kind: "attach", resourceId })}
+				>
+					Attach
+				</button>
+				{may("add:artifact") ? null : (
+					<p className="act-row__reason" data-act-reason="attach">
+						Attaching needs the add:artifact permission on this board
+					</p>
+				)}
+			</div>
+
+			<div className="act-row">
+				<button
+					aria-disabled={!may("move:status")}
+					className="act-row__button"
+					data-act-perform="move"
+					disabled={!may("move:status")}
+					type="button"
+					onClick={() =>
+						void perform({ kind: "move", from: status, to: nextStatus })
+					}
+				>
+					Mark as {nextStatus}
+				</button>
+				<span className="act-row__note">This thread is {status}</span>
+				{may("move:status") ? null : (
+					<p className="act-row__reason" data-act-reason="move">
+						Moving the status needs the move:status permission on this board
+					</p>
+				)}
+			</div>
+
+			<div className="act-row">
+				<button
+					aria-disabled={!may("acknowledge:thread") || !canAcknowledge}
+					className="act-row__button"
+					data-act-perform="acknowledge"
+					disabled={!may("acknowledge:thread") || !canAcknowledge}
+					type="button"
+					onClick={() => void perform({ kind: "acknowledge", upTo: lastSeq })}
+				>
+					Acknowledge up to #{lastSeq}
+				</button>
+				{/*
+				 * **"Acknowledge", never "mark as done" and never "approve".** The act says how far this
+				 * principal has got, and the button copy has to hold the same line the entry does: a
+				 * reader must not read agreement into a report about progress (spec L438).
+				 */}
+				<span className="act-row__note">
+					You have acknowledged up to #{myAcknowledged}
+				</span>
+				{may("acknowledge:thread") ? null : (
+					<p className="act-row__reason" data-act-reason="acknowledge">
+						Acknowledging needs the acknowledge:thread permission on this board
+					</p>
+				)}
+			</div>
+
+			{problem === null ? null : (
+				<p className="act-row__problem" role="alert" data-act-problem>
+					{problem}
+				</p>
+			)}
+		</div>
+	);
+}
+
+/** The three writes, as the control hands them to the route. */
+export type ActInput =
+	| { readonly kind: "attach"; readonly resourceId: string }
+	| {
+			readonly kind: "move";
+			readonly from: ThreadStatus;
+			readonly to: ThreadStatus;
+	  }
+	| { readonly kind: "acknowledge"; readonly upTo: number };
+/**
+ * The glyph an act's 28px marker carries.
+ *
+ * Three distinct letters, all `aria-hidden` and all decorative: the **word** in the line beside them is
+ * what states the event, which is DESIGN.md's Named Status Rule (§162) applied to entry kinds — a shape
+ * alone is a decoration, not a state. Letters rather than symbols on purpose: no glyph here can be
+ * misread as a tick, a star or a checkmark, which is the exact confusion an acknowledgement must not
+ * invite.
+ */
+const actGlyph = (kind: Entry["kind"]): string => {
+	switch (kind) {
+		case "artifact":
+			return "A";
+		case "status-move":
+			return "S";
+		case "acknowledgement":
+			return "R";
+		case "message":
+			// Unreachable in practice: a message renders its author's initial instead. Total anyway, so a
+			// fifth kind is a compile error here rather than a blank marker nobody notices.
+			return "";
+	}
+};
+
+/**
+ * The leading words of an act's line: **who did what**, and nothing that could read as a verdict.
+ *
+ * Written beside the component rather than reusing the domain's `entrySentence`, because the two answer
+ * different questions. `entrySentence` is one total function over the union for *text* consumers — the
+ * search, the thread row's excerpt — and states a resource by id because it has no board. This is the
+ * rendered line, which appends its detail as separate elements (a chip, a transition) rather than
+ * folding it into a string a component would then have to un-fold.
+ */
+const actLead = (
+	entry: Entry,
+	nameOf: (principalId: string) => string,
+): string => {
+	const who = nameOf(entry.authorId);
+	switch (entry.kind) {
+		case "artifact":
+			return `${who} attached`;
+		case "status-move":
+			return `${who} moved the status`;
+		case "acknowledgement":
+			// **"acknowledged", never "approved"** — and the position follows in its own element.
+			return `${who} acknowledged`;
+		case "message":
+			return entry.text;
+	}
+};
+
+/**
+ * A resource as a chip: its **name**, pointing at the canonical record.
+ *
+ * DESIGN.md §252 and spec L435: an artifact renders the resource chip inline, pointing at the canonical
+ * resource and never a copy of its content. When the resource is not in the board's list — a read that
+ * has not landed — the id is shown rather than an empty chip, because an empty chip would read as an
+ * entry with no target.
+ */
+function ResourceChip({
+	resource,
+	resourceId,
+}: {
+	readonly resource: Resource | undefined;
+	readonly resourceId: string;
+}) {
+	if (!resource) {
+		return (
+			<span className="entry__resource-chip" data-resource-id={resourceId}>
+				{resourceId}
+			</span>
+		);
+	}
+	return (
+		// `rel="noopener noreferrer"` for the reason 09 gives: without `noopener` the destination gets
+		// `window.opener` and can navigate the tab that opened it.
+		<a
+			className="entry__resource-chip"
+			data-resource-id={resource.id}
+			href={resource.url}
+			rel="noopener noreferrer"
+			target="_blank"
+		>
+			{resource.name}
+		</a>
+	);
+}
+
+/**
  * One entry.
  *
  * The agent tag reads the author's `kind` from the roster rather than from the entry, because an
@@ -328,13 +627,17 @@ function EntryItem({
 	entry,
 	isAgent,
 	nameOf,
-	resourceNameOf,
+	resourceOf,
 }: {
 	readonly entry: Entry;
 	readonly isAgent: boolean;
 	readonly nameOf: (principalId: string) => string;
-	readonly resourceNameOf: (resourceId: string) => string;
+	readonly resourceOf: (resourceId: string) => Resource | undefined;
 }) {
+	// One branch, on the union's own discriminant, and it decides only presentation: whether this row
+	// is a marker-and-a-line or a message with prose. Nothing here ranks one kind above another — the
+	// size difference says "event", not "lesser" (DESIGN.md §250).
+	const isAct = entry.kind !== "message";
 	return (
 		// `id` is the anchor target a relation points at; `data-entry-id` stays for the tests and for
 		// anything that wants to find an entry without depending on the id's string shape. Both,
@@ -345,8 +648,26 @@ function EntryItem({
 			data-entry-seq={entry.seq}
 			id={`entry-${entry.id}`}
 		>
-			<span aria-hidden="true" className="entry__avatar">
-				{nameOf(entry.authorId).slice(0, 1)}
+			{/*
+			 * **The marker is the hierarchy, and its size is the whole message.** DESIGN.md §250: a message
+			 * carries a 35px rounded-square avatar; an act carries a 28px rounded-square marker "in place of
+			 * the 35px avatar. A smaller marker is the whole hierarchy: it says 'this is an event' without
+			 * saying 'this matters more'".
+			 *
+			 * Measuring the existing code against that sentence found a pre-existing deviation. The message
+			 * avatar was a **28px circle**, which broke two rules at once: §214 reserves the circle for
+			 * status dots ("the only purely circular elements on screen") and gives avatars a 9-11px corner
+			 * radius, and §250 puts the message avatar at 35px. So the circle became a rounded square, the
+			 * size became the design record's, and the act marker took the 28px the message had been
+			 * wrongly using. Recorded rather than quietly fixed, because a reviewer comparing the two
+			 * renders deserves to know which one moved.
+			 */}
+			<span
+				aria-hidden="true"
+				className={isAct ? "entry__marker entry__marker--act" : "entry__marker"}
+				data-entry-marker={entry.kind}
+			>
+				{isAct ? actGlyph(entry.kind) : nameOf(entry.authorId).slice(0, 1)}
 			</span>
 			<div className="entry__body">
 				<div className="entry__byline">
@@ -365,17 +686,47 @@ function EntryItem({
 				{entry.kind === "message" ? (
 					<p className="entry__text">{entry.text}</p>
 				) : (
-					// **10a's rendering of an act is deliberately provisional.** This ticket widened the
-					// union and every consumer with it; the act's *visual* treatment — the 28px marker in
-					// place of the avatar, the Ink-muted line, the inline resource chip — is 10b's, to
-					// DESIGN.md §247-254. What this must not do is pretend an act is prose, so it reads as
-					// one muted line stating what happened, and no kind of entry is silently dropped from
-					// the chronology.
-					<p
-						className="entry__text entry__text--act"
-						data-entry-act={entry.kind}
-					>
-						{entrySentence(entry, { nameOf, resourceNameOf })}
+					// **One 13px line at Ink-muted, with the act's detail inline** (DESIGN.md §251). Not a prose
+					// block and not a second row: the detail — the transition, the position range, the resource
+					// — belongs in the same line, because an event is read in one glance.
+					//
+					// The class is `entry__act` rather than `entry__text`, so a reader and a test can tell a
+					// recorded event from prose without asking the DOM what kind of entry it is looking at.
+					<p className="entry__act" data-entry-act={entry.kind}>
+						<span className="entry__act-lead">{actLead(entry, nameOf)}</span>
+						{entry.kind === "status-move" ? (
+							<>
+								{" from "}
+								<span className="entry__act-detail">{entry.from}</span>
+								{" to "}
+								<span className="entry__act-detail">{entry.to}</span>
+							</>
+						) : null}
+						{entry.kind === "acknowledgement" ? (
+							<>
+								{" "}
+								{/*
+								 * **A range, not a verdict.** "up to #7" states how far this principal has got.
+								 * There is no word here that could read as approval — not "done", not "agreed",
+								 * not "signed off" — because the model carries no verdict (spec L438) and the
+								 * copy must not invent one (DESIGN.md §295).
+								 */}
+								<span className="entry__act-detail">up to #{entry.upTo}</span>
+							</>
+						) : null}
+						{entry.kind === "artifact" ? (
+							<>
+								{" "}
+								{/*
+								 * The **chip**, pointing at the canonical resource: never a copy of its content.
+								 * Following it leaves this app safely — the link rule 09 established.
+								 */}
+								<ResourceChip
+									resource={resourceOf(entry.resourceId)}
+									resourceId={entry.resourceId}
+								/>
+							</>
+						) : null}
 					</p>
 				)}
 				{entry.relation ? (

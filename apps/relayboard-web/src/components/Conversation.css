@@ -77,17 +77,28 @@
 	gap: var(--spacing-sm);
 }
 
-.entry__avatar {
+/* **The marker is the hierarchy** (DESIGN.md §250): a message carries a 35px rounded-square avatar,
+   an act a 28px rounded square in its place. The smaller square is the whole difference — it says
+   "this is an event" without saying "this matters more". */
+.entry__marker {
 	display: grid;
 	place-items: center;
 	flex-shrink: 0;
-	width: 28px;
-	height: 28px;
-	border-radius: 50%;
+	width: 35px;
+	height: 35px;
+	/* A rounded square, never a circle: §214 reserves the circle for status dots. */
+	border-radius: var(--radius-md);
 	background-color: var(--color-surface-tint);
 	color: var(--color-ink-body);
 	font-size: var(--text-label);
 	font-weight: 600;
+}
+
+.entry__marker--act {
+	width: 28px;
+	height: 28px;
+	font-size: var(--text-label);
+	letter-spacing: 0;
 }
 
 .entry__body {
@@ -143,6 +154,43 @@
 	color: var(--color-ink-body);
 	overflow-wrap: anywhere;
 	white-space: pre-wrap;
+}
+
+/* **One 13px line at Ink-muted** (DESIGN.md §250-251), and the mute is the point: an act is a
+   recorded event, and a scan of the thread should find the conversation first. Body size with the
+   muted ink, one line, detail inline. */
+.entry__act {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-muted);
+	overflow-wrap: anywhere;
+}
+
+/* The detail inside the line: the transition, the position range. Same size and same muted ink,
+   because it is part of the sentence rather than a value to compare. Tabular figures so a column of
+   positions lines up. */
+.entry__act-detail {
+	font-variant-numeric: tabular-nums;
+	color: var(--color-ink-muted);
+}
+
+/* The resource chip: a small rounded label, the same shape the thread list uses for a pin. Never
+   the accent — a chip is a reference, and §256 keeps the accent for declared values it forbids here
+   and for the one primary action per surface. */
+.entry__resource-chip {
+	display: inline-block;
+	padding: 0 var(--spacing-xs);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface-panel);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	text-decoration: none;
+}
+
+.entry__resource-chip:hover {
+	border-color: var(--color-ink-faint);
 }
 
 /* A reference to another entry: a link, because it takes the reader somewhere. */
@@ -282,5 +330,79 @@
 
 .conversation__facts dd {
 	margin: 0;
+	color: var(--color-ink-body);
+}
+
+/* The three act-producing controls, above the composer: an act and a message are both entries in
+   one chronology, so the writes belong together rather than in a second surface. */
+.conversation__acts {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-block-start: 1px solid var(--color-line-soft);
+	background-color: var(--color-surface-panel);
+}
+
+.act-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+}
+
+.act-row__field {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+}
+
+.act-row__select {
+	padding: var(--spacing-hair) var(--spacing-xs);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-family: inherit;
+	font-size: var(--text-label);
+}
+
+.act-row__button {
+	padding: var(--spacing-hair) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+/* A disabled control is visibly inert AND stays present, with the reason beside it (DESIGN.md 221):
+   a reader who cannot see the control cannot ask for the permission it needs. */
+.act-row__button[disabled] {
+	background-color: var(--color-surface-tint);
+	color: var(--color-ink-faint);
+	cursor: not-allowed;
+}
+
+.act-row__note {
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* The missing permission, named. A refusal from the attempt lands in the same place, because
+   DESIGN.md 254 reports a refused act where the attempt was made rather than in the chronology. */
+.act-row__reason,
+.act-row__problem {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+}
+
+.act-row__problem {
+	font-weight: 600;
 	color: var(--color-ink-body);
 }

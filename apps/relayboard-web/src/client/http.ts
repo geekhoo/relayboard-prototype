@@ -26,6 +26,7 @@ import type {
 	Seq,
 	Thread,
 	ThreadId,
+	ThreadStatus,
 } from "#/domain";
 import {
 	listBoards,
@@ -320,8 +321,8 @@ export const createHttpClient = (): RelayboardClient => ({
 
 	moveStatus: async (input: {
 		threadId: ThreadId;
-		from: string;
-		to: string;
+		from: ThreadStatus;
+		to: ThreadStatus;
 	}): Promise<Entry> =>
 		(await call(() =>
 			moveStatus({

@@ -6,7 +6,7 @@ import type {
 	StreamState,
 	Thread,
 } from "#/client";
-import { notYetOnTheWire, unknownObject } from "#/server/functions/errors";
+import { unknownObject } from "#/server/functions/errors";
 import {
 	acknowledgeInput,
 	addResourceInput,
@@ -62,12 +62,16 @@ const authorizeAs = (
 ) => authorize(operation, session.actingPrincipal(), scope);
 
 /**
- * The three acts that are on the interface but not writable yet.
+ * The three acts.
  *
- * Each resolves its thread first, authorizes at that thread's board, and only then refuses. The
- * refusal names 10a exactly as the in-memory client's `NotYetImplementedError` does: an absent
- * capability must fail loudly over the wire too, because a server function returning `undefined`
- * would read as a pass to the conformance suite.
+ * Each resolves its thread first (so a stale id is a not-found rather than a permission refusal),
+ * then authorizes at that thread's board, then writes. The author is the **acting principal** and
+ * never the caller: the wire schema has no author field, and 06c's rule is that a forged one could
+ * not reach here anyway.
+ *
+ * Until 10a these three threw `notYetOnTheWire` naming the ticket. That was 06a's rule — an absent
+ * capability must fail loudly rather than read as a pass — and it has now done its job: the alarm
+ * fired when the ticket landed, rather than being remembered.
  */
 export const attachResource = createServerFn({ method: "POST" })
 	.validator(attachResourceInput)
@@ -75,7 +79,12 @@ export const attachResource = createServerFn({ method: "POST" })
 		const thread = store().readThread(data.threadId);
 		if (!thread) throw unknownObject("thread", data.threadId);
 		authorizeAs("attachResource", { boardId: thread.boardId });
-		throw notYetOnTheWire("attachResource", "ticket 10a");
+		const actor = authorizeAs("attachResource", { boardId: thread.boardId });
+		return store().attachResource({
+			threadId: data.threadId,
+			resourceId: data.resourceId,
+			authorId: actor.id,
+		});
 	});
 
 export const moveStatus = createServerFn({ method: "POST" })
@@ -84,7 +93,13 @@ export const moveStatus = createServerFn({ method: "POST" })
 		const thread = store().readThread(data.threadId);
 		if (!thread) throw unknownObject("thread", data.threadId);
 		authorizeAs("moveStatus", { boardId: thread.boardId });
-		throw notYetOnTheWire("moveStatus", "ticket 10a");
+		const actor = authorizeAs("moveStatus", { boardId: thread.boardId });
+		return store().moveStatus({
+			threadId: data.threadId,
+			from: data.from,
+			to: data.to,
+			authorId: actor.id,
+		});
 	});
 
 export const acknowledge = createServerFn({ method: "POST" })
@@ -93,7 +108,12 @@ export const acknowledge = createServerFn({ method: "POST" })
 		const thread = store().readThread(data.threadId);
 		if (!thread) throw unknownObject("thread", data.threadId);
 		authorizeAs("acknowledge", { boardId: thread.boardId });
-		throw notYetOnTheWire("acknowledge", "ticket 10a");
+		const actor = authorizeAs("acknowledge", { boardId: thread.boardId });
+		return store().acknowledge({
+			threadId: data.threadId,
+			upTo: data.upTo,
+			authorId: actor.id,
+		});
 	});
 
 /**
