@@ -407,6 +407,8 @@ describe("the domain module", () => {
 				"This participant does not hold the permission that action requires",
 			grantMalformed:
 				"A grant needs a scope it can act on, and permissions that exist",
+			// 07b's addition: a grant naming a participant the workspace does not hold.
+			principalNotFound: "No such participant in this workspace",
 		});
 	});
 

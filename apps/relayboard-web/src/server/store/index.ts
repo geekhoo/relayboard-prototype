@@ -14,6 +14,7 @@ import type {
 } from "#/domain";
 import { errorMessages } from "#/domain";
 import { isWellFormedGrant, satisfies } from "#/domain/grants";
+import { checkGrant, unknownPermission } from "#/server/grants";
 
 /**
  * The store: the workspace's state, and the operations over it.
@@ -119,6 +120,18 @@ export interface StoreOptions {
  * `board.members` arrays.
  */
 export interface SeededGrant {
+	/**
+	 * Who is writing this grant.
+	 *
+	 * Required since 07b, and required *in the record* rather than passed beside it: a grant without a
+	 * granter cannot be checked against the granter's own permissions, and an optional field would let
+	 * a caller omit it and skip both rules by omission.
+	 *
+	 * The seed's grants carry the installation itself as granter — `"system"`, which holds nothing and
+	 * is therefore permitted nothing. That is honest: seeded grants are provisioning, not a
+	 * participant's act, and 07b's rules are about what a *participant* may hand out.
+	 */
+	readonly granterId: PrincipalId;
 	readonly principalId: PrincipalId;
 	readonly scope: "workspace" | "board";
 	/** Present exactly when `scope` is `"board"`. */
@@ -604,11 +617,45 @@ export const createStore = (
 			holds(principalId, permission, boardId),
 
 		grant: (input) => {
-			// Well-formedness first: a record that omits its scope, or names permissions that do not
-			// exist, is refused here rather than becoming a grant that silently grants nothing.
+			// **The order is the contract, and each step is a different family of refusal.**
+			//
+			// 1. A permission outside the vocabulary is a VALIDATION failure, before any rule runs
+			//    (07b:18), so a caller learns "that is not a permission" rather than "you may not give
+			//    it".
+			const unknown = unknownPermission(input.permissions);
+			if (unknown !== undefined) {
+				throw new Error(
+					`${errorMessages.grantMalformed}: ${unknown} is not a permission`,
+				);
+			}
+			// 2. The shape: a scope it can act on, and a board exactly when it is board-scoped.
 			if (!isWellFormedGrant(input)) {
 				throw new Error(errorMessages.grantMalformed);
 			}
+			// 3. The two rules 07b adds, checked against the granter and the recipient.
+			checkGrant(
+				{
+					granterId: input.granterId,
+					recipientId: input.principalId,
+					permissions: input.permissions,
+					scope: input.scope,
+					boardId: input.boardId,
+				},
+				{
+					readPrincipal: (principalId) =>
+						principals.find((principal) => principal.id === principalId),
+					workspacePermissions: grantOnWorkspace,
+					anyBoardPermissions: (principalId) => [
+						...new Set(
+							boards.flatMap((board) => grantOn(principalId, board.id)),
+						),
+					],
+				},
+			);
+			// 4. The write, in the same synchronous step as the checks above. No `await` between the
+			// read of the old state and this append, which is what makes two concurrent grants unable
+			// to both read the old grant and both write (07b:19). There is no lock because there is
+			// nothing to lock: JavaScript runs this function to completion.
 			grants = Object.freeze([...grants, Object.freeze({ ...input })]);
 			return grants;
 		},

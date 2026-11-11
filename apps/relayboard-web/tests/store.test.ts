@@ -171,6 +171,7 @@ const options = (): StoreOptions => ({
 	// real principal does rather than because the store was told to allow it.
 	grants: Object.entries(MEMBERSHIP).flatMap(([boardId, members]) =>
 		members.map((principalId) => ({
+			granterId: "system",
 			principalId,
 			scope: "board" as const,
 			boardId,

@@ -44,6 +44,13 @@ export const errorMessages = {
 	 */
 	grantMalformed:
 		"A grant needs a scope it can act on, and permissions that exist",
+	/**
+	 * A grant naming a participant this workspace does not hold.
+	 *
+	 * Distinct from `threadNotFound` and `boardNotFound` in the sentence but not in what a caller
+	 * does about it: the request named something that is not here, and there is nothing to retry.
+	 */
+	principalNotFound: "No such participant in this workspace",
 } as const;
 
 /**

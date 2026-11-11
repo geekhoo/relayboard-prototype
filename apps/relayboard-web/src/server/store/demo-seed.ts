@@ -654,14 +654,29 @@ const SUPERADMIN_GRANT: readonly PermissionName[] = [
 	"grant:permission",
 ];
 
+/**
+ * Who wrote the seeded grants.
+ *
+ * **The installation, not a participant.** Seeded grants are provisioning: nobody in the workspace
+ * granted them, and pretending a principal did would mean either inventing a granter that holds
+ * everything (which would make 07b's "a grant cannot exceed the granter's own" true only by
+ * fiction) or exempting the seed from the rule. `"system"` holds nothing, so `checkGrant` would
+ * refuse it every one of these — which is why the seed is applied as data rather than through the
+ * `grant` operation. The rule 07b adds is about what a **participant** may hand out, and this is the
+ * line where that distinction is drawn.
+ */
+const SEED_GRANTER = "system";
+
 export const demoGrants: readonly SeededGrant[] = Object.freeze([
 	{
+		granterId: SEED_GRANTER,
 		principalId: "nadia",
 		scope: "workspace" as const,
 		permissions: SUPERADMIN_GRANT,
 	},
 	...Object.entries(demoBoardMembers).flatMap(([boardId, members]) =>
 		members.map((principalId) => ({
+			granterId: SEED_GRANTER,
 			principalId,
 			scope: "board" as const,
 			boardId,

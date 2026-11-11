@@ -118,6 +118,41 @@ export interface ScopedGrant {
 }
 
 /**
+ * Whether holding `held` somewhere is enough to satisfy a requirement at `scope`.
+ *
+ * The bounds rule needs two questions with different answers, and conflating them is what makes a
+ * naive implementation permissive in the wrong direction:
+ *
+ * - **`permitsAt`** — may this principal exercise the permission *here*? A board-scoped `read:member`
+ *   holder may read members on that board and nowhere else, so this is the question the enforcement
+ *   path asks (07a).
+ * - **`holdsAnywhere`** — may this principal hand the permission out at this scope? A **workspace**
+ *   grant requires holding it at workspace scope, and holding it on a board is not enough; a **board**
+ *   grant requires holding it at that board, which a workspace grant also satisfies.
+ *
+ * The second is deliberately narrower than "holds it somewhere": a board-scoped holder may not widen
+ * its own permission into a workspace-wide one, which is exactly the permissive mistake 07b:17 names.
+ */
+export const mayGrantAt = (
+	held: {
+		readonly workspace: readonly PermissionName[];
+		readonly onBoard: readonly PermissionName[];
+	},
+	permission: PermissionName,
+	scope: ScopeKind,
+): boolean => {
+	if (scope === "workspace") {
+		// Only a workspace-scope holder may create a workspace-scope grant. Holding it on a board is
+		// not enough, and a board grant cannot be laundered into a workspace one.
+		return satisfies(held.workspace, permission);
+	}
+	// A board grant may be created by someone holding it at workspace scope OR on that board.
+	return (
+		satisfies(held.workspace, permission) || satisfies(held.onBoard, permission)
+	);
+};
+
+/**
  * Whether a grant record is valid: a scope it can act on, and permissions that exist.
  *
  * A grant that omits its scope, names a board it is not scoped to, or carries a permission outside

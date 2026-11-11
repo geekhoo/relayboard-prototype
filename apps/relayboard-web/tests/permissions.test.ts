@@ -205,12 +205,14 @@ describe("the same grant, the same behaviour", () => {
 		const s = createStore(demoSeed(), {
 			grants: [
 				{
+					granterId: "system",
 					principalId: "maya",
 					scope: "board",
 					boardId: "platform",
 					permissions: ["read:board"],
 				},
 				{
+					granterId: "system",
 					principalId: "orion",
 					scope: "board",
 					boardId: "platform",
@@ -235,12 +237,14 @@ describe("the same grant, the same behaviour", () => {
 		const s = createStore(demoSeed(), {
 			grants: [
 				{
+					granterId: "system",
 					principalId: "maya",
 					scope: "board",
 					boardId: "platform",
 					permissions: ["read:board", "post:message", "create:thread"],
 				},
 				{
+					granterId: "system",
 					principalId: "orion",
 					scope: "board",
 					boardId: "platform",
@@ -273,6 +277,13 @@ describe("kind is consulted in exactly one place", () => {
 	 * exists.
 	 */
 	const WHY = {
+		// **THE ONE LOAD-BEARING BRANCH, and 07b is the ticket that put it here.** `admit:agent` and
+		// `revoke:agent` may only be granted to a human (AGENTS.md, spec L590, stories 77-85), so the
+		// gate rule is the single place in the product where a principal's kind changes an outcome.
+		// This is the file the criterion means when it says `kind` is load-bearing in exactly one
+		// place; everything else below is a label or a choice of who speaks.
+		"src/server/grants.ts":
+			"the gate rule: only a human may hold admit:agent / revoke:agent",
 		// Choosing who speaks, not who may. `simulateIncoming` picks an author from the board's agent
 		// members; the permission checked is the caller's `post:message` (spec L340, L377).
 		"src/server/functions/write.ts":
