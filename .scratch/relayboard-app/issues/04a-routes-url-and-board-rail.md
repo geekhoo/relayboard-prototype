@@ -18,6 +18,7 @@
 - [ ] A board id in the URL that does not exist renders a not-found state inside the app frame, with a way back to the workspace — not a framework error page.
 - [ ] The rail lists every board the acting principal may see, from the client interface and not from a direct store import; the active board is visibly distinct by fill plus the 1px inset edge (`DESIGN.md` §200, §233) and carries `aria-current`.
 - [ ] The rail shows each board's unread count, derived from the `seen` watermark rather than a client-side counter.
+- [ ] Each rail row renders its board's mark from the seeded `short` and `theme` — a 30px rounded square in one of the four documented hues (`DESIGN.md` §241) — rather than a letter invented in the component, so the hue set stays closed and visible.
 - [ ] Board rows are reachable and activatable from the keyboard in a sensible order, and the focus ring is visible on the dark rail.
 - [ ] The UI reaches data through `RelayboardClient` only. A Biome `noRestrictedImports` rule (or an equivalent check in `npm run check`) fails if a route or component imports the store.
 - [ ] The client instance is provided once per router, not created at module scope, and TanStack Query is wired the way the scaffold already wires it (`src/router.tsx` L3–19), so the app does not gain a second data layer.

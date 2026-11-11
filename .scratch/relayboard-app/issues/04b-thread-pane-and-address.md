@@ -12,7 +12,7 @@
 
 - [ ] The open thread is in the URL, and reloading or pasting that URL restores the same board and thread.
 - [ ] A thread id in the URL that does not exist, or that belongs to a different board than the one named, renders the not-found state inside the app frame.
-- [ ] Thread rows show title, the latest entry's excerpt, the latest entry's author, the entry count and an unread marker.
+- [ ] The prototype's `thread.pinned` (`app.js` L35, rendered by the sort at L142) is either carried into the domain and rendered as a pinned state, or dropped deliberately by a line in this ticket saying so — the one seeded pinned thread is why the question cannot be answered by silence.
 - [ ] Threads are ordered by the `createdAt` of their latest entry, descending. This is the one place a timestamp orders anything — a thread has no `seq` — and the ordering rule is stated in the code next to the sort so it is not mistaken for a violation of "order by `seq`".
 - [ ] Thread search filters on title and latest-entry text, and a search matching nothing renders a zero-result state with the prototype's copy ("No matching threads" / "Try a different search term.").
 - [ ] The unread filter narrows to threads whose `seen` watermark is behind the latest `seq`; with no unread threads it renders the "All caught up" state, and its control exposes `aria-pressed`.

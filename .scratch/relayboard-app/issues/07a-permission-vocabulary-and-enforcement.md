@@ -19,7 +19,7 @@
 - [ ] The seed's provisional membership predicate from 02c is replaced by a grant lookup, and the board membership the prototype encoded in `board.members` is reproduced as grants so the same principals can do the same things.
 - [ ] The seeded principal from 02c receives the workspace-wide grant (spec L406, story 81–85): `read:board`, `create:board`, `admit:agent`, `revoke:agent`, `grant:permission` at workspace scope, of `kind: "human"`. A test asserts it still cannot post to a board it holds no board-scoped grant on.
 - [ ] A principal holding the same grant as another succeeds identically, proven for both directions of the asymmetry the spec names: a human holding less than an agent, and an agent holding more than a human (story 77–80, spec L566).
-- [ ] `kind` is consulted in exactly one place in the codebase — the rule in 07b — and a test or lint check makes a second occurrence visible.
+- [ ] `kind` is consulted in exactly one place in the codebase — the rule in 07b — and a test or lint check makes a second occurrence visible. **This is the durable form of the check 02a could only make temporarily**: 02a asserted that `src/domain` exports types only, so nothing in it could branch on anything, and that assertion stops holding the moment 02b puts the documented error strings in the domain module. 
 - [ ] A control whose permission the reader lacks renders disabled with a stated reason (`DESIGN.md` §213), not hidden and not enabled-then-refused. This rule is declared here and applied by 09, 10 and 12.
 - [ ] The conformance suite's refusals are asserted through the client interface as well as through direct calls, so the same behaviour is proven at both entry points.
 
