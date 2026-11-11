@@ -129,6 +129,21 @@
 	color: var(--color-ink-strong);
 }
 
+/* The resource's type, shown back to the reader who chose it. A quiet chip: 11px, the same shape the
+   entry's resource chip uses, and deliberately not the accent — a type is a label, not an action
+   (DESIGN.md §256). `align-self` keeps it as wide as its word rather than stretching across the
+   column the way a block-level child would. */
+.resource-row__type {
+	align-self: flex-start;
+	padding: 0 var(--spacing-xs);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface-panel);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	letter-spacing: 0.4px;
+}
+
 .resource-row__url {
 	font-size: var(--text-label);
 	color: var(--color-accent-ink);

@@ -72,6 +72,16 @@ export const createBoardForm = z.object({
 	description: z.string().trim().max(DESCRIPTION_MAX).optional(),
 });
 
+/**
+ * A thread: a board and a title.
+ *
+ * **No description, and that is a decision rather than an omission.** The prototype collected one
+ * (`app.js` L165) and stored it (L115), and no render path ever read it — so the port carried a form
+ * field whose answer went nowhere, validated at the boundary and dropped by the store because
+ * `Thread` has no such attribute. Asking for something the interface never shows is worse than not
+ * asking, so this schema does not have the field. Recorded here because a later reader will compare
+ * it against the prototype and find the difference.
+ */
 export const createThreadForm = z.object({
 	boardId: z.string().min(1),
 	title: z
@@ -79,7 +89,6 @@ export const createThreadForm = z.object({
 		.trim()
 		.min(1, "A thread needs a title")
 		.max(THREAD_TITLE_MAX),
-	description: z.string().trim().max(DESCRIPTION_MAX).optional(),
 });
 
 export const addResourceForm = z.object({

@@ -264,7 +264,6 @@ function BoardRoute() {
 			const thread = await actingClient.createThread({
 				boardId: board.id,
 				title: input.form.title,
-				description: input.form.description,
 			});
 			await queryClient.invalidateQueries({
 				queryKey: threadRowsQuery(actingClient, board.id).queryKey,

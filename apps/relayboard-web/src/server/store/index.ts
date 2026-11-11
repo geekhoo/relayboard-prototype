@@ -205,8 +205,9 @@ export interface CreateThreadInput {
 	readonly title: string;
 	/** The acting principal, which the thread intro names (05). Resolved by the transport, never by the caller. */
 	readonly creatorId: PrincipalId;
-	/** The prototype asks for this and does not store it (app.js L165, L115); kept in the input for the UI. */
-	readonly description?: string;
+	// No description: `Thread` has no such attribute and no surface renders one. The prototype
+	// collected one (app.js L165) and stored it (L115) with no render path reading it, so the port
+	// carried a value that went nowhere. Removed rather than documented a second time.
 }
 
 /** What a caller supplies to add a canonical resource to a board. */

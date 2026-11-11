@@ -152,7 +152,6 @@ export const createThread = createServerFn({ method: "POST" })
 		return store().createThread({
 			boardId: data.boardId,
 			title: data.title,
-			description: data.description,
 			creatorId: actor.id,
 		});
 	});

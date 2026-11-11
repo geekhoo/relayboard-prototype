@@ -237,4 +237,82 @@ test.describe("creating", () => {
 			await close();
 		}
 	});
+	test("the thread dialog does not offer a description, because nothing renders one", async ({
+		browser,
+		baseURL,
+	}) => {
+		// **This is the assertion that would have caught the original defect.** The prototype collected
+		// a thread description (`app.js` L165) and stored it (L115), and no render path ever read it —
+		// so the port carried a form field whose answer the store dropped, because `Thread` has no
+		// `description` attribute. Measured before the fix: the field existed, accepted text, and the
+		// thread came back without it. The fix is that the form no longer asks, so the absence is the
+		// assertion.
+		const { page, close } = await asPrincipal(
+			browser,
+			baseURL ?? "http://127.0.0.1:3218",
+			"alex",
+		);
+		try {
+			await page.goto("/boards/platform");
+			await page.locator("[data-create='thread']").click();
+			const dialog = page.getByRole("dialog", { name: /new thread/i });
+			await expect(dialog).toBeVisible();
+
+			// The title is asked for; a description is not.
+			await expect(dialog.locator("[data-field='name']")).toBeVisible();
+			await expect(dialog.locator("[data-field='description']")).toHaveCount(0);
+
+			// And the two dialogs where a description *does* go somewhere still have it — otherwise this
+			// test would pass on a change that removed the field everywhere.
+			await page.keyboard.press("Escape");
+			await expect(dialog).toBeHidden();
+			await page.locator("[data-create='resource']").click();
+			const resource = page.getByRole("dialog", { name: /add resource/i });
+			await expect(
+				resource.locator("[data-field='description']"),
+			).toBeVisible();
+		} finally {
+			await close();
+		}
+	});
+
+	test("a resource shows the type the reader chose", async ({
+		browser,
+		baseURL,
+	}) => {
+		// The other half of the same defect class: the dialog asks for one of four types, the store
+		// keeps it, and until the fix no surface rendered it. Asserted as the **word**, not as a box — a
+		// chip that always rendered the default would pass a presence check and still lose the choice.
+		const { page, close } = await asPrincipal(
+			browser,
+			baseURL ?? "http://127.0.0.1:3218",
+			"alex",
+		);
+		try {
+			await page.goto("/boards/platform?view=resources");
+			await page.locator("[data-create='resource']").click();
+			const dialog = page.getByRole("dialog", { name: /add resource/i });
+			await dialog.locator("[data-field='name']").fill("A repository");
+			await dialog
+				.locator("[data-field='url']")
+				.fill("https://example.com/a-repository");
+			// **Deliberately not the default.** The default is `Link`, so a test that chose it could pass
+			// on a chip that always rendered the default.
+			await dialog.locator("[data-field='type']").selectOption("Repository");
+			await dialog.locator("[data-create-confirm]").click();
+			await expect(dialog).toBeHidden();
+
+			const row = page.locator(".resource-row", { hasText: "A repository" });
+			await expect(row.locator("[data-resource-type]")).toHaveText(
+				"Repository",
+			);
+
+			// And a seeded resource shows its own type rather than the new one: the chip reads the
+			// record, not a component default.
+			const seeded = page.locator(".resource-row").first();
+			await expect(seeded.locator("[data-resource-type]")).not.toBeEmpty();
+		} finally {
+			await close();
+		}
+	});
 });

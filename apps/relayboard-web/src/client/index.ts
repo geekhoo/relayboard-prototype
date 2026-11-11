@@ -221,11 +221,17 @@ export interface AppendMessageInput {
 	readonly idempotencyKey?: string;
 }
 
+/**
+ * A new thread: a board and a title.
+ *
+ * **No description.** The prototype collected one (`app.js` L165) and stored it (L115) with no render
+ * path reading it, so the port validated it at the boundary and dropped it — `Thread` has no such
+ * attribute. This keeps the interface honest with the record rather than offering a field whose
+ * answer nothing can show.
+ */
 export interface CreateThreadInput {
 	readonly boardId: BoardId;
 	readonly title: string;
-	/** The prototype's optional description (`app.js` L165), which the thread record does not carry. */
-	readonly description?: string;
 }
 
 export interface CreateBoardInput {

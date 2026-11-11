@@ -108,6 +108,24 @@ place a reader can go to find the decision rather than the diff.
   `PRODUCT.md`, and the interface says so wherever a reader might otherwise assume otherwise: the
   store-lifetime note, the purge dialog, and the session note.
 
+## Records rather than bugs
+
+Two things the port left in a state no ticket owns, recorded here so they are answered rather than
+rediscovered. Neither is a defect: both are consequences of decisions made deliberately, and both are
+invisible to a reader who has not read this note.
+
+- **The same-status refusal is a string only a test has seen.** Moving a thread to the status it is
+  already in is refused with *"This thread is already in that status"*, and that refusal is asserted
+  only at the contract seam. The reader's control disables itself in that state, so the sentence is
+  never rendered — which is the right behaviour and an unexercised string. If a later ticket makes
+  the control always enabled, the copy is ready; until then the assertion is evidence for a path no
+  reader takes.
+- **`pinned` is carried, rendered and unpinnable.** `Thread.pinned` exists because the seed pins
+  exactly one thread and the prototype rendered a pin beside it. No action pins or unpins anything,
+  so the seeded pin is the only one that will ever exist, and the field is a label with one possible
+  value in practice. Recorded rather than removed: removing it would drop a rendered state the seed
+  can produce, and the prototype had the same shape.
+
 ## The one operation this record exists to stop you getting wrong
 
 The shipped skills are vendored: the app depends on `file:vendor/relayboard-skills-0.1.0.tgz`,

@@ -520,7 +520,6 @@ export const describeOperationsConformance = (
 			const created = await api.createThread({
 				boardId,
 				title: "API versioning decisions",
-				description: "A short reason for starting this conversation",
 			} satisfies CreateThreadInput);
 
 			expect(created.title).toBe("API versioning decisions");

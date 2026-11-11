@@ -112,22 +112,21 @@ export function CreateAction({
 				}
 				await onSubmit({ kind: "board", form: parsed.data });
 			} else if (kind === "thread") {
+				// **No description, because nothing renders one.** The prototype asked for it and never
+				// showed it (`app.js` L165 collects it, L115 stores it, and no render path reads it), so the
+				// port carried a form field whose answer went nowhere. Measured: `Thread` has no
+				// `description` attribute, so the value was validated at the boundary and dropped. Asking for
+				// something the interface never shows is worse than not asking — so this is the one place the
+				// port deliberately diverges from the prototype rather than faithfully reproducing it.
 				const parsed = createThreadForm.safeParse({
 					boardId: "placeholder",
 					title: name,
-					description,
 				});
 				if (!parsed.success) {
 					setProblem(firstProblem(parsed.error));
 					return;
 				}
-				await onSubmit({
-					kind: "thread",
-					form: {
-						title: parsed.data.title,
-						description: parsed.data.description,
-					},
-				});
+				await onSubmit({ kind: "thread", form: parsed.data });
 			} else {
 				const parsed = addResourceForm.safeParse({
 					boardId: "placeholder",
@@ -241,20 +240,27 @@ export function CreateAction({
 								</label>
 							</>
 						) : null}
-						<label className="create-dialog__field">
-							{kind === "resource" ? "Description" : "Description (optional)"}
-							<textarea
-								className="create-dialog__textarea"
-								data-field="description"
-								maxLength={
-									kind === "resource"
-										? RESOURCE_DESCRIPTION_MAX
-										: DESCRIPTION_MAX
-								}
-								value={description}
-								onChange={(event) => setDescription(event.currentTarget.value)}
-							/>
-						</label>
+						{/* **Only where it is stored and shown.** A board and a resource both render a
+						    description; a thread does not, and since this ticket does not ask for one there is no
+						    field for it. */}
+						{kind === "thread" ? null : (
+							<label className="create-dialog__field">
+								Description
+								<textarea
+									className="create-dialog__textarea"
+									data-field="description"
+									maxLength={
+										kind === "resource"
+											? RESOURCE_DESCRIPTION_MAX
+											: DESCRIPTION_MAX
+									}
+									value={description}
+									onChange={(event) =>
+										setDescription(event.currentTarget.value)
+									}
+								/>
+							</label>
+						)}
 						{problem === null ? null : (
 							<p
 								className="create-dialog__problem"

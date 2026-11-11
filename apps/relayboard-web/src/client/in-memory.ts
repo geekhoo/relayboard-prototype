@@ -229,7 +229,6 @@ export const createInMemoryClient = (
 			const thread = store.createThread({
 				boardId: input.boardId,
 				title: input.title,
-				description: input.description,
 				creatorId: actingAs,
 			});
 			emit({ type: "thread-created", thread });

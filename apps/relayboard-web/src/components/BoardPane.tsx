@@ -282,6 +282,17 @@ function ResourcesView({ boardId }: { readonly boardId: BoardId }) {
 		<ul aria-label="Resources" className="board-pane__list">
 			{items.map((resource) => (
 				<li className="resource-row" key={resource.id}>
+					{/*
+					 * **The type the reader chose, shown back to them.** The dialog asks for one of four
+					 * (`Document`, `Repository`, `Design`, `Link`), the store keeps it, and until this chip
+					 * no surface rendered it — so the reader answered a question the interface then ignored.
+					 * The same 11px label treatment an entry's resource chip uses, and **no accent**:
+					 * DESIGN.md §256 keeps the accent for a declared value or the one primary action, and a
+					 * type is neither.
+					 */}
+					<span className="resource-row__type" data-resource-type>
+						{resource.type}
+					</span>
 					<strong className="resource-row__name">{resource.name}</strong>
 					{/*
 					 * **`rel="noopener noreferrer"` is load-bearing, not decoration.** Without

@@ -65,10 +65,10 @@ export const appendMessageInput = z.object({
 	idempotencyKey: z.string().min(1).optional(),
 });
 
+/** A thread: a board and a title, and **no description** — see `createThreadForm` in the domain. */
 export const createThreadInput = z.object({
 	boardId: z.string().min(1),
 	title: z.string().min(1),
-	description: z.string().optional(),
 });
 
 export const createBoardInput = z.object({

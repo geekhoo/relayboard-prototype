@@ -291,11 +291,7 @@ export const createHttpClient = (): RelayboardClient => ({
 	createThread: async (input: CreateThreadInput): Promise<Thread> =>
 		(await call(() =>
 			createThread({
-				data: {
-					boardId: input.boardId,
-					title: input.title,
-					description: input.description,
-				},
+				data: { boardId: input.boardId, title: input.title },
 			}),
 		)) as Thread,
 
