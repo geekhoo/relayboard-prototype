@@ -1,0 +1,75 @@
+/**
+ * The board-rail row's mark: a 30px rounded square holding the board's monogram.
+ *
+ * Anatomy only. The square's size, radius and the letterform are rules here because they
+ * are one component's internal relationships; the row's layout is utilities at the call
+ * site, per the styling split 01 set.
+ *
+ * **The hue is a token, never a literal.** DESIGN.md §241 requires four hues and names
+ * none of their values, so styles.css's @theme block carries them (see its comment) and
+ * this sheet maps each `BoardTheme` member to one. The mapping is total over a closed
+ * union, so there is no "unthemed" case to style: a mark always has exactly one hue.
+ */
+.board-mark {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	flex-shrink: 0;
+	border-radius: var(--radius-sm);
+	/* White on any of the four clears 4.5:1 (5.06-5.45), so the glyph is legible at 30px
+	   without a second treatment. */
+	color: var(--color-surface);
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.board-mark[data-theme="sage"] {
+	background-color: var(--color-board-sage);
+}
+
+.board-mark[data-theme="ochre"] {
+	background-color: var(--color-board-ochre);
+}
+
+.board-mark[data-theme="lavender"] {
+	background-color: var(--color-board-lavender);
+}
+
+.board-mark[data-theme="blue"] {
+	background-color: var(--color-board-blue);
+}
+
+/* The unread count: a small tinted numeral in the rail's well, so it reads as a count of
+   work rather than as a second action. rail-ink on rail-well is 8.38:1. */
+.board-rail__count {
+	min-width: 20px;
+	padding: 2px 6px;
+	border-radius: var(--radius-xs);
+	background-color: var(--color-rail-well);
+	color: var(--color-rail-ink);
+	font-size: 11px;
+	font-weight: 500;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The active row is a fill *plus* the 1px inset edge (DESIGN.md §208, §241) — never a
+   side stripe, and never the fill alone, so the selected state survives a colour
+   deficiency. The edge is a lighter tint of the row's own hue rather than a new colour. */
+.board-rail__row[aria-current="page"] {
+	background-color: var(--color-rail-active);
+	color: var(--color-surface);
+	box-shadow: inset 0 0 0 1px var(--color-rail-edge);
+}
+
+.board-rail__row[aria-current="page"] .board-rail__name {
+	font-weight: 600;
+}
+
+/* The one focus override the design system sanctions: --color-focus is 2.11:1 on the
+   rail, which is a ring nobody can see. These two tokens are 8.96:1 and 5.47:1. */
+.board-rail__row:focus-visible {
+	outline: 2px solid var(--color-focus-on-rail);
+	outline-offset: 1px;
+}

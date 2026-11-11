@@ -1,0 +1,109 @@
+/* The three-column frame. The columns, the responsive stages and the full-bleed
+   height are utilities at the caller; only the two named arrangements that a utility
+   cannot express live here: the rail's fixed track and the pane's hairline. */
+/* The frame's three surfaces each fill their track. The grid's items stretch by default,
+   so the *column* is the frame's height; the rail's nav then fills that column (it carries
+   `h-full`) rather than being only as tall as its rows.
+
+   This is measured rather than assumed, and the measurement is the criterion 04a's gate
+   cannot make: nothing in the ticket set checks a painted surface's extents until 04c's
+   harness and 13a's geometry. Until they land, the rule is written here and re-measured by
+   hand — at 1440×900, 980×800 and 390×844 the nav's height equals the rail column's, and
+   the column's equals the frame's. */
+.workspace-frame {
+	display: grid;
+	grid-template-columns: 240px 336px minmax(0, 1fr);
+	height: 100dvh;
+	overflow: hidden;
+}
+
+/* The three collapse stages of DESIGN.md §186: 240/336/fluid, then 208/304, then the rail
+   becomes an overlay and the pane is the first screen. 04b builds the overlay; this ticket
+   only has to stop the frame from overflowing before it exists. */
+@media (width <= 1200px) {
+	.workspace-frame {
+		grid-template-columns: 208px 304px minmax(0, 1fr);
+	}
+}
+
+@media (width <= 980px) {
+	/* DESIGN.md §186 makes the rail an overlay drawer here, and this ticket does not build
+	   that drawer: the toggle, the scrim and the focus capture are 13a's and 04b's. What it
+	   does instead is the honest interim — the rail keeps its own column and spans both rows,
+	   with the pane above the conversation, so nothing is covered up and nothing is a dead
+	   end. The overlay is a visible gap, and this comment is where it is visible from. */
+	.workspace-frame {
+		grid-template-columns: 240px minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.workspace-frame > .workspace-frame__rail {
+		grid-row: 1 / span 2;
+	}
+
+	.workspace-frame__pane,
+	.workspace-frame__conversation {
+		grid-column: 2;
+	}
+}
+
+@media (width <= 680px) {
+	/* A phone is one screen: the pane is the first level and the conversation the second, of
+	   the same route (spec L543). The rail has no room to sit beside them, so it is parked
+	   off-canvas until 13a's drawer gives it a way on and off. Off-canvas is a navigation
+	   dead end for now, and a 240px column overlapping the pane's text would be worse. */
+	.workspace-frame {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.workspace-frame > .workspace-frame__rail {
+		position: fixed;
+		inset-block: 0;
+		inset-inline-start: 0;
+		width: 240px;
+		z-index: 1;
+		transform: translateX(-100%);
+		/* Off-canvas is not merely invisible. Measured: with only the transform, Tab reached
+		   the rail's three links before the pane's tab links — a focusable control that cannot
+		   be seen, which 13b forbids. `visibility: hidden` removes them from the tab order
+		   while leaving the element animatable, so 13a still has something to slide in; the
+		   `data-open` hook is what it toggles. */
+		visibility: hidden;
+	}
+
+	.workspace-frame > .workspace-frame__rail[data-open="true"] {
+		transform: none;
+		visibility: visible;
+	}
+
+	.workspace-frame__pane,
+	.workspace-frame__conversation {
+		grid-column: 1;
+	}
+}
+
+/* The pane is the tinted index column and takes a hairline against the conversation,
+   which is the brightest surface on screen (DESIGN.md §130, §154-155). */
+.workspace-frame__pane {
+	background-color: var(--color-surface-panel);
+	border-inline-end: 1px solid var(--color-line);
+	overflow: auto;
+}
+
+.workspace-frame__conversation {
+	background-color: var(--color-surface);
+	overflow: auto;
+	min-width: 0;
+}
+
+/* A labelled placeholder: honest about being empty, quiet about it. It is not an empty
+   state with an action, because the action does not exist yet (04b fills this in). */
+.workspace-frame__placeholder {
+	display: grid;
+	place-items: center;
+	height: 100%;
+	padding: var(--spacing-xxl);
+	text-align: center;
+	color: var(--color-ink-muted);
+}

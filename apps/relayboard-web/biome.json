@@ -29,6 +29,28 @@
 			"recommended": true
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["**/src/routes/**/*", "**/src/components/**/*"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"#/server": "The UI reaches data through RelayboardClient (#/client), never the server store. A route or component that imports the store has bypassed the seam the whole port rests on.",
+									"#/server/store": "The UI reaches data through RelayboardClient (#/client), never the server store. 06a's store singleton must stay unreachable from src/routes and src/components.",
+									"#/server/store/demo-seed": "The seed is an input to a store, not something a component reads. Read through RelayboardClient (#/client) instead.",
+									"#/client/in-memory": "A component reads the client from the router context (#/client/context), so the transport stays swappable. Constructing an in-memory client inside the UI would pin this screen to one implementation."
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	],
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"

@@ -86,6 +86,27 @@
   /* Focus — one ring colour for the light surfaces, one for the rail */
   --color-focus: #0f6b52;
   --color-focus-on-rail: #9be0bd;
+  /* Board marks — the rail's 30px rounded squares.
+     DESIGN.md §241 requires "30px rounded-square board marks at 4 hues" and names neither
+     the hues nor their values; DESIGN.md's frontmatter and .impeccable/design.json carry
+     the prototype's un-themed default (#527b72) and ochre (#8a6553) only. sage, lavender
+     and blue are recorded nowhere but the prototype's sheet (styles.css L388-410), so
+     these four values come from there and 15b owes the design records the other three.
+     That default is deliberately NOT a token here: `createBoard` defaults a new board to
+     blue (app.js L116), a seeded board always carries one of the four, and BoardTheme is a
+     closed union of four, so a mark with no hue is unreachable rather than unstyled.
+     Each clears 4.5:1 as white-on-hue — sage 5.45, ochre 5.16, lavender 5.06, blue 5.20 —
+     which is what keeps the letterform legible at 30px without a second treatment. */
+  /* The active rail row's 1px inset edge. DESIGN.md L153 states the rule ("the active row
+     also takes a 1px inset lighter edge") but carries no value; .impeccable/design.json's
+     Board Rail Row and the prototype (styles.css L356) both use #4d6c62, so that is the
+     recorded value and the design records owe it a name. Flagged to 15b with the four
+     board hues rather than folded in here. */
+  --color-rail-edge: #4d6c62;
+  --color-board-sage: #477263;
+  --color-board-ochre: #8a6553;
+  --color-board-lavender: #6d6a96;
+  --color-board-blue: #4d7091;
 
   /* Radii — DESIGN.md §rounded */
   --radius-xs: 4px;

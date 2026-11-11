@@ -1,16 +1,20 @@
-import type { QueryClient } from "@tanstack/react-query";
 import {
 	createRootRouteWithContext,
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
+import type { RouterContext } from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
 
-interface MyRouterContext {
-	queryClient: QueryClient;
-}
-
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+/**
+ * The router's context is the app's one data seam.
+ *
+ * Only the type changed in this ticket: 04a's criterion is that the client is provided once
+ * per router rather than at module scope, so the client travels on this context beside the
+ * Query client, and a component reads it with `useRouteContext` instead of importing a
+ * module that builds one. The document shell below is 01's and is untouched.
+ */
+export const Route = createRootRouteWithContext<RouterContext>()({
 	head: () => ({
 		meta: [
 			{
