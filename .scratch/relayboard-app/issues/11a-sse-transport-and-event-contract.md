@@ -2,7 +2,7 @@
 
 **From:** 11 — Live delivery, pause and replay over SSE
 
-**What to build:** A real transport. The stream is a server route returning `text/event-stream` — not a server function, because a server function returns one response and closes (spec L341) — with a documented event vocabulary, `Last-Event-ID` reconnects, a server-held queue keyed by thread while a subscriber is paused, and replay from the subscriber's cursor reporting how many entries it replayed. `subscribe` on the client interface is implemented over it, and the in-memory implementation implements the same contract so both deliver the same events in the same situations.
+**What to build:** A real transport. The stream is a server route returning `text/event-stream` — not a server function, because a server function returns one response and closes (spec L341) — with a documented event vocabulary, `Last-Event-ID` reconnects, a pause that withholds delivery without accumulating a backlog, and replay from the subscriber's cursor reporting how many entries it replayed. Replay comes from that cursor and from nothing else, so the stream keeps one source of truth for what a subscriber has missed. `subscribe` on the client interface is implemented over it, and the in-memory implementation implements the same contract so both deliver the same events in the same situations.
 
 **Blocked by:** 10b — An act reads as an event without becoming louder than a message
 

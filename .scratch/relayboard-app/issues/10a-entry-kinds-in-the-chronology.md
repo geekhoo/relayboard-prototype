@@ -2,7 +2,7 @@
 
 **From:** 10 — Authored acts share the thread chronology
 
-**What to build:** A thread stops being a list of messages and becomes a chronology of authored acts, from the domain outwards. Attaching a resource to a thread, moving a thread's status and acknowledging up to a position each produce an entry with an author and a `seq` from the same counter as messages. The client interface gains the three operations, the store writes them under the same lock, the HTTP layer validates them, and the conformance suite is extended to prove that acts and messages interleave in one order with no separate log to reconcile. No rendering — this ticket is the model and the contract.
+**What to build:** A thread stops being a list of messages and becomes a chronology of authored acts, from the domain outwards. Attaching a resource to a thread, moving a thread's status and acknowledging up to a position each produce an entry with an author and a `seq` from the same counter as messages. The client interface gains the three operations, the store writes them by the rule a message already follows — one synchronous step, with no `await` between computing the next `seq` and appending, because a synchronous store has no interleaving to guard against — the HTTP layer validates them, and the conformance suite is extended to prove that acts and messages interleave in one order with no separate log to reconcile. No rendering — this ticket is the model and the contract.
 
 **Blocked by:** 07b — The two rules that keep the gate human and the grant unlaunderable
 

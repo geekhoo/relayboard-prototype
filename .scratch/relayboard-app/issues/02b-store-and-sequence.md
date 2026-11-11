@@ -2,7 +2,7 @@
 
 **From:** 02 — A store that owns boards, threads and the canonical sequence
 
-**What to build:** A store factory that takes an initial seed and returns operations over it, with the first genuinely testable rule of the product enforced inside it: `seq` is per thread, starts at 1, gapless, immutable once assigned, and its assignment plus insertion is one atomic step under a per-store async lock. The factory takes its seed as input so a test can start from an empty workspace or a small fixture rather than from the demo content. Every rejection leaves the store unchanged and consumes no `seq`.
+**What to build:** A store factory that takes an initial seed and returns operations over it, with the first genuinely testable rule of the product enforced inside it: `seq` is per thread, starts at 1, gapless, immutable once assigned, and its assignment plus insertion are one synchronous step with no `await` between computing the number and appending the entry. The factory takes its seed as input so a test can start from an empty workspace or a small fixture rather than from the demo content. Every rejection leaves the store unchanged and consumes no `seq`.
 
 **Blocked by:** 02a — A test harness and the domain types it will hold
 

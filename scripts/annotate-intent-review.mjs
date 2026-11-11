@@ -85,7 +85,7 @@ const ITEM_OUTCOMES = {
     reason:
       'The local-markdown issue tracker convention for this repository (paths, numbering, Status: lines, wayfinder operations). Repository process documentation, not a source any skill cites.',
     evidence: [
-      'written by /setup-matt-pocock-skills; tracker chosen as local markdown because the repository has no git remote',
+      'written by /setup-matt-pocock-skills; the tracker stayed local markdown after the repository gained a GitHub remote, because the tickets are worked blockers-first by hand rather than closed through PRs',
       'grep sources over packages/relayboard-skills/skills/*/SKILL.md — docs/agents/* is absent from every sources list',
     ],
   },

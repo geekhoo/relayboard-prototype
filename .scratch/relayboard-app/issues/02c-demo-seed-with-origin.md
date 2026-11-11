@@ -4,7 +4,7 @@
 
 **What to build:** The store can be seeded with the prototype's demo workspace, transcribed from `app.js`'s `seedState` (`app.js` L19–84), with every board, thread, entry and resource carrying `origin: "demo"` and every entry's `createdAt` deliberately non-monotonic with respect to its `seq`. The seed is one input to a factory that already works without it, so a test can still start empty. This is a transcription job with one design decision in it: the prototype's `board.members` arrays have no home in the new model, and how they are represented here determines whether ticket 07 has to delete them.
 
-**Blocked by:** 02b — The store, the per-thread sequence and the lock
+**Blocked by:** 02b — The store and the per-thread sequence
 
 **Write scope:** the seed fixture and the store's seeding path only.
 
