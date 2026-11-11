@@ -341,6 +341,14 @@ export type StreamEvent =
 			 * client does not retry into a stream it may no longer read.
 			 */
 			readonly cause?: "revoked" | "expired";
+			/**
+			 * **Why** the event arrived, when it was not about access ending.
+			 *
+			 * `"workspace-changed"` means the content behind this connection changed wholesale — a purge or a
+			 * restore — so the reader should re-read rather than trusting what it already holds. Absent for an
+			 * ordinary connect, disconnect or replay.
+			 */
+			readonly reason?: "workspace-changed";
 	  }
 	| {
 			/**

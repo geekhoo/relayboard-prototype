@@ -64,12 +64,16 @@ export const Route = createFileRoute("/api/stream")({
 
 				const encoder = new TextEncoder();
 				let unsubscribe: (() => void) | undefined;
+				/** The workspace-change listener's own unsubscribe, so `close` leaves no listener behind. */
+				let stopForWorkspace: (() => void) | undefined;
 				let closed = false;
 
 				const close = () => {
 					closed = true;
 					unsubscribe?.();
 					unsubscribe = undefined;
+					stopForWorkspace?.();
+					stopForWorkspace = undefined;
 				};
 
 				const body = new ReadableStream<Uint8Array>({
@@ -150,6 +154,36 @@ export const Route = createFileRoute("/api/stream")({
 							}
 						});
 
+						/**
+						 * **A wholesale change to the workspace, announced rather than inferred** (14:17).
+						 *
+						 * A purge removes records every open connection's cursor and cached chronology describe, so a
+						 * subscriber that is not told has to deduce it from a thread that stopped existing — which is the
+						 * "failure from silence" the criterion forbids. This listener existed from 14 and had **no
+						 * subscriber anywhere**, which made `announceWorkspaceChange` a call whose effect was nil.
+						 *
+						 * The frame is the existing `connection-changed` with a `reason` inside it, not a ninth wire name:
+						 * 11c's decision, argued at L130 above, applied again. What changed *is* what this connection can
+						 * still deliver, so it is a connection-relevant fact rather than new vocabulary.
+						 *
+						 * **A paused reader is not disturbed**, exactly as for a commit — and withholding is safe here for
+						 * the same reason it is safe there: resuming re-reads the chronology, so a reader who was paused
+						 * learns the workspace changed when they come back rather than being woken for it.
+						 */
+						stopForWorkspace = store.onWorkspaceChange(() => {
+							// **A paused reader is not disturbed**, and this early return is what makes the frame
+							// below honestly say `connected: true`: it is only ever sent to a reader the store
+							// says is connected. Withholding is safe here for the reason it is safe for a commit
+							// — resuming re-reads the chronology — so a paused reader learns the workspace
+							// changed when they come back rather than being woken for it.
+							if (store.isPaused(principal.id)) return;
+							send(
+								frameOf(
+									connectionChanged(true, 0, undefined, "workspace-changed"),
+								),
+							);
+						});
+
 						unsubscribe = store.onCommit((commit) => {
 							// **Withheld, not queued.** A paused principal receives nothing and its cursor does
 							// not advance, so a resume replays exactly these entries from the cursor. The
@@ -167,6 +201,8 @@ export const Route = createFileRoute("/api/stream")({
 						// is the only notification of that.
 						request.signal.addEventListener("abort", () => {
 							stopForCause();
+							// `close()` stops the commit listener and the workspace-change listener together, so an
+							// aborted request leaves neither behind.
 							close();
 						});
 					},

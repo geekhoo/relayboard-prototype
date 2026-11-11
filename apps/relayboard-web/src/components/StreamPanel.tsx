@@ -166,6 +166,14 @@ export function StreamPanel({
 								: "Access expired",
 						);
 					}
+					// **A wholesale change is said out loud.** The delivery-activity log is where a reader
+					// learns what the stream did; a purge that re-read the workspace without a word would
+					// look like the content changing by itself.
+					if (event.reason === "workspace-changed") {
+						append(
+							"Demo content was purged or restored; the workspace was re-read",
+						);
+					}
 					return;
 				}
 				if (

@@ -108,6 +108,28 @@ export const applyStreamEvent = (
 			});
 			return;
 		case "connection-changed":
+			// **A wholesale change re-reads everything, and that is not laziness.** A purge or a restore
+			// removes and re-adds records the cache describes at every level — boards, threads, entries,
+			// resources, counts — so naming one query key would leave the others stale and the reader
+			// looking at a board that no longer exists. It is the one case where "which query did this
+			// invalidate" has the honest answer "all of them", and 14's purge dialog does the same after
+			// its own write for the same reason.
+			if (event.reason === "workspace-changed") {
+				// **Everything except the stream's own state, and the exclusion is a guard rather than a fix.**
+				// `streamStateQuery` has no `queryFn` — it is an atom whose value the panel writes — so
+				// invalidating it today refetches nothing and changes nothing; measured with and without this
+				// predicate, a paused reader stayed paused across a purge. It stays because the alternative is
+				// a wholesale invalidate that would silently reset a paused reader to `initialData`
+				// ("connected") the moment somebody gives that query a `queryFn` — a defect waiting for a
+				// change rather than one that exists. Stated this way because a comment claiming a fix that
+				// no experiment can show is the same claim-vs-evidence mistake the whole session kept finding.
+				void queryClient.invalidateQueries({
+					predicate: (query) =>
+						query.queryKey[0] !== "stream-state" &&
+						query.queryKey[0] !== "stream-pending",
+				});
+				return;
+			}
 			// A reconnect replayed entries the cache does not have, so the counts are stale. Named
 			// rather than refetching everything, for the same reason.
 			void queryClient.invalidateQueries({

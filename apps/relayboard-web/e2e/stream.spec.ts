@@ -243,4 +243,118 @@ test.describe("the stream route", () => {
 			await close();
 		}
 	});
+	test("a purge reaches an open stream, so a subscriber learns the workspace changed", async ({
+		browser,
+		baseURL,
+	}) => {
+		// **14:17's assertion, and the one that was missing.** `announceWorkspaceChange` existed from 14
+		// and had no subscriber anywhere in `src`: the store iterated an empty listener set, so a purge
+		// announced an event to nobody and 'subscribers are told' was satisfied by a call whose effect
+		// was nil. This opens a real stream, purges through the UI, and requires the frame.
+		//
+		// It is the same shape as the revocation wire's assertion: the effect, not the call.
+		const { page, close } = await asPrincipal(
+			browser,
+			baseURL ?? "http://127.0.0.1:3218",
+			"nadia",
+		);
+		try {
+			await page.goto("/boards/platform?view=threads&thread=delivery");
+
+			const received = page.evaluate(async () => {
+				const seen: string[] = [];
+				const source = new EventSource("/api/stream");
+				await new Promise<void>((resolve, reject) => {
+					const timer = setTimeout(
+						() => reject(new Error("the stream reported no workspace change")),
+						8000,
+					);
+					source.addEventListener("connection-changed", (event) => {
+						const data = (event as MessageEvent).data as string;
+						seen.push(data);
+						// The open-time frame carries no reason; the purge's frame does.
+						if (data.includes("workspace-changed")) {
+							clearTimeout(timer);
+							resolve();
+						}
+					});
+					source.addEventListener("error", () => {
+						clearTimeout(timer);
+						reject(new Error("the stream errored"));
+					});
+				});
+				source.close();
+				return seen;
+			});
+
+			// Purge through the UI, so the write travels the real path: server function, store, listener,
+			// route, `EventSource`.
+			await page.locator("[data-purge-open]").click();
+			await page.locator("[data-purge-confirm]").click();
+			await expect(page.locator("[data-purge-done]")).toBeVisible();
+
+			const seen = await received;
+			const changed = seen.filter((frame) =>
+				frame.includes("workspace-changed"),
+			);
+			expect(changed.length).toBeGreaterThan(0);
+			const event = JSON.parse(changed[0] as string) as {
+				type: string;
+				reason?: string;
+			};
+			// **The eighth name, not a ninth.** A workspace change rides inside `connection-changed` — the
+			// argument 11c made for `cause`, because what changed is what this connection can still deliver.
+			expect(event.type).toBe("connection-changed");
+			expect(event.reason).toBe("workspace-changed");
+		} finally {
+			await close();
+		}
+	});
+
+	test("a paused subscriber is not woken by a purge, and reports itself paused", async ({
+		browser,
+		baseURL,
+	}) => {
+		// **The withhold rule applies to a wholesale change too.** The store notifies every listener; the
+		// route's own pause rule decides what a paused reader receives, exactly as for a commit.
+		const { page, close } = await asPrincipal(
+			browser,
+			baseURL ?? "http://127.0.0.1:3218",
+			"nadia",
+		);
+		try {
+			await page.goto("/boards/platform?view=threads&thread=delivery");
+			// Pause through the panel, so the store knows before the purge runs.
+			await page.locator("[data-stream-toggle]").click();
+			await expect(page.locator("[data-stream-pending]")).toBeVisible();
+
+			const received = page.evaluate(async () => {
+				const seen: string[] = [];
+				const source = new EventSource("/api/stream");
+				await new Promise<void>((resolve) => {
+					// A fixed window rather than a wait for a frame that must not arrive.
+					setTimeout(() => resolve(), 3000);
+					source.addEventListener("connection-changed", (event) => {
+						seen.push((event as MessageEvent).data as string);
+					});
+				});
+				source.close();
+				return seen;
+			});
+
+			await page.locator("[data-purge-open]").click();
+			await page.locator("[data-purge-confirm]").click();
+			await expect(page.locator("[data-purge-done]")).toBeVisible();
+
+			const seen = await received;
+			expect(seen.some((frame) => frame.includes("workspace-changed"))).toBe(
+				false,
+			);
+			expect(seen.some((frame) => frame.includes('"connected":false'))).toBe(
+				true,
+			);
+		} finally {
+			await close();
+		}
+	});
 });

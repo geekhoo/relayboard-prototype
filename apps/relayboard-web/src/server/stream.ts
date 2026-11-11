@@ -205,15 +205,27 @@ export const resourceCreated = (resource: Resource): StreamEvent => ({
  * the same event saying more. The client needs it to tell "your access ended" from "the network
  * dropped", because one of those must not be retried.
  */
+/**
+ * Why a connection event arrived when it was not about access ending.
+ *
+ * **One added field rather than a ninth wire name**, for the reason `cause` is: the vocabulary is fixed
+ * at eight (spec L358), and an event that says more about *why* it fired is the same event saying more.
+ * `"workspace-changed"` means the content behind this connection changed wholesale — a purge or a
+ * restore — so what it can still deliver is not what it described a moment ago.
+ */
+export type ConnectionReason = "workspace-changed";
+
 export const connectionChanged = (
 	connected: boolean,
 	pending: number,
 	cause?: AccessEndCause,
+	reason?: ConnectionReason,
 ): StreamEvent => ({
 	type: "connection-changed",
 	connected,
 	pending,
 	...(cause === undefined ? {} : { cause }),
+	...(reason === undefined ? {} : { reason }),
 });
 
 /** The entry-bearing event for a committed entry, its `delivered` flag set from the store's answer. */
