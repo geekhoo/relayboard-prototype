@@ -267,20 +267,52 @@ describe("the watermarks", () => {
 });
 
 describe("the domain module", () => {
-	it("declares types only today, so no branch on kind can exist in it yet", () => {
-		// Every export is a type, so the module has no runtime value at all: nothing
-		// in `src/domain` can read `principal.kind` because nothing in it executes.
-		// The one place kind is load-bearing is the permission rule — `admit:agent`
-		// and `revoke:agent` may only be granted to a human — which 07b owns.
+	it("exports no runtime value except the documented error strings", () => {
+		// 02a could assert something stronger — that the module held no runtime value at
+		// all, so nothing in it could branch on anything — because every export was a
+		// type. 02b puts the documented error strings here (spec L518: "they live in one
+		// place in the domain module"), so that assertion is now false by design and the
+		// guarantee it was standing in for is the narrower one below: the module's only
+		// executable content is a vocabulary, and a vocabulary cannot branch on a
+		// principal's `kind`.
 		//
-		// This assertion is deliberately scoped to *today*. When the domain gains
-		// runtime rules (02b puts the documented error strings here, 07a the
-		// permission check) the guarantee to keep is the narrower one the barrel can
-		// still make, and 07a's own criterion already asks for the durable version:
-		// "a test or lint check makes a second occurrence visible". A source-text
-		// grep cannot enforce it here because `Entry` reuses `kind` as its entry
-		// discriminant, so `entry.kind` is a legitimate branch and `principal.kind`
-		// is not.
-		expect(Object.keys(domain)).toEqual([]);
+		// 07a owns the durable form of the `kind` check — "a test or lint check makes a
+		// second occurrence visible" — because a source-text grep cannot make it here:
+		// `Entry` reuses `kind` as its entry discriminant, so `entry.kind` is a
+		// legitimate branch and `principal.kind` is not, and telling those apart needs a
+		// type-aware rule rather than a search.
+		expect(Object.keys(domain).sort()).toEqual([
+			"errorMessageList",
+			"errorMessages",
+		]);
+	});
+
+	it("exports the three documented error strings, literally, in the documented order", () => {
+		// The order is observable behaviour, not decoration: an append that is wrong in
+		// two ways reports the first of these, so a caller learns one thing at a time.
+		// Asserted as literals because these strings are user-visible and a reworded one
+		// is a behaviour change, not a refactor.
+		expect(domain.errorMessageList).toEqual([
+			"Thread not found",
+			"This participant is not a board member",
+			"Message cannot be empty",
+		]);
+		expect(domain.errorMessages).toEqual({
+			threadNotFound: "Thread not found",
+			notABoardMember: "This participant is not a board member",
+			messageEmpty: "Message cannot be empty",
+		});
+	});
+
+	it("carries only strings, so no runtime rule can live in the domain yet", () => {
+		// A function export would be the first place a rule could appear; a string
+		// cannot read a record, so this is the property that lets the assertion above
+		// mean something.
+		for (const value of Object.values(domain)) {
+			expect(typeof value === "string" || typeof value === "object").toBe(true);
+		}
+		expect(
+			Object.values(domain).filter((value) => typeof value === "function"),
+		).toEqual([]);
 	});
 });
