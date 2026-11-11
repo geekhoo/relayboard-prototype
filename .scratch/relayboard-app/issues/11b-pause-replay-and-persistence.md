@@ -19,7 +19,7 @@
 - [ ] The reader's position survives a page reload: a reload mid-thread restores the same thread and does not reset the cursor, so a refresh is not a data-loss event. `localStorage` holds only the remembered location (spec L503).
 - [ ] A stream that cannot be reached reports itself as unavailable rather than rendering an empty thread as if it were complete (spec L516, story 149).
 - [ ] The paused state is not lost on navigation: moving to another thread and back preserves it, or the interface states plainly that it does not.
-- [ ] The unread badge counts from `seen`, and the stream replays from `cursor`; a test asserts they diverge in the paused case and that neither is used for the other's purpose (spec L569).
+- [ ] The unread badge counts from `seen`, and the stream replays from `cursor`; a test asserts they diverge in the paused case and that neither is used for the other's purpose (spec L569). **The badge counts every entry past `seen`, including the reader's own**, which is the watermark's rule and the one this ticket settles: the prototype subtracted the reader's own entries (`app.js` L135), and that exclusion is deliberately **not** carried, because `seen` already means "this principal has read up to here" and a second per-author rule would be a counter beside the watermark. So the seeded badge numbers follow from `seen` and are not the numbers the prototype's rail showed — `read-replay`, `launch` and `delivery` read 1/1/2 here where the prototype showed 0/0/1.
 - [ ] The simulation control ("simulate an agent post") still works, and its panel states plainly that it is a demonstration and not another participant (story 51–52).
 - [ ] The route seam covers pause → commit → resume → count reported, and reload → position retained.
 
