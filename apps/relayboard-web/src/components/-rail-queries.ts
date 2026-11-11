@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { BoardId } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
 import type { BoardUnread } from "#/components/-unread";
 import { boardUnreadCounts } from "#/components/-unread";
@@ -20,6 +21,22 @@ import { boardUnreadCounts } from "#/components/-unread";
 export const boardsQuery = (client: RelayboardClientBound) => ({
 	queryKey: ["boards"] as const,
 	queryFn: () => client.listBoards(),
+});
+
+/**
+ * The open board's threads.
+ *
+ * Primed by the board route's loader alongside the rail's reads, so the first paint carries the
+ * real count rather than a zero that corrects itself on hydration — the same rule as the rail's
+ * counts, for the same reason: a number that is briefly wrong about the board the reader is
+ * looking at is exactly the kind of claim this product does not make.
+ */
+export const threadsQuery = (
+	client: RelayboardClientBound,
+	boardId: BoardId,
+) => ({
+	queryKey: ["threads", boardId] as const,
+	queryFn: () => client.listThreads(boardId),
 });
 
 /**

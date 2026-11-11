@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BoardRail } from "#/components/BoardRail";
+import { StoreLifetimeNote } from "#/components/StoreLifetimeNote";
 import "./WorkspaceFrame.css";
 
 /**
@@ -32,6 +33,7 @@ export function WorkspaceFrame({
 				<h2 id="pane-heading" className="sr-only">
 					Board contents
 				</h2>
+				<StoreLifetimeNote />
 				{pane ?? (
 					<p className="workspace-frame__placeholder">
 						The thread list lands here next.

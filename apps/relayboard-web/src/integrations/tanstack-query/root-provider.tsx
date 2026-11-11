@@ -1,6 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { RelayboardClient } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
 import { bindClient } from "#/client/context";
+import { createHttpClient } from "#/client/http";
 import { createInMemoryClient } from "#/client/in-memory";
 import { createStore } from "#/server/store";
 import { demoOptions, demoSeed } from "#/server/store/demo-seed";
@@ -8,17 +10,24 @@ import { demoOptions, demoSeed } from "#/server/store/demo-seed";
 /**
  * The router's context: one Query client and one data client, per router.
  *
- * Created here rather than at module scope because a module-scope client would be one
- * instance shared by every request the server ever serves — the shape a real backend
- * must not have, and the shape 06a's store singleton is deliberately *not*. A router is
- * a request on the server and a page in the browser, so this is the narrowest lifetime
- * the seam can have.
+ * Created here rather than at module scope because a module-scope client would be a single
+ * instance shared by every request the server ever serves — the shape a real backend must not
+ * have. A router is a request on the server and a page in the browser, so this is the
+ * narrowest lifetime the seam can have.
  *
- * The client is the in-memory implementation, because no server function exists yet (06a
- * and 06c). It is built over this router's own store, and it acts as `demoPrincipalId()` —
- * the first principal the seed marks browser-selectable, rather than a hard-coded name.
- * Issuing that from a session cookie is 06b's; when it lands, this file asks the cookie
- * instead of the seed and nothing above it changes.
+ * ## Which transport, and why the choice is explicit
+ *
+ * **The in-memory client is the default and the one the UI renders from**, because the
+ * mutations are not served yet (06c) and a UI that could read but not post is not a screen.
+ * The HTTP client is selectable — `VITE_RELAYBOARD_TRANSPORT=http` — so the transport switch
+ * is one seam rather than a rewrite, and so the server functions are part of the build rather
+ * than dead code that nothing imports: a server function nothing imports is not registered
+ * and therefore not reachable, which would make 'each read is reachable' untrue.
+ *
+ * **The two transports do not share a store, and that is a fact about this ticket rather than
+ * a bug in it.** The in-memory client reads a store built here, in the router; the HTTP client
+ * reads the process's store through the server functions. Until the UI is switched (06c),
+ * those are two different workspaces. Recording it here rather than discovering it at 06c.
  */
 export interface RouterContext {
 	readonly queryClient: QueryClient;
@@ -32,9 +41,9 @@ export interface RouterContext {
  *
  * The seed marks its principals `browserSelectable` in a fixed order (02c), and spec L366
  * selects round-robin from that list. Round-robin needs a store that persists across
- * requests, which is 06a's singleton and 06b's session; until then the first selectable
- * principal is the honest answer to "who is reading this page", and it is *read from the
- * seed* so a change to the seed's mark moves it.
+ * requests — this ticket's singleton — and the cookie that carries the choice is 06b's.
+ * Until then the first selectable principal is the honest answer, read from the seed so a
+ * change to the seed's mark moves it.
  */
 const demoPrincipalId = (): string => {
 	const first = demoSeed().principals.find(
@@ -48,22 +57,30 @@ const demoPrincipalId = (): string => {
 	return first.id;
 };
 
+/** Which implementation the UI renders from. In-memory unless a build says otherwise. */
+const transport = (): "memory" | "http" =>
+	import.meta.env.VITE_RELAYBOARD_TRANSPORT === "http" ? "http" : "memory";
+
 export function getContext(): RouterContext {
 	const queryClient = new QueryClient();
 	const principalId = demoPrincipalId();
-	// Each router gets its own workspace. That is wasteful under SSR and correct: the
-	// alternative is a module-scope store, which would make every browser share one
-	// server's memory before 06a decides where that memory lives.
-	const client = bindClient(
-		createInMemoryClient({
-			store: createStore(demoSeed(), demoOptions()),
-			principalId,
-		}),
-		principalId,
-	);
+	const implementation: RelayboardClient =
+		transport() === "http"
+			? createHttpClient()
+			: createInMemoryClient({
+					// Each router gets its own workspace. Wasteful under SSR and correct: the
+					// alternative is a module-scope store, which is the shape 06a's singleton exists
+					// to replace for the server's own reads.
+					store: createStore(demoSeed(), demoOptions()),
+					principalId,
+				});
 
-	return { queryClient, client, principalId };
+	return {
+		queryClient,
+		client: bindClient(implementation, principalId),
+		principalId,
+	};
 }
 
-/** Kept for the scaffold's own import graph; the document shell renders no provider of its own. */
+/** Kept for the scaffold's import graph; the document shell renders no provider of its own. */
 export default function TanstackQueryProvider() {}

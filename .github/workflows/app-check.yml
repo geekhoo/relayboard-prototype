@@ -4,8 +4,9 @@
 # Why this file exists: check-skills.yml is the repository's other workflow and it
 # only validates the Intent skills package. Nothing ran apps/relayboard-web's own
 # gates, so a broken app could merge green. This workflow runs the app's own gates —
-# `npm run check` (biome), `npm run check:styles`, `npm run typecheck` (`tsc --noEmit`)
-# and `npm run build` (vite → Nitro) — on every pull request and on demand.
+# `npm run check` (biome), `npm run check:styles`, `npm run typecheck` (`tsc --noEmit`),
+# `npm test` (Vitest in Node) and `npm run build` (vite → Nitro) — on every pull request
+# and on demand.
 #
 # Hand notes worth keeping:
 #
@@ -69,6 +70,12 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        # The suite is the app's main guardrail: the store, contract and client seams. It
+        # runs in Node with no DOM and no network, so it needs nothing this workflow has
+        # not already installed.
+        run: npm test
 
       - name: Build
         run: npm run build

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useRelayboardClient } from "#/client/context";
-import { primeRail } from "#/components/-rail-queries";
+import { primeRail, threadsQuery } from "#/components/-rail-queries";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
 import { BOARD_VIEWS, parseBoardSearch } from "./-board-search";
 
@@ -38,6 +38,14 @@ export const Route = createFileRoute("/boards/$boardId")({
 		if (!board) {
 			throw notFound();
 		}
+		// The pane's own read is primed for the same reason. Without this the pane renders its
+		// "0 threads" copy on the server and corrects itself on hydration — a flash of text that
+		// is simply false about the board the reader is looking at, which the in-memory client
+		// happens to hide because its queries resolve in the same tick. Found by measuring the
+		// HTTP transport, and worth fixing before the UI is switched to it in 06c.
+		await context.queryClient.ensureQueryData(
+			threadsQuery(context.client, board.id),
+		);
 		return { board };
 	},
 	component: BoardRoute,
@@ -48,10 +56,7 @@ function BoardRoute() {
 	const { board } = Route.useLoaderData();
 	const search = Route.useSearch();
 	const client = useRelayboardClient();
-	const threads = useQuery({
-		queryKey: ["threads", board.id],
-		queryFn: () => client.listThreads(board.id),
-	});
+	const threads = useQuery(threadsQuery(client, board.id));
 
 	return (
 		<WorkspaceFrame
