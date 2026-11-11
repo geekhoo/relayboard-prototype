@@ -143,6 +143,38 @@ const selectablePrincipalIds = (): readonly string[] =>
  * refused rather than silently reassigned (spec L373), so a stale cookie cannot quietly become
  * somebody else.
  */
+/**
+ * Resolve a request's actor from **either** credential.
+ *
+ * 08a:23: the admission credential resolves through the same request-time resolver the cookie uses,
+ * "yielding the same principal-and-grant shape a cookie yields. No operation asks which of the two it
+ * was." So the agent credential is a branch *here* — one function, one place — and every handler above
+ * it is unchanged. That is the seam 06b built and predicted this ticket would fill.
+ *
+ * A cookie wins when both are present: a browser that also carries a bearer token is a browser acting
+ * as its own session, and silently becoming the agent would be the identity swap spec L373 forbids.
+ */
+type AgentResolvers = {
+	readonly resolve: (token: string) => Principal | undefined;
+};
+
+const agentResolvers: { current?: AgentResolvers } = {};
+
+/**
+ * The agent-credential half, injected rather than imported.
+ *
+ * `admissions.ts` imports the store, and this module is imported by the store's callers, so importing
+ * it here would close a cycle. The admission module registers its resolver at construction; until it
+ * does, a bearer token resolves to nobody, which is the correct answer for a build with no admission
+ * surface at all.
+ */
+export const registerAgentCredential = (resolvers: AgentResolvers): void => {
+	agentResolvers.current = resolvers;
+};
+
+const resolveAgentCredential = (token: string): Principal | undefined =>
+	agentResolvers.current?.resolve(token);
+
 const rotation = { next: 0 };
 
 export interface Resolution {
@@ -153,7 +185,26 @@ export interface Resolution {
 	readonly issued: boolean;
 }
 
-export const resolveSession = (cookieValue: string | undefined): Resolution => {
+export const resolveSession = (
+	cookieValue: string | undefined,
+	agentCredential?: string,
+): Resolution => {
+	if (agentCredential !== undefined && agentCredential !== "") {
+		const principal = resolveAgentCredential(agentCredential);
+		if (principal) {
+			return {
+				principal,
+				permissions: getStore().grantsFor(principal.id),
+				issued: false,
+			};
+		}
+		// A credential that matches no issued record is **refused** rather than ignored: a bearer token
+		// is presented deliberately, so treating an invalid one as "no credential" would silently fall
+		// through to a fresh browser session on a request that meant to authenticate.
+		throw new UnresolvedSession(
+			"The bearer credential presented does not match any issued admission",
+		);
+	}
 	if (cookieValue !== undefined) {
 		const principalId = decodeSession(cookieValue);
 		if (principalId !== null) {

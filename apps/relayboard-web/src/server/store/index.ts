@@ -303,6 +303,24 @@ export interface Store {
 	): boolean;
 
 	/**
+	 * Add a principal this workspace has admitted.
+	 *
+	 * **The one write that creates a participant**, and it is append-only by design (08a's write scope
+	 * says "append-only additions to the store for principals and grants"). It takes an id rather than
+	 * minting one, because the caller that admits is the one that must name the id it issues a
+	 * credential for — minting here would mean returning the id through a second channel.
+	 *
+	 * The principal starts with **no grants at all**: admit:agent is the gate permission and confers
+	 * nothing (AGENTS.md), so admission is followed by an explicit grant or it is followed by nothing.
+	 */
+	admitPrincipal(input: {
+		readonly principalId: PrincipalId;
+		readonly name: string;
+		/** The operator it declared — **declared**, never verified, and stored as such. */
+		readonly description: string;
+	}): Principal;
+
+	/**
 	 * Record a grant.
 	 *
 	 * **Permissive by design in this ticket, and 07b is what constrains it.** 07a's criteria stop at
@@ -367,7 +385,7 @@ export const createStore = (
 	seed: StoreSeed = EMPTY_SEED,
 	options: StoreOptions = NO_GRANTS,
 ): Store => {
-	const principals = collection(seed.principals);
+	let principals = collection(seed.principals);
 
 	/**
 	 * Every grant this workspace holds, in the order they were seeded and then granted.
@@ -606,6 +624,26 @@ export const createStore = (
 			threads = Object.freeze([...threads, thread]);
 			entriesByThread.set(thread.id, EMPTY_ENTRIES);
 			return thread;
+		},
+
+		admitPrincipal: (input) => {
+			if (principals.some((principal) => principal.id === input.principalId)) {
+				throw new Error(errorMessages.principalExists);
+			}
+			// An admitted agent is a principal of kind agent — the one kind it could be, since this path
+			// exists for agents and a human participant is provisioned rather than admitted.
+			const principal: Principal = Object.freeze({
+				id: input.principalId,
+				name: input.name,
+				kind: "agent" as const,
+				description: input.description,
+				origin: "owner" as const,
+				// Not browser-selectable: a session is issued to a browser and an agent presents a
+				// credential. Issuing it a cookie would be the conflation spec L404 forbids.
+				browserSelectable: false,
+			});
+			principals = Object.freeze([...principals, principal]);
+			return principal;
 		},
 
 		grantsFor: (principalId, boardId) =>

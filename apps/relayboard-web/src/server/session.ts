@@ -63,12 +63,32 @@ export const sessionCookieFor = (principalId: string): string =>
  * (spec L373): a stale session must resolve to *nobody* rather than quietly becoming somebody
  * else.
  */
+/**
+ * The bearer token on this request, if it carries one.
+ *
+ * Read from `Authorization` rather than from a custom header, because a bearer token is what that
+ * header is for and a server-to-server caller already knows how to send one. An empty or malformed
+ * header is treated as **no** credential rather than as a bad one, so a request that merely carries
+ * `Authorization: Basic …` from an intermediary still resolves its cookie.
+ */
+const bearerFrom = (request: Request | undefined): string | undefined => {
+	const header = request?.headers.get("authorization") ?? "";
+	const [scheme, token] = header.split(" ");
+	return scheme?.toLowerCase() === "bearer" && token ? token : undefined;
+};
+
 export const actingPrincipal = (): Principal => {
 	const request = requestOrUndefined();
 	const cached = request ? resolvedPerRequest.get(request) : undefined;
 	if (cached) return cached.principal;
 
-	const resolution = resolveSession(getCookie(SESSION_COOKIE));
+	// **Both credentials, in one call.** A browser presents the cookie; an admitted agent presents a
+	// bearer token in `Authorization`. Neither the handler above this line nor any operation asks which
+	// one arrived (spec L404, 08a:23) — the resolver returns a principal and a grant shape either way.
+	const resolution = resolveSession(
+		getCookie(SESSION_COOKIE),
+		bearerFrom(getRequest()),
+	);
 	if (request) resolvedPerRequest.set(request, resolution);
 	if (resolution.issued) {
 		// The cookie is only ever set on a response. It is `HttpOnly` and `SameSite=Lax`, so no

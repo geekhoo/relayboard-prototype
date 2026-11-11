@@ -51,6 +51,8 @@ export const errorMessages = {
 	 * does about it: the request named something that is not here, and there is nothing to retry.
 	 */
 	principalNotFound: "No such participant in this workspace",
+	/** An admission naming a principal id that is already taken. */
+	principalExists: "That participant id is already taken",
 } as const;
 
 /**

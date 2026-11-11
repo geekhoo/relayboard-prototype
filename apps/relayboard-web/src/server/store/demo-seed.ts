@@ -667,7 +667,32 @@ const SUPERADMIN_GRANT: readonly PermissionName[] = [
  */
 const SEED_GRANTER = "system";
 
+/**
+ * The seed's **gate holder**: the demo's human, on the board it uses.
+ *
+ * 08a made this necessary and it is a real finding rather than a fixture convenience. A gate holder
+ * must be able to grant the permissions it admits an agent *with*, and 07b's bounds are explicit that
+ * a grant cannot exceed the granter's own. So a gate holder that holds only the workspace row can
+ * decide an admission and cannot then give the admitted agent anything — which would make every
+ * admission an admission to nothing.
+ *
+ * The right shape is the one the spec implies: **admission is per board, so the gate holder is a
+ * member of that board who also holds `admit:agent` there.** Alex is the prototype's human — the
+ * first browser-selectable principal — so the demo's gate is Alex on the platform board, and the
+ * permissions Alex may hand out are exactly the member permissions, because that is what Alex holds.
+ */
+const GATE_GRANTS: readonly SeededGrant[] = Object.freeze([
+	{
+		granterId: SEED_GRANTER,
+		principalId: "alex",
+		scope: "board" as const,
+		boardId: "platform",
+		permissions: ["admit:agent"],
+	},
+]);
+
 export const demoGrants: readonly SeededGrant[] = Object.freeze([
+	...GATE_GRANTS,
 	{
 		granterId: SEED_GRANTER,
 		principalId: "nadia",

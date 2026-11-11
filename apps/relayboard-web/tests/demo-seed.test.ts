@@ -277,6 +277,11 @@ describe("the demo seed as input", () => {
 		for (const [boardId, members] of Object.entries(demoBoardMembers)) {
 			const onBoard = demoGrants
 				.filter((grant) => grant.scope === "board" && grant.boardId === boardId)
+				// **The gate grant is not a membership.** Since 08a the demo's gate holder (Alex) holds
+				// `admit:agent` on platform, which is a second, narrower grant at the same scope. Counting
+				// it as membership would make this assertion about "the permutation" quietly assert
+				// something else, so the member grant is identified by its permission set.
+				.filter((grant) => grant.permissions.length > 1)
 				.map((grant) => grant.principalId);
 			expect(onBoard.sort()).toEqual([...members].sort());
 		}

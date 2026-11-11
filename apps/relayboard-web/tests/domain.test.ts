@@ -409,6 +409,8 @@ describe("the domain module", () => {
 				"A grant needs a scope it can act on, and permissions that exist",
 			// 07b's addition: a grant naming a participant the workspace does not hold.
 			principalNotFound: "No such participant in this workspace",
+			// 08a's: an admission naming a principal id already taken.
+			principalExists: "That participant id is already taken",
 		});
 	});
 
