@@ -14,7 +14,7 @@
     "skills:stale": "intent stale packages/relayboard-skills --json",
     "skills:list": "npm run --silent intent:list --prefix apps/relayboard-web",
     "skills:pack": "npm pack ./packages/relayboard-skills --dry-run --json",
-    "app:check": "npm --prefix apps/relayboard-web run check && npm --prefix apps/relayboard-web run check:styles && npm --prefix apps/relayboard-web run typecheck && npm --prefix apps/relayboard-web test && npm --prefix apps/relayboard-web run build"
+    "app:check": "npm --prefix apps/relayboard-web run check && npm --prefix apps/relayboard-web run check:styles && npm --prefix apps/relayboard-web run typecheck && npm --prefix apps/relayboard-web test && npm --prefix apps/relayboard-web run build && npm --prefix apps/relayboard-web run check:boot && npm --prefix apps/relayboard-web run check:bundle"
   },
   "devDependencies": {
     "@tanstack/intent": "0.5.6",

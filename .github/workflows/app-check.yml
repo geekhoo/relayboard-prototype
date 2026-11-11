@@ -93,6 +93,14 @@ jobs:
       - name: Assert the server refuses to serve without a session secret
         run: npm run check:boot
 
+      # The mirror of check:boot, and the reason it exists: a module-scope side effect in a
+      # server module shipped inside the browser bundle in 04b and stopped React hydrating.
+      # Every other gate was green, because every other gate measures the server or the
+      # source. This one reads the built client assets and fails if the session secret's
+      # name, its guard, or a Node built-in appears in them.
+      - name: Assert no server-only code reached the client bundle
+        run: npm run check:bundle
+
       - name: Assert the build stayed a long-running Node server
         run: |
           # The in-memory store and the long-lived SSE stream need a single
