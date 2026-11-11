@@ -18,8 +18,8 @@
 - [ ] Granting a permission the vocabulary does not define is refused as a validation failure before any rule above runs.
 - [ ] Granting follows the same no-`await`-between-read-and-write rule as `seq` assignment, so two concurrent grants to one principal cannot both read the old grant and both write. There is no per-store lock; the invariant is the ordering rule the store module states.
 - [ ] A refusal from either rule is distinguishable by a caller from a missing-permission refusal, so an operator can tell "you cannot do this" from "you cannot give this".
-- [ ] Every one of the rules above is asserted at the admission seam (spec L560–575) against the store, so 08 can reuse the assertions rather than restate them.
+- [ ] Every one of the rules above is asserted at the store seam today and re-asserted at the admission seam by 08a, so the assertion is written once and re-used rather than restated — the seam itself is 08a's to build, because 08a is the ticket with an admission surface to drive (spec L582–597).
 
 **Leaves the build green:** yes. The store-level `grant` operation is now constrained; 08 builds the path that calls it.
 
-**Note on the parent's last criterion:** the parent's "A human cannot grant a permission it does not itself hold" has no call site until ticket 08 builds the admitting path, and the superadmin grant-editing surface is explicitly out of scope (spec L595). This sub-issue therefore proves the rule against the store-level `grant` operation it constrains, and 08a re-asserts it end to end through admission.
+**Note on the parent's last criterion:** the parent's "A human cannot grant a permission it does not itself hold" has no call site until ticket 08 builds the admitting path, and the superadmin grant-editing surface is explicitly out of scope (spec L617). This sub-issue therefore proves the rule against the store-level `grant` operation it constrains, and 08a re-asserts it end to end through admission.

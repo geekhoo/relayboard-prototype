@@ -10,19 +10,20 @@
 
 **Status:** ready-for-agent
 
-- [ ] **No horizontal scrolling at 320, 390, 680, 980, 1200 or 1440 pixels, measured on the scrollable content box of each column and of the message list — not on `documentElement`.** `documentElement.scrollWidth === clientWidth` is vacuous under `overflow: hidden`, which the prototype sets on `html, body` and which would let a real overflow ship green.
-- [ ] **The frame sets no `overflow: hidden`.** Clipping is allowed only on a panel that genuinely scrolls internally, and the assertion above proves the content fits rather than that it was cut off.
+- [ ] **No horizontal scrolling at 320, 390, 680, 980, 1200 or 1440 pixels, measured on the scrollable content box of each column and of the message list — not on `documentElement`.** `documentElement.scrollWidth === clientWidth` is vacuous under `overflow: hidden`, which the prototype sets on `html, body` and which would let a real overflow ship green. So each visible scroll container — the board rail, the thread pane and the conversation — asserts `scrollWidth <= clientWidth + 1`, and the document is measured only with `overflow` temporarily unset on `html` and `body` by the harness.
+- [ ] **The frame sets no `overflow: hidden`.** Clipping is allowed only on a panel that genuinely scrolls internally, and the assertion above proves the content fits rather than that it was cut off. The static half of this rule already exists: `scripts/check-app-styles.mjs`'s `no-frame-clip` rule fails `npm run check:styles`, and CI runs it, when a rule whose selector names `html` or `body` sets `overflow` or `overflow-x: hidden`. That rule cannot see a clipped pane or a computed style, so the browser measurement complements it instead of duplicating it.
 - [ ] A deliberately over-wide child in a test renders a visible overflow, proving the assertion can fail.
-- [ ] On a phone the thread list is the first screen and the conversation is a second level of the same route, with a visible back control. The URL stays one address (spec L521).
+- [ ] On a phone the thread list is the first screen and the conversation is a second level of the same route, with a visible back control. The URL stays one address (spec L543).
 - [ ] At tablet width the board rail becomes an overlay drawer with a scrim, and Escape and the scrim both close it.
 - [ ] The composer is reachable and usable at every width, including 320px, and stays pinned to the bottom of the conversation.
 - [ ] The details drawer and the stream panel open fully inside the viewport at every width, anchored as `QA.md` L21 records (25px from the right edge on desktop, 10px at ≤680px), with zero geometric overlap of the composer dock.
-- [ ] Thread titles and excerpts truncate with an ellipsis rather than pushing the layout (`DESIGN.md` §123/story 123).
+- [ ] Thread titles and excerpts truncate with an ellipsis rather than pushing the layout (story 123, spec L184).
 - [ ] In-thread message search is reachable at every width, including below 680px. The prototype's own gap (`QA.md` L27: the trigger button is `display:none` with no replacement entry point) is closed rather than carried forward.
 - [ ] Columns narrow before anything else degrades: at 1200 and 980 the rail and pane lose width before the conversation does, and body text does not wrap below a readable measure.
 - [ ] No content is hidden off-screen to make an overflow assertion pass — the checks are made on the rendered document, and a test asserts the composer and the active thread row are both visible at each width.
 - [ ] The dark rail keeps the active-row inset edge and its unread counts at every width the rail is visible.
-- [ ] Each of the six widths has an assertion in the route seam, not a screenshot: a legitimate design change must not fail the suite (spec L558).
+- [ ] **The type and contrast floors hold at every width — 13a makes the first assertion of the floors**, at its two extremes; 15a's criterion re-asserts them over the full product text rather than introducing them. At 1440 and 390, no rendered text with a functional role computes below 11px and no body copy below 13px, and every text/background pair on the conversation, pane and rail meets WCAG AA computed from resolved colours against the element's actual background — both measured with 04c's computed-style helper. Not 05: it renders one thread at whatever width the harness sets and has no rail, drawer or stream panel to measure, so a floor asserted there would measure a fragment and pass for the wrong reason. 01's "a browser assertion exists by the time text does" therefore means before the parity claim is made, not at the first text-bearing ticket.
+- [ ] Each of the six widths has an assertion in the route seam, not a screenshot: a legitimate design change must not fail the suite (spec L580).
 
 **Leaves the build green:** yes.
 

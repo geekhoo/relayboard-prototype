@@ -24,3 +24,4 @@ Three behaviours the prototype has and `QA.md` grades as passing belong to no ot
 - [ ] Whitespace-only input is refused with a reason, and surrounding whitespace is trimmed.
 - [ ] A failed send leaves the draft in place with the reason rather than clearing it.
 - [ ] **Submitting the same draft twice while the first is in flight appends one message**, and **retrying a committed post with its original idempotency key appends nothing** — these are two different guards and both are asserted separately, because one sentence cannot describe both.
+- [ ] **Every criterion above is asserted in the route seam** (04c's harness), except the two send-guard criteria in the line above, which are asserted at the contract seam — so the densest behaviours in the set have a stated venue rather than being graded by reading the diff.

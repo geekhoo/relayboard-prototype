@@ -919,6 +919,12 @@ over-broad blocker set is fixed, and it buys nothing the clause move does not.
   `Write scope` line to each of these tickets at minimum: 02a, 04a, 04b, 04c, 05, 06a, 06b, 06c,
   07a, 08a, 09, 10a, 10b, 11a, 11b, 12, 13a, 13b, 14, 15a, 15b, 15c. The scopes are already
   derivable from §3 of this document; one line each.
+- **Retired.** Verified on 2026-11-11: `grep -l '^\*\*Write' .scratch/relayboard-app/issues/*.md`
+  returns all 30 files, so every ticket carries a write scope. `01`'s scope now names
+  `package.json`, `package-lock.json` and `biome.json` (the one-line append is conditional on the
+  components directory needing a glob, and that condition is stated), and it no longer claims 02a
+  touches `vite.config.ts` — it says 02a appends to `biome.json` and `package.json`. Both halves of
+  this finding are closed; nothing here needs doing again.
 
 ### 5.16 **[MEDIUM] 05 holds 14 criteria and names no seam**
 
@@ -1046,6 +1052,48 @@ is rooted in a decision, and 21% of the citations cannot be resolved. Two of the
 **Fix.** A single pass before W1, correcting each to the line named above. Worth doing before 01
 because three tickets at W1 rely on citations (`01`'s criteria quote `spec L581` and `DESIGN.md`
 sections) and a reviewer who cannot resolve a citation stops resolving all of them.
+**Resolved, with counts.** Done on 2026-11-11, by indexing both files at every commit and comparing
+each cited line's text. The audit above is wrong in three ways, and recording that matters as much as the
+corrections: this section is the record a reviewer trusts.
+
+*The counts do not match the files.* Recounting the four families in the 30 tickets **at the commit this
+review was written against (`c386f97`)** gives **88** references, not 87 — 58 `spec L…`, 17 `DESIGN.md
+§…`, 4 `QA.md L…`, 9 `app.js L…`. The total is the review's to within one; its family split is not
+stated, and the "87 citations" it reports is therefore not reproducible as written. The dangling list is
+**15**, exactly as claimed, but three of the fifteen are not a citation to the file named: `06b:21`
+writes *"spec L352, §615"*, where `§615` names a **spec** section (the spec had 641 lines at that commit),
+so *"`DESIGN.md` §615 is `undefined` because the file has 288 lines"* diagnoses the wrong file; `13a:16`'s
+`§123` is disambiguated by the ticket itself as `§123/story 123`, a story number; and `13a:11`'s `spec L9`
+is prose — "the six widths are the ones `QA.md` L20 and spec L9 record" — a provenance note, not a
+reference. Checked one by one at `b457613`: **14 of the 15 were still cited and still pointed at a blank
+line**, and one — `13a:11`'s `spec L9` — had already been repaired by the ticket pass that followed this
+review (`b04f4f8` rewrote the sentence, because the reference was prose rather than a citation). So the
+review was right about the existence of 15 dangling references and wrong only about what two of them
+point at.
+
+*The real defect was a shift, and the review did not see it.* Commit `a94aa92` inserted **10 lines into
+`spec.md`** (a new `### Styling` section at L262–273) and **8 into `DESIGN.md`** (eight colour tokens at
+L10–17), and every citation above the insert moved with it. Measured at `b457613`, the tip of the ticket
+set this pass inherited: of its **87** `spec`+`DESIGN.md` references, **24 pointed at a blank line** (18
+newly blank, 6 blank since they were written), **51 resolved to a real line that said something else**
+because their content had moved down by the insert, and **12 pointed at content unrelated to their claim**.
+None of the 87 still pointed at the content it was written for. The 51 are the dangerous class, because a
+reviewer checking one sees a plausible line: `06a:20` and `06c:20` cite `spec L341` for "the stream is not a server function" and landed on
+*"Two operations are deliberately not members of this interface"*; `08b:18` and `08c:13` cite `L370` for
+the expiry default and landed on the seed's superadmin; `13b:16` cited `DESIGN.md §229` for the focus ring
+and landed on the `### Cards / Containers` heading.
+
+*What is now true.* All **101** references in the 30 tickets resolve to a non-blank line, and each was
+checked against its criterion's claim rather than against the table above — including the ones this
+session's own §5.5, §5.7, §5.8 and §5.13 edits made stale again. Counted by diffing the reference multiset
+per ticket between `b457613` and the corrected set: **72 references re-pointed and 4 added, across 22 of
+the 30 tickets** — 55 `spec` and 17 `DESIGN.md` re-pointed, plus 3 new `app.js` references where a
+criterion's claim turned out to live in the prototype rather than in the spec. The `DESIGN.md` half
+touches 10 tickets (`02c`, `04a`, `07a`, `08b`, `08c`, `10b`, `11b`, `13a`, `13b`, `15b`) and every one of
+them is the same +8. Where a claim had no correct line to cite — `13a`'s truncation rule cited a
+`DESIGN.md` section that never existed, and `09`'s resource types were absent from the ticket — the
+criterion now cites the story (`story 123`, spec L184) or states the decision itself, rather than inventing
+a line to point at.
 
 ---
 

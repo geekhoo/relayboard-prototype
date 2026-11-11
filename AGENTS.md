@@ -77,8 +77,11 @@ rather than at runtime.
 - **Never claim a guarantee the implementation does not make.** The store is
   in-memory, a credential identifies rather than authenticates, and the demo seed
   is demo-origin and purgable. Say so in the interface, not only in a README.
-- **Order by `seq`, never by `createdAt`.** The seeded data is deliberately
-  non-monotonic so an incorrect sort is visible.
+- **Order by `seq`, never by `createdAt`.** The seed contains at least one thread
+  whose `createdAt` values run against its `seq`, so a sort by timestamp is visibly
+  wrong. That thread is an addition the app's seed makes, not a property inherited
+  from the prototype: the prototype's own threads are strictly decreasing in `ago()`,
+  so a timestamp sort inside one of them happens to agree with `seq`.
 
 ## Agent skills
 

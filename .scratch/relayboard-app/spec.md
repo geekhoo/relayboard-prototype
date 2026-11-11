@@ -313,7 +313,7 @@ interface RelayboardClient {
   // How far each principal has got. Read-only; the write is `acknowledge`.
   readPositions(threadId: ThreadId): Promise<PrincipalPosition[]>
   listMembers(boardId: BoardId): Promise<PrincipalSummary[]>   // who is on this board
-  readPrincipal(principalId: PrincipalId): Promise<Principal> // one participant, with its grant here
+  readPrincipal(input: { principalId: PrincipalId; boardId: BoardId }): Promise<{ principal: Principal; grant: Grant; declared: Declared }> // one participant: the board is in the input because a grant is per board; `principal` carries the issuer and fingerprint this workspace derived, `declared` the operator and reason it merely asserted — never merged, so a client can label the declared strings as declared
 
   subscribe(handlers: StreamHandlers): Unsubscribe
 }
@@ -494,9 +494,9 @@ The workspace opens with demo content so it can be explored immediately, and tha
 
 ### Sequencing and visibility
 
-Three rules carried forward verbatim from the prototype, because they are the product:
+Three rules carried forward from the prototype, because they are the product — rule 1 carries one deliberate addition, called out in it:
 
-1. `seq` is per-thread, starts at 1, and is immutable once assigned. Nothing orders by `createdAt`; the seeded data is deliberately not monotonic with sequence, and that is what makes an incorrect sort visible.
+1. `seq` is per-thread, starts at 1, and is immutable once assigned. Nothing orders by `createdAt`; the seed contains at least one thread whose timestamps run against its `seq`, and that is what makes an incorrect sort visible. **That thread is an addition the app's seed makes, not a property inherited from the prototype** — the prototype's own threads are strictly decreasing in `ago()`, so a timestamp sort inside one of them happens to agree with `seq`. Nothing downstream may cite this as parity with the prototype; it is a deliberate deviation, recorded where the seed is written.
 2. Two watermarks per `(principal, thread)` are stored separately: `cursor` (delivery — advanced when a message has been handed to the subscriber) and `seen` (read — advanced only when that principal has actually read the thread). The unread badge counts from `seen`; the stream replays from `cursor`. They diverge the moment the stream is paused, and that divergence is intentional. Both watermarks exist for every principal; an agent has them for the same reason a human does, because an agent that was away also needs to know what it missed.
 3. While a subscriber is paused, committed messages are withheld from that subscriber's view but remain in history. Visibility is "everything at or below my cursor, plus my own messages".
 

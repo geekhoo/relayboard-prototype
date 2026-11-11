@@ -13,7 +13,7 @@ The prototype is a working reference for all three: `app.js` L164–L176 impleme
 - [ ] `create:board`, `create:thread` and `add:resource` are each enforced independently; holding one does not grant another.
 - [ ] A newly created board opens immediately with an empty state that says what to do next.
 - [ ] A newly created thread opens and is ready to post into.
-- [ ] A resource carries a name, URL, type and description. **The type is a closed, named set** — the prototype hard-codes one value and the spec treats it as a field, so this ticket fixes the set (a document, a repository, a specification, a design file, and an "other" that still names its source) rather than shipping a free-text box nothing can filter on later.
+- [ ] A resource carries a name, URL, type and description. **The type is a closed, named set**, stated as literals rather than a free-text box nothing can filter on later: `type ∈ { Document, Repository, Design, Link }` — the three the seed uses (`app.js` L30–32: `Document`, `Repository`, `Design`) plus `Link`, which is the prototype's own default on `addResource` (`app.js` L117). The set is a validated enum rejected at the boundary like the URL, and the seed's three values reproduce exactly.
 - [ ] A resource is listed on its board as a canonical reference, and **is not copied into any thread that references it**.
 - [ ] A non-HTTP(S) URL is refused by the validator before the store is touched, with a reason the reader can act on.
 - [ ] External links open in a new context without handing the destination control of the session.

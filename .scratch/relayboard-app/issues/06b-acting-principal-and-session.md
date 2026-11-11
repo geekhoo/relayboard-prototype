@@ -6,14 +6,14 @@
 
 **Blocked by:** 06a — The read operations over HTTP, and one store for the process
 
-**Write scope:** `src/env.ts`, the server entry it names, session issuance and the request-time resolver.
+**Write scope:** `src/env.ts`, the two server-only modules it names — `src/server/env.ts` and `src/server/principal.ts` — session issuance and the request-time resolver. `src/server/store/**` stays 06a's.
 
 **Status:** ready-for-agent
 
-- [ ] A required server-only session secret is declared in `env.ts`, and it is **not** `.optional()`. Its absence is a startup failure, not a first-request failure (spec L355–356, story 151).
+- [ ] A required server-only session secret is declared in `env.ts`, and it is **not** `.optional()`. Its absence is a startup failure, not a first-request failure (spec L376, story 151).
 - [ ] `runtimeEnv` includes the server's process environment, not only `import.meta.env`. `NOTES.md` §5(d) measured that a plain server variable read through `import.meta.env` comes back `null`; this ticket fixes that and records the measurement in place.
-- [ ] **`env.ts` is imported by the app's real server entry, and the ticket names it.** Verified: there is no `src/server.ts`, `src/start.ts`, `src/entry-server.tsx` or `app.config.ts` today, and `env.ts` has no importer at all — so "import it from the server entry" names a file that must first be identified or introduced. If a global server entry has to be added for this, that is part of this ticket and belongs in its write scope.
-- [ ] The import is placed so a missing secret fails the process before it serves a request, not on the first request that happens to read it.
+- [ ] **The secret is asserted where the resolver is built, in a module named here.** Verified: there is no `src/server.ts`, `src/start.ts`, `src/entry-server.tsx` or `app.config.ts` today, and `src/env.ts` has no importer at all — so "import it from the server entry" names a file that does not exist. The layout this ticket establishes is `src/server/env.ts` (server-only: it imports `env`, reads the process environment and throws if `SESSION_SECRET` is unset) imported by `src/server/principal.ts` (the request-time resolver every server function and the SSE route go through). Both files are this ticket's to create and belong in its write scope; no global server entry is added, because the resolver module is already loaded by every path that needs a principal.
+- [ ] **A missing secret fails the process before it serves a request, and that is asserted rather than described**: importing the resolver module with `SESSION_SECRET` unset throws at import time, and a test spawns the server process with the variable absent and expects a non-zero exit with the missing variable named.
 - [ ] `.env.example` exists and names the required variable; `.env` stays gitignored. `README.md`'s stale reference to a file the CLI never generated is corrected or removed.
 - [ ] A first request without a session is issued a signed, `HttpOnly`, `SameSite=Lax` cookie naming the principal it acts as; a request with a valid cookie resolves to that principal. The first request receives the first selectable principal, the second a different one, and the third wraps to the first — stable within one store instance — so issuance walks 02c's `browserSelectable` order cyclically instead of handing every browser the same principal (spec L366, L370).
 - [ ] The cookie's value is not readable from client JavaScript and is not echoed into any payload.
@@ -21,7 +21,7 @@
 - [ ] No operation asks which `kind` the principal is. The resolver exposes `kind` as a label on the principal, and the enforcement path does not branch on it.
 - [ ] A request whose session cannot be resolved is rejected as unauthenticated, and that refusal is distinguishable by the client from a permission refusal and from a validation failure. Spec L494 makes this the one case where the client must not retry silently.
 - [ ] The resolver is reusable by a plain server function and by a server route, so 11a's SSE route can authenticate the same way without duplicating the logic.
-- [ ] The interface states that a session identifies and does not authenticate (spec L352, §615) — in copy a participant sees, not only in a comment.
+- [ ] The interface states that a session identifies and does not authenticate (spec L366) — in copy a participant sees, not only in a comment.
 - [ ] The conformance suite still passes unchanged: reads that require no principal behave as before, and a read that requires one is now asserted through a real resolved session.
 
 **Leaves the build green:** yes. The app still renders from the in-memory client; the server now knows who is calling it.
