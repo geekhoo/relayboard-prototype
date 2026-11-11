@@ -1,0 +1,105 @@
+# app-check.yml — hand-written; unlike check-skills.yml this is not copied by
+# `intent maintainer setup`, so edits here are permanent.
+#
+# Why this file exists: check-skills.yml is the repository's other workflow and it
+# only validates the Intent skills package. Nothing ran apps/relayboard-web's own
+# gates, so a broken app could merge green. This workflow runs the app's own gates —
+# `npm run check` (biome), `npm run check:styles`, `npm run typecheck` (`tsc --noEmit`)
+# and `npm run build` (vite → Nitro) — on every pull request and on demand.
+#
+# Hand notes worth keeping:
+#
+#   * The last step asserts how the build was produced. apps/relayboard-web/vite.config.ts
+#     pins `nitro({ preset: "node-server" })` deliberately: the app's store is in-memory
+#     and its SSE stream is long-lived, so it needs exactly one long-running process.
+#     A serverless or horizontally scaled target would build green and only fail at
+#     runtime, so a Vercel build environment — or any other accident that changes the
+#     preset — must fail here rather than ship. The step reads .output/nitro.json and
+#     requires `preset` to be exactly "node-server", and it also fails if a .vercel
+#     directory exists.
+#
+#   * The `typecheck` and `check:styles` scripts in apps/relayboard-web/package.json
+#     came in a parallel change and the steps below call them, not the raw commands.
+#     If a step fails with "Missing script", the manifest lost them: fall back to
+#     `npx tsc --noEmit` for typecheck, and drop the check:styles step (`check:styles`
+#     runs scripts/check-app-styles.mjs at the repository root, which needs a checkout,
+#     not the app's node_modules).
+#
+#   * actions/checkout and actions/setup-node are pinned to the commit of their
+#     current major tags (v7.0.1 and v7.1.0). Dependabot or Renovate bumps the pin
+#     like any other action reference; a `github-actions` entry in
+#     .github/dependabot.yml is enough. The job grants only `contents: read`.
+
+name: App Check
+
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/relayboard-web
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/relayboard-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting and lint (biome)
+        run: npm run check
+
+      - name: Check design-token usage in styles
+        run: npm run check:styles
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Assert the build stayed a long-running Node server
+        run: |
+          # The in-memory store and the long-lived SSE stream need a single
+          # long-running process, so a serverless build must fail here rather
+          # than ship and fail at runtime.
+          # .vercel is written next to the project Vercel was run in: the app
+          # directory, or the repository root when the CLI ran from there.
+          for dir in . "${GITHUB_WORKSPACE:-..}"; do
+            if [ -e "$dir/.vercel" ]; then
+              echo "::error::$dir/.vercel exists: the app must build as one long-running Node process."
+              exit 1
+            fi
+          done
+
+          if [ ! -f .output/nitro.json ]; then
+            echo "::error::.output/nitro.json is missing: the build produced no server output."
+            exit 1
+          fi
+
+          # A preset is either a string ("node-server", "vercel") or, when Nitro
+          # cannot decide, a { name, ... } object. Compare the resolved name so
+          # neither shape can slip past the check.
+          preset=$(node -p 'const preset = require("./.output/nitro.json").preset; typeof preset === "string" ? preset : String(preset && preset.name)')
+
+          if [ "$preset" != "node-server" ]; then
+            echo "::error::Nitro preset is '$preset', expected 'node-server': the in-memory store and the long-lived SSE stream need one long-running process."
+            exit 1
+          fi
+
+          echo "Nitro preset is $preset."

@@ -13,7 +13,8 @@
     "skills:check": "intent maintainer check --artifacts packages/relayboard-skills/skills/_artifacts",
     "skills:stale": "intent stale packages/relayboard-skills --json",
     "skills:list": "npm run --silent intent:list --prefix apps/relayboard-web",
-    "skills:pack": "npm pack ./packages/relayboard-skills --dry-run --json"
+    "skills:pack": "npm pack ./packages/relayboard-skills --dry-run --json",
+    "app:check": "npm --prefix apps/relayboard-web run check && npm --prefix apps/relayboard-web run typecheck && npm --prefix apps/relayboard-web run build"
   },
   "devDependencies": {
     "@tanstack/intent": "0.5.6",

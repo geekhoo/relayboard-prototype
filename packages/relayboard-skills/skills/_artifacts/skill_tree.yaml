@@ -24,6 +24,17 @@ review:
     - 'QA.md'
     - '.dsh/**'
     - '.impeccable/**'
+    # Planning records from the local-markdown issue tracker: the port spec, the
+    # tickets under .scratch/<feature>/issues/ and the reviews that shaped them.
+    # They describe intended future behaviour, not the behaviour the current
+    # prototype implements, and no SKILL.md lists one in `sources`, so they are
+    # not skill source. Without this glob every ticket edit is a red gate.
+    - '.scratch/**'
+    # The repository's own CI callers. Intent's default list already ignores the
+    # check-skills.yml it generates, at the root only; every other workflow is the
+    # same kind of plumbing, and the app's are expected to grow with the port
+    # (a Vitest suite and a Playwright route seam are already ticketed).
+    - '.github/workflows/**'
     # Repository-level tooling that records Intent review outcomes. It is not
     # library guidance and changes no documented behaviour.
     - 'scripts/**'

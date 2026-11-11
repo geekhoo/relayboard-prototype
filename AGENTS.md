@@ -33,9 +33,11 @@ Run from the directory named, not the root:
 ```sh
 # apps/relayboard-web
 npm run dev          # vite dev on :3000
-npm run build        # vite build
-npx tsc --noEmit
+npm run build        # vite build; writes .output/nitro.json
+npm run start        # serve the build (node-server preset)
 npm run check        # biome
+npm run typecheck    # tsc --noEmit
+npm run check:styles # no colour literal outside the token block; no clipped frame
 
 # packages/relayboard-skills
 npm run build        # tsc → dist/
@@ -44,7 +46,12 @@ npm run check:skills # intent validate && intent maintainer check
 
 # repository root
 npm run skills:check # the same gate, with the package's artifact path
+npm run app:check    # the app's check + typecheck + build, without cd
 ```
+
+`.github/workflows/app-check.yml` runs the app's four gates on every pull request and
+then asserts the build is still `node-server`, so a serverless build fails there
+rather than at runtime.
 
 ## Conventions
 

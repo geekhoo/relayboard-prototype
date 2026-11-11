@@ -234,7 +234,7 @@ Avatars are rounded squares (9–11px), not circles: the circle is reserved for 
 
 ### Inputs / Fields
 - **Style:** white fill, 1px #d3e0d7 edge, 7px radius, 13px text.
-- **Focus:** the edge shifts to Focus Ring (`focus`) *and* a 2px outline in the same token appears at 1px offset. The focus indicator is a real ring, not a border colour change, so it survives a white-on-white edit field. **One focus token, everywhere** — a second focus colour is drift, not emphasis.
+- **Focus:** the edge shifts to Focus Ring (`focus`) *and* a 2px outline in the same token appears at 1px offset. The ring sits 1px clear of the control's edge at every size — a 13px-text field and a 34px button take the same offset. The focus indicator is a real ring, not a border colour change, so it survives a white-on-white edit field. **One focus token, everywhere** — a second focus colour is drift, not emphasis.
 - **Composer:** a 12px-radius white sheet with a 1px edge and a single 1px resting shadow; focus-within changes only the edge color.
 
 ### Navigation

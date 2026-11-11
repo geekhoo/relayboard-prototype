@@ -99,6 +99,32 @@ single blanket verdict:
 `review.ignore` gained `scripts/**`, `INTENT.md` and the root manifests because
 the repository-level review plumbing itself surfaced as unmapped evidence.
 
+`review.ignore` later gained `.scratch/**` for the same class of reason, found the
+day the first port ticket was edited: the local-markdown issue tracker puts the
+port spec, the 30 tickets and the shaping reviews under `.scratch/relayboard-app/`,
+they are tracked files, and every one of them surfaced as an unmapped change. They
+are planning records — intended future behaviour — so no skill cites them, and the
+package's own review record cannot be re-recorded for each ticket. The ignore is a
+Git glob rather than a file list, so a new spec, ticket or review under `.scratch/`
+is silent without a code change.
+
+`.github/workflows/**` followed for the same reason one step later: an app CI
+caller (`.github/workflows/app-check.yml`) arrived with the first app guardrail and
+surfaced as an unmapped change. Intent's default list ignores the `check-skills.yml`
+it generates, at the root only; every other workflow is the same kind of
+repository plumbing, and the app's are expected to grow with the port (tickets 02a
+and 04c add a Vitest suite and a Playwright route seam). A per-file recorded
+review would have to be re-paid on each new workflow and each workflow edit, so
+the directory is ignored once instead.
+
+`review.ignore` in `skill_tree.yaml` is now the single source of truth for which
+tracked paths are in scope for this package: Intent reads that list directly
+(`reviewIgnorePatterns`, then `createReview`'s `isIgnored` skip). The path rules
+in `scripts/annotate-intent-review.mjs` — including its `.scratch/` and
+`docs/agents/` branch — remain only as a fallback for items Intent still surfaces;
+they no longer decide scope. Prefer widening the ignore list over teaching the
+script another prefix.
+
 ### Remaining gaps
 
 - No end-to-end client task skill (see `gaps` in `domain_map.yaml`); it needs a
@@ -122,4 +148,13 @@ the repository-level review plumbing itself surfaced as unmapped evidence.
   dependency, allowlist `["@relayboard/skills"]`, `relayboard-identity` excluded
   until a principal read exists. Re-packed the tarball so the published copy
   matches the reviewed guidance.
+- 2026-11-11 — `review.ignore` gained `.scratch/**` and `.github/workflows/**`.
+  Tracking the first port ticket edit
+  (`.scratch/relayboard-app/issues/01-scaffold-to-relayboard-shell.md`) turned the
+  gate red with "Review unmapped change"; planning records describe intended
+  future behaviour and appear in no `sources` list, so they join `apps/**`,
+  `DESIGN.md`, `scripts/**` and the other paths this package does not own. The
+  first app CI caller (`.github/workflows/app-check.yml`) then did the same, and
+  app workflows are expected to keep arriving. No SKILL.md, `docs/` file,
+  `sources` entry or guidance text changed, so nothing needed re-syncing.
 
