@@ -178,6 +178,32 @@ export const readPrincipal = createServerFn({ method: "GET" })
 	});
 
 /**
+ * What the caller may do, kept at the two scopes it can mean.
+ *
+ * **Two lists rather than one union, and that is the same rule 07a's `grantOn` fix established**: a
+ * board-scoped answer and a workspace-scoped answer are different statements, and merging them would
+ * return workspace permissions under a board label. The surface asks both questions because it renders
+ * both kinds of control — a thread or a resource is created *on this board*, a board is created in the
+ * workspace — and conflating them disables `create:board` for the one principal who holds it.
+ *
+ * Found by a route-seam test: with the board-scoped list alone, the seeded superadmin saw every
+ * board-creating control disabled.
+ */
+export const readHeldPermissions = createServerFn({ method: "GET" })
+	.validator(boardInput)
+	.handler(
+		({
+			data,
+		}): { onBoard: readonly string[]; workspace: readonly string[] } => {
+			const actor = session.actingPrincipal();
+			return {
+				onBoard: store().grantsFor(actor.id, data.boardId),
+				workspace: store().grantsFor(actor.id),
+			};
+		},
+	);
+
+/**
  * The principal this request acts as.
  *
  * The one read that exists *for* the session rather than for the workspace, and the only operation

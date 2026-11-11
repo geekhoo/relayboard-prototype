@@ -1,7 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { BoardId, Entry, PrincipalPosition } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
-import type { PermissionName } from "#/domain";
 import { orderThreads, type ThreadRow } from "#/routes/-thread-list";
 
 /**
@@ -90,13 +89,7 @@ export const heldGrantQuery = (
 	boardId: BoardId,
 ) => ({
 	queryKey: ["held-grant", boardId, client.actingPrincipalId] as const,
-	queryFn: async (): Promise<readonly PermissionName[]> => {
-		const read = await client.readPrincipal({
-			principalId: client.actingPrincipalId,
-			boardId,
-		});
-		return read.grant.permissions;
-	},
+	queryFn: () => client.readHeldPermissions(boardId),
 });
 
 /**

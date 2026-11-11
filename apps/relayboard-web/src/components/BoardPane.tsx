@@ -1,15 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { BoardId, PrincipalSummary, Resource } from "#/client";
+import type {
+	BoardId,
+	HeldPermissions,
+	PrincipalSummary,
+	Resource,
+} from "#/client";
 import { useRelayboardClient } from "#/client/context";
 import {
 	peopleQuery,
 	resourcesQuery,
 	threadRowsQuery,
 } from "#/components/-thread-queries";
+import { CreateAction, type CreateInput } from "#/components/CreateDialog";
 import { Gatekeeper } from "#/components/Gatekeeper";
 import { ThreadList } from "#/components/ThreadList";
-import type { PermissionName } from "#/domain";
 import { BOARD_VIEWS, type BoardView } from "#/routes/-board-search";
 import { emptyStateFor, filterThreads } from "#/routes/-thread-list";
 import "./BoardPane.css";
@@ -42,6 +47,7 @@ export function BoardPane({
 	unreadOnly,
 	thread,
 	heldPermissions,
+	onCreate,
 }: {
 	readonly boardId: BoardId;
 	readonly name: string;
@@ -51,7 +57,10 @@ export function BoardPane({
 	readonly unreadOnly: boolean;
 	readonly thread: string;
 	/** What the acting principal holds on this board — the gate's bound and its affordance. */
-	readonly heldPermissions: readonly PermissionName[];
+	/** What the reader may do on this board, and in the workspace: two lists, two questions. */
+	readonly heldPermissions: HeldPermissions;
+	/** Create a board, a thread or a resource, then open or list it. */
+	readonly onCreate: (input: CreateInput) => Promise<void>;
 }) {
 	const navigate = useNavigate();
 	const search = { view, q: query, unread: unreadOnly, thread };
@@ -77,11 +86,40 @@ export function BoardPane({
 			 * will enforce anyway. Computing it twice — once for the list of choices and once for the
 			 * refusal — would let the two disagree, so it is one list and the rule decides at the write.
 			 */}
+			{/*
+			 * The three create actions, each **disabled with the reason** when the grant is missing
+			 * (09:21, DESIGN.md §221). This is the affordance 07a declared and could not exercise: the
+			 * rule existed and nothing rendered it.
+			 */}
+			<div className="create-actions">
+				<CreateAction
+					allowed={heldPermissions.onBoard.includes("create:thread")}
+					boardName={name}
+					kind="thread"
+					onSubmit={onCreate}
+					required="create:thread"
+				/>
+				<CreateAction
+					allowed={heldPermissions.onBoard.includes("add:resource")}
+					kind="resource"
+					onSubmit={onCreate}
+					required="add:resource"
+				/>
+				<CreateAction
+					allowed={heldPermissions.workspace.includes("create:board")}
+					kind="board"
+					onSubmit={onCreate}
+					required="create:board"
+				/>
+			</div>
 			<div className="board-pane__gate">
 				<Gatekeeper
 					boardId={boardId}
-					canDecide={heldPermissions.includes("admit:agent")}
-					permissionsHeld={heldPermissions.filter(
+					canDecide={
+						heldPermissions.onBoard.includes("admit:agent") ||
+						heldPermissions.workspace.includes("admit:agent")
+					}
+					permissionsHeld={heldPermissions.onBoard.filter(
 						(name) => name !== "admit:agent" && name !== "revoke:agent",
 					)}
 				/>
@@ -225,11 +263,13 @@ function ResourcesView({ boardId }: { readonly boardId: BoardId }) {
 
 	if (items.length === 0) {
 		return (
+			// A newly created board opens here (09:14), and an empty frame would tell its creator
+			// nothing about what to do next — so the state names the action.
 			<div className="board-pane__empty">
 				<h3 className="board-pane__empty-title">No resources yet</h3>
 				<p className="board-pane__empty-detail">
 					Links to useful material live here. The content stays in its original
-					home.
+					home — use Add resource above to share one.
 				</p>
 			</div>
 		);
@@ -240,8 +280,17 @@ function ResourcesView({ boardId }: { readonly boardId: BoardId }) {
 			{items.map((resource) => (
 				<li className="resource-row" key={resource.id}>
 					<strong className="resource-row__name">{resource.name}</strong>
+					{/*
+					 * **`rel="noopener noreferrer"` is load-bearing, not decoration.** Without
+					 * `noopener`, the opened page gets `window.opener` and can navigate this app's tab —
+					 * a destination controlling the session that opened it, which 09:19 forbids. `noreferrer`
+					 * also keeps this app's address out of the destination's logs. The URL itself is
+					 * already http(s)-only, enforced at the boundary, so this is the second half of one
+					 * rule.
+					 */}
 					<a
 						className="resource-row__url"
+						data-resource-url={resource.id}
 						href={resource.url}
 						rel="noopener noreferrer"
 						target="_blank"

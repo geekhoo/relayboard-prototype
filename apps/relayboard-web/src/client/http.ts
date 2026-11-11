@@ -7,6 +7,7 @@ import type {
 	CreateBoardInput,
 	CreateThreadInput,
 	Entry,
+	HeldPermissions,
 	ParticipantRead,
 	PrincipalPosition,
 	PrincipalSummary,
@@ -32,6 +33,7 @@ import {
 	listResources,
 	listThreads,
 	readActingPrincipal,
+	readHeldPermissions,
 	readMessages,
 	readPositions,
 	readPrincipal,
@@ -211,6 +213,11 @@ export const createHttpClient = (): RelayboardClient => ({
 	 */
 	readActingPrincipal: async (): Promise<Principal> =>
 		(await call(() => readActingPrincipal())) as Principal,
+
+	readHeldPermissions: async (boardId: BoardId): Promise<HeldPermissions> =>
+		(await call(() =>
+			readHeldPermissions({ data: { boardId } }),
+		)) as HeldPermissions,
 
 	listResources: async (boardId: BoardId): Promise<readonly Resource[]> =>
 		(await call(() =>

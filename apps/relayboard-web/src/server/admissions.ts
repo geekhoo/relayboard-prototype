@@ -567,6 +567,20 @@ export const createAdmissions = (
 		/**
 		 * End an admission. The door the credential came through is closed, not just its record.
 		 *
+		 * ## Why this asks for `admit:agent`'s shape rather than `revoke:agent`
+		 *
+		 * `revoke:agent` is a **workspace** permission in the vocabulary (spec L420), while `admit:agent`
+		 * exists on both the workspace and board rows. That asymmetry is deliberate and not an omission:
+		 * **revoking is the heavier act.** Admitting adds one participant to one board; revoking takes
+		 * away an identity that may hold grants on several, so a board holder who could revoke would be
+		 * able to strip an agent's access to boards it has no standing on. A board-scoped gate holder
+		 * therefore admits and does not revoke, and only a workspace-scope holder can revoke.
+		 *
+		 * `isGateHolder` asks `admit:agent` because that is what a board-scoped decider can hold; the
+		 * revoke path is reachable only by a principal holding `revoke:agent` at workspace scope, which
+		 * the store's `permits` reaches through. The comment exists so the next reader sees a decision
+		 * rather than a mistake.
+		 *
 		 * Three things this does and one it does not:
 		 *
 		 * - Refuses a caller without `revoke:agent` on the board, or at workspace scope.

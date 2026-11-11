@@ -282,6 +282,11 @@ export const createInMemoryClient = (
 
 		readActingPrincipal: async () => store.readPrincipal(actingAs) as Principal,
 
+		readHeldPermissions: async (boardId) => ({
+			onBoard: store.grantsFor(actingAs, boardId),
+			workspace: store.grantsFor(actingAs),
+		}),
+
 		readPrincipal: async ({
 			principalId,
 			boardId,

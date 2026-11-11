@@ -102,6 +102,7 @@ export const describeOperationsConformance = (
 				"listThreads",
 				"moveStatus",
 				"readActingPrincipal",
+				"readHeldPermissions",
 				"readMessages",
 				"readPositions",
 				"readPrincipal",
@@ -148,6 +149,10 @@ export const describeOperationsConformance = (
 				// Knowing which principal you are requires nothing: a caller with no session must be
 				// able to ask, which is how a client learns it has none.
 				["readActingPrincipal", "none"],
+				// And knowing what you may do requires nothing beyond holding it, for the same reason:
+				// a surface has to be able to ask before it offers a control, and an unreadable answer
+				// would be indistinguishable from a missing permission.
+				["readHeldPermissions", "none"],
 				// Opening the stream, or reporting the connection, needs no particular board: only
 				// that the caller may read one (spec L339).
 				["setConnection", "atLeastOneBoard"],

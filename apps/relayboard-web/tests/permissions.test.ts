@@ -47,7 +47,13 @@ describe("the declared matrix", () => {
 			const requirement = operationPermissions[operation];
 			return typeof requirement === "object" && "none" in requirement;
 		});
-		expect(withoutRequirement).toEqual(["readActingPrincipal"]);
+		// Two since 09: `readActingPrincipal` (a caller with no session must learn it has none) and
+		// `readHeldPermissions` (a surface must be able to ask what it may offer before offering it).
+		// Both are reads about the caller itself, and neither can be gated by the thing it reports.
+		expect(withoutRequirement.sort()).toEqual([
+			"readActingPrincipal",
+			"readHeldPermissions",
+		]);
 		expect(operationPermissions.readActingPrincipal).toMatchObject({
 			none: expect.stringContaining("no session"),
 		});

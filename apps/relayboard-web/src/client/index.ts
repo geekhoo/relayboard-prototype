@@ -92,6 +92,19 @@ export type BoardSummary = Board & { readonly memberCount: number };
  * the second participant read's business, and that one is entitled by `read:member` on
  * one board.
  */
+/**
+ * What one principal may do, at each scope it can mean.
+ *
+ * Board-scoped permissions are what a control *on this board* needs; workspace-scoped ones are what a
+ * control *in the workspace* needs. They are separate because the answers are separate — a board member
+ * holds `create:thread` on a board and no `create:board` at all, and a superadmin holds `create:board`
+ * and no board grant.
+ */
+export interface HeldPermissions {
+	readonly onBoard: readonly PermissionName[];
+	readonly workspace: readonly PermissionName[];
+}
+
 export interface PrincipalSummary {
 	readonly id: PrincipalId;
 	readonly name: string;
@@ -342,6 +355,16 @@ export interface RelayboardClient {
 	 */
 	readActingPrincipal(): Promise<Principal>;
 
+	/**
+	 * What this client may do, kept at the two scopes it can mean.
+	 *
+	 * Two lists rather than one union: a board-scoped permission and a workspace-scoped one are
+	 * different statements, and a surface that renders both kinds of control needs to know which it
+	 * has. Merging them would either disable a workspace holder's controls or offer a board holder
+	 * controls that only a workspace grant justifies.
+	 */
+	readHeldPermissions(boardId: BoardId): Promise<HeldPermissions>;
+
 	// --- the stream ---
 	subscribe(handlers: StreamHandlers): Unsubscribe;
 }
@@ -366,6 +389,7 @@ export const clientOperations = [
 	"listMembers",
 	"readPrincipal",
 	"readActingPrincipal",
+	"readHeldPermissions",
 	"subscribe",
 ] as const satisfies readonly (keyof RelayboardClient)[];
 
@@ -427,6 +451,9 @@ export const operationPermissions = {
 	readPositions: "read:thread",
 	listMembers: "read:member",
 	readPrincipal: "read:member",
+	readHeldPermissions: {
+		none: "Reading your own permissions requires no grant beyond having them, for the same reason readActingPrincipal does not: a surface must be able to ask what it may offer before offering it, and a control that is disabled because the answer was unreadable would be indistinguishable from one disabled because the permission is missing.",
+	},
 	readActingPrincipal: {
 		none: "Knowing which principal you are requires no grant: a caller with no session must be able to ask, which is how a client learns it has none. The spec's permission table gains a row for this operation; it has no equivalent today because the prototype had no session.",
 	},

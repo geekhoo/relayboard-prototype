@@ -1,5 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	createFileRoute,
+	Link,
+	notFound,
+	useNavigate,
+} from "@tanstack/react-router";
 import {
 	bindClient,
 	resolveActingPrincipal,
@@ -7,14 +12,16 @@ import {
 	useActingPrincipalId,
 } from "#/client/context";
 import { primeConversation } from "#/components/-conversation-queries";
-import { primeRail } from "#/components/-rail-queries";
+import { boardsQuery, primeRail } from "#/components/-rail-queries";
 import {
 	heldGrantQuery,
 	primePane,
+	resourcesQuery,
 	threadRowsQuery,
 } from "#/components/-thread-queries";
 import { BoardPane } from "#/components/BoardPane";
 import { Conversation } from "#/components/Conversation";
+import type { CreateInput } from "#/components/CreateDialog";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
 import { type BoardView, parseBoardSearch } from "./-board-search";
 
@@ -130,8 +137,71 @@ function BoardRoute() {
 	// the bound is shown as a shorter list of choices rather than as a refusal after the click — and
 	// `[]` while it is absent is the honest answer: no permissions offered beats permissions offered
 	// and then refused.
-	const heldGrant = useQuery(heldGrantQuery(useActingClient(), board.id));
-	const heldPermissions = heldGrant.data ?? [];
+	const actingClient = useActingClient();
+	const queryClient = useQueryClient();
+	const heldGrant = useQuery(heldGrantQuery(actingClient, board.id));
+	const heldPermissions = heldGrant.data ?? { onBoard: [], workspace: [] };
+	const navigate = useNavigate();
+
+	/**
+	 * Create, then **open what was created** (09:14-15): a board or thread that then has to be found is a
+	 * create that did not finish. The navigation is what makes creating and using one continuous act,
+	 * and it is why this is here rather than in the dialog: the dialog does not know the address.
+	 */
+	const onCreate = async (input: CreateInput) => {
+		if (input.kind === "board") {
+			const board = await actingClient.createBoard({
+				name: input.form.name,
+				description: input.form.description,
+			});
+			// **The rail is a cached read and must be told.** Navigating re-runs the loader, but
+			// `ensureQueryData` returns the cached boards when they are already there — so a newly
+			// created board would not appear in the rail until a full reload. Measured: the double-click
+			// test found the board created and the rail still showing three. Invalidating is the fix;
+			// the alternative (a loader that always refetches) would defeat the first-paint priming the
+			// rail depends on.
+			await queryClient.invalidateQueries({
+				queryKey: boardsQuery(actingClient).queryKey,
+			});
+			await navigate({
+				to: "/boards/$boardId",
+				params: { boardId: board.id },
+				search: { view: "threads", q: "", unread: false, thread: "" },
+			});
+			return;
+		}
+		if (input.kind === "thread") {
+			const thread = await actingClient.createThread({
+				boardId: board.id,
+				title: input.form.title,
+				description: input.form.description,
+			});
+			await queryClient.invalidateQueries({
+				queryKey: threadRowsQuery(actingClient, board.id).queryKey,
+			});
+			await navigate({
+				to: "/boards/$boardId",
+				params: { boardId: board.id },
+				search: { view: "threads", q: "", unread: false, thread: thread.id },
+			});
+			return;
+		}
+		await actingClient.addResource({
+			boardId: board.id,
+			name: input.form.name,
+			url: input.form.url,
+			type: input.form.type,
+			description: input.form.description,
+		});
+		await queryClient.invalidateQueries({
+			queryKey: resourcesQuery(actingClient, board.id).queryKey,
+		});
+		await navigate({
+			to: "/boards/$boardId",
+			params: { boardId: board.id },
+			search: { view: "resources", q: "", unread: false, thread: "" },
+		});
+	};
 
 	return (
 		<WorkspaceFrame
@@ -147,6 +217,7 @@ function BoardRoute() {
 					unreadOnly={search.unread}
 					view={search.view}
 					heldPermissions={heldPermissions}
+					onCreate={onCreate}
 				/>
 			}
 			conversation={

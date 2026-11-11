@@ -32,7 +32,12 @@ describe("the write schemas", () => {
 			{ schema: createThreadInput, body: { boardId: "b", title: "T" } },
 			{
 				schema: addResourceInput,
-				body: { boardId: "b", name: "n", url: "u", description: "d" },
+				body: {
+					boardId: "b",
+					name: "n",
+					url: "https://example.com/x",
+					description: "d",
+				},
 			},
 			{ schema: moveStatusInput, body: { threadId: "t", from: "a", to: "b" } },
 			{ schema: acknowledgeInput, body: { threadId: "t", upTo: 1 } },
@@ -68,7 +73,7 @@ describe("the write schemas", () => {
 			addResourceInput.parse({
 				boardId: "b",
 				name: "n",
-				url: "u",
+				url: "https://example.com/x",
 				type: "Spreadsheet",
 				description: "d",
 			}),

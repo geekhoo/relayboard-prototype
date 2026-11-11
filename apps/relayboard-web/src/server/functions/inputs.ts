@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { httpUrl, RESOURCE_TYPES } from "#/domain/forms";
 
 /**
  * The input schemas for the read operations, in one place.
@@ -74,11 +75,21 @@ export const createBoardInput = z.object({
 	description: z.string().optional(),
 });
 
+/**
+ * A resource: the URL and the type are the two things 09 closes.
+ *
+ * **`httpUrl` refuses before the store is touched**, so a `javascript:` or `data:` URL cannot be
+ * stored and then followed by a reader. And the type is an **enum with a default rather than an
+ * optional string**: the seed's three values plus `Link`, which is the prototype's own default on
+ * `addResource` (app.js L117). The earlier version accepted `type` as `.optional()` and defaulted in
+ * the handler, so a caller could pass any string and have it stored — the "field nothing can filter on
+ * later" the criterion forbids.
+ */
 export const addResourceInput = z.object({
 	boardId: z.string().min(1),
 	name: z.string().min(1),
-	url: z.string().min(1),
-	type: z.enum(["Document", "Repository", "Design", "Link"]).optional(),
+	url: httpUrl,
+	type: z.enum(RESOURCE_TYPES).default("Link"),
 	description: z.string(),
 });
 
