@@ -101,6 +101,7 @@ export const describeOperationsConformance = (
 				"listResources",
 				"listThreads",
 				"moveStatus",
+				"readActingPrincipal",
 				"readMessages",
 				"readPositions",
 				"readPrincipal",
@@ -134,15 +135,31 @@ export const describeOperationsConformance = (
 			expect(Object.keys(operationPermissions).sort()).toEqual(
 				[...clientOperations].sort(),
 			);
-			// `subscribe` and `setConnection` need `read:board` on at least one board, which
-			// is a predicate rather than one name. Every other operation names exactly one.
-			const openEnded = Object.entries(operationPermissions)
-				.filter(([, permission]) => permission === null)
-				.map(([operation]) => operation)
+			// Three kinds of requirement, and the two shaped ones are named separately so a reader
+			// can tell "a grant you cannot name as one permission" from "no grant at all".
+			const shaped = Object.entries(operationPermissions)
+				.filter(([, requirement]) => typeof requirement === "object")
+				.map(([operation, requirement]) => [
+					operation,
+					Object.keys(requirement)[0],
+				])
 				.sort();
-			expect(openEnded).toEqual(["setConnection", "subscribe"]);
+			expect(shaped).toEqual([
+				// Knowing which principal you are requires nothing: a caller with no session must be
+				// able to ask, which is how a client learns it has none.
+				["readActingPrincipal", "none"],
+				// Opening the stream, or reporting the connection, needs no particular board: only
+				// that the caller may read one (spec L338).
+				["setConnection", "atLeastOneBoard"],
+				["subscribe", "atLeastOneBoard"],
+			]);
+			// The reason is stated rather than implied, so a reviewer can disagree with the judgement
+			// instead of reconstructing it.
+			expect(operationPermissions.readActingPrincipal).toMatchObject({
+				none: expect.stringContaining("no session"),
+			});
 			const names = Object.values(operationPermissions).filter(
-				(permission) => permission !== null,
+				(requirement) => typeof requirement === "string",
 			);
 			// Every declared requirement is spelled the documented way.
 			expect(names.every((name) => /^[a-z]+:[a-z]+$/.test(name))).toBe(true);
@@ -179,6 +196,21 @@ export const describeOperationsConformance = (
 			expect(operationPermissions.listMembers).toBe("read:member");
 			expect(operationPermissions.readPrincipal).toBe("read:member");
 			expect(operationPermissions.listResources).toBe("read:resource");
+		});
+
+		it("answers which principal this is, through the transport rather than a guess", async () => {
+			const api = await client();
+			const acting = await api.readActingPrincipal();
+
+			// The interface carries the question so the frame has one rule for every transport: over
+			// HTTP the server resolved it from the session cookie, in memory from the principal the
+			// client was built with. Both must agree with what an append records.
+			expect(acting.id).toBe(actor);
+			const entry = await api.appendMessage({
+				threadId,
+				text: "Authored by whoever this client says it is.",
+			});
+			expect(entry.authorId).toBe(acting.id);
 		});
 
 		it("asks no caller for an author, so a browser cannot post as somebody else", async () => {

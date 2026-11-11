@@ -1,0 +1,20 @@
+/* The session note: same quiet treatment as the store-lifetime line, one row below it. */
+.session-note {
+	margin: 0;
+	padding: var(--spacing-xs) var(--spacing-md);
+	border-block-end: 1px solid var(--color-line-soft);
+	background-color: var(--color-surface-tint);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	font-weight: 400;
+	line-height: var(--text-label--line-height);
+	letter-spacing: 0;
+}
+
+/* The principal's name is a derived value — this workspace resolved it from the cookie it
+   issued — so it may read as one: a step darker than the sentence around it and nothing more.
+   No accent, no checkmark: those are 12's to apply to derived values generally. */
+.session-note__principal {
+	color: var(--color-ink);
+	font-weight: 600;
+}

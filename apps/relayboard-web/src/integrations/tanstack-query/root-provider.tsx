@@ -32,7 +32,14 @@ import { demoOptions, demoSeed } from "#/server/store/demo-seed";
 export interface RouterContext {
 	readonly queryClient: QueryClient;
 	readonly client: RelayboardClientBound;
-	/** The principal this client acts as. Read, never assumed, by anything that needs to name it. */
+	/**
+	 * The principal this client acts as, **resolved by the transport**.
+	 *
+	 * A placeholder here and replaced by the route loader's answer before any component renders
+	 * (see `actingPrincipalQuery`): the router context is created synchronously, and resolving a
+	 * principal is a read. The loader is where the two meet, which is why the frame never has to
+	 * guess.
+	 */
 	readonly principalId: string;
 }
 
@@ -63,6 +70,9 @@ const transport = (): "memory" | "http" =>
 
 export function getContext(): RouterContext {
 	const queryClient = new QueryClient();
+	// The provisional id: an in-memory client acts as the principal it is constructed with, so
+	// that is the correct answer there without a read. Over HTTP it is replaced by the server's
+	// answer before anything renders — the loader primes `actingPrincipalQuery` and re-binds.
 	const principalId = demoPrincipalId();
 	const implementation: RelayboardClient =
 		transport() === "http"

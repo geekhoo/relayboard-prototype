@@ -328,6 +328,20 @@ export interface RelayboardClient {
 		readonly boardId: BoardId;
 	}): Promise<ParticipantRead>;
 
+	/**
+	 * Who this client acts as.
+	 *
+	 * The transport's own answer, not the frame's: an HTTP client asks the server, which resolved
+	 * a principal from the session cookie it issued; the in-memory client answers from the
+	 * principal it was constructed with, because there is no session in that build. Putting the
+	 * question on the interface is what keeps one rule in the UI — "ask the transport who I am" —
+	 * rather than a branch per component on which transport is in use.
+	 *
+	 * It is a read, so it is asynchronous like every other; a caller that needs it at first paint
+	 * primes it in the route's loader rather than letting the answer arrive after hydration.
+	 */
+	readActingPrincipal(): Promise<Principal>;
+
 	// --- the stream ---
 	subscribe(handlers: StreamHandlers): Unsubscribe;
 }
@@ -351,23 +365,49 @@ export const clientOperations = [
 	"readPositions",
 	"listMembers",
 	"readPrincipal",
+	"readActingPrincipal",
 	"subscribe",
 ] as const satisfies readonly (keyof RelayboardClient)[];
 
 export type ClientOperation = (typeof clientOperations)[number];
 
 /**
- * The permission each operation requires, declared once.
+ * What an operation requires of its caller.
  *
- * `null` where the requirement is not a single named permission: `subscribe` needs
- * `read:board` on at least one board (spec L338), which is a predicate rather than a
- * name, and `setConnection` is a no-op over the same condition. Everything else names
- * exactly one permission from the vocabulary, and 07a enforces it at the boundary
- * rather than in the UI.
+ * A named permission, a permission satisfied by holding it on any board, or nothing at all with
+ * the reason stated. Modelled as three shapes rather than one nullable field so a reader cannot
+ * mistake "no requirement" for "a predicate I did not bother to name" — the distinction 06c's
+ * error mapping and 07a's matrix both depend on.
+ */
+export type PermissionRequirement =
+	| PermissionName
+	| { readonly atLeastOneBoard: PermissionName }
+	| { readonly none: string };
+
+/**
+ * What an operation requires of the caller, declared once.
  *
- * The table is exhaustive by type: a member added to the interface without a line here
- * does not compile, so "every operation declares which grant it requires" is a fact the
- * compiler keeps rather than a review step.
+ * Three kinds of answer, and they are three different symbols rather than one overloaded one,
+ * because "no grant" and "a grant you cannot name as a permission" are not the same statement and
+ * a reader must not have to guess which one a bare `null` meant:
+ *
+ * 1. **A named permission** — the common case. `appendMessage` requires `post:message`, and 07a
+ *    enforces it at the boundary rather than in the UI.
+ * 2. **`{ atLeastOneBoard: "read:board" }`** — the requirement is real but cannot be expressed as
+ *    one name, because it is satisfied by holding the permission on *any* board (spec L338).
+ *    `subscribe` and `setConnection` carry it: opening the stream needs no particular board, only
+ *    that the caller can read one.
+ * 3. **`{ none: "..." }`** — nothing is required, and the value is the reason. `readActingPrincipal`
+ *    is the one operation here: an unauthenticated caller must be able to ask who it is, because
+ *    that is how a client learns it has no session at all. Requiring a grant would make the
+ *    question unanswerable exactly when the answer is "nobody".
+ *
+ * The third kind needs a reason rather than a bare `true`, so a reviewer can disagree with the
+ * judgement instead of having to reconstruct it.
+ *
+ * The table is exhaustive by type over `ClientOperation`, so an operation added to the interface
+ * without a line here does not compile. "Every operation declares what it requires" is therefore
+ * a fact the compiler keeps rather than a review step.
  */
 export const operationPermissions = {
 	listBoards: "read:board",
@@ -377,7 +417,7 @@ export const operationPermissions = {
 	createThread: "create:thread",
 	createBoard: "create:board",
 	addResource: "add:resource",
-	setConnection: null,
+	setConnection: { atLeastOneBoard: "read:board" },
 	simulateIncoming: "post:message",
 	readThread: "read:board",
 	listResources: "read:resource",
@@ -387,8 +427,11 @@ export const operationPermissions = {
 	readPositions: "read:thread",
 	listMembers: "read:member",
 	readPrincipal: "read:member",
-	subscribe: null,
-} as const satisfies Record<ClientOperation, PermissionName | null>;
+	readActingPrincipal: {
+		none: "Knowing which principal you are requires no grant: a caller with no session must be able to ask, which is how a client learns it has none. The spec's permission table gains a row for this operation; it has no equivalent today because the prototype had no session.",
+	},
+	subscribe: { atLeastOneBoard: "read:board" },
+} as const satisfies Record<ClientOperation, PermissionRequirement>;
 
 /**
  * The documented failure of an operation this build does not implement yet.

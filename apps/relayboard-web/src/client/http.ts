@@ -19,12 +19,20 @@ import type {
 	Unsubscribe,
 } from "#/client";
 import { NotYetImplementedError } from "#/client";
-import type { BoardId, PrincipalId, Seq, Thread, ThreadId } from "#/domain";
+import type {
+	BoardId,
+	Principal,
+	PrincipalId,
+	Seq,
+	Thread,
+	ThreadId,
+} from "#/domain";
 import {
 	listBoards,
 	listMembers,
 	listResources,
 	listThreads,
+	readActingPrincipal,
 	readMessages,
 	readPositions,
 	readPrincipal,
@@ -68,6 +76,16 @@ export const createHttpClient = (): RelayboardClient => ({
 		(await readMessages({
 			data: { threadId, after: options?.after },
 		})) as readonly Entry[],
+
+	/**
+	 * Who this client acts as, as the **server** resolved it.
+	 *
+	 * The one answer to "who am I" that the app may rely on over HTTP: the cookie is `HttpOnly`,
+	 * so a script cannot read it, and guessing from the seed gets a second browser wrong. This
+	 * calls the resolver's own read, which returns the principal and never the cookie.
+	 */
+	readActingPrincipal: async (): Promise<Principal> =>
+		(await readActingPrincipal()) as Principal,
 
 	listResources: async (boardId: BoardId): Promise<readonly Resource[]> =>
 		(await listResources({ data: { boardId } })) as readonly Resource[],

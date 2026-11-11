@@ -12,6 +12,7 @@ import {
 	readPrincipalInput,
 	threadInput,
 } from "#/server/functions/inputs";
+import * as session from "#/server/session";
 import { getStore, resetAllowed, resetStore } from "#/server/store/instance";
 
 /**
@@ -39,29 +40,29 @@ import { getStore, resetAllowed, resetStore } from "#/server/store/instance";
  * coverage is the error vocabulary and the principal-resolution seam.
  */
 
-/** How a handler reaches the workspace. One call, so 06b swaps a body rather than every file. */
+/** How a handler reaches the workspace. */
 const store = () => getStore();
 
 /**
- * Who is acting, until 06b issues a session.
+ * Every read below starts here, and this is the line that makes the server's answer depend on
+ * the caller rather than on the request body.
  *
- * The seed marks its principals browser-selectable in a fixed order (02c) and spec L366
- * selects round-robin from them; round-robin needs the process store, which is this ticket's,
- * and the cookie that carries the choice is 06b's. Until then the first selectable principal
- * is the honest answer — and it is read from the seed rather than typed, so a change to the
- * seed's mark moves it.
+ * `actingPrincipal()` reads the session cookie, resolves it to a seeded principal, and issues a
+ * session on the response when the request had none — so a browser's first page load leaves with
+ * a cookie naming a real participant, and every subsequent operation acts as that principal.
+ * The reads do not yet differ per principal (grants are 07a's), which is why the call is made
+ * and its result discarded in most handlers: the seam exists, it is exercised on every request,
+ * and 07a makes it load-bearing without touching a handler.
  */
-const actingPrincipalId = (): string => {
-	const seeded = store().readPrincipal(SEEDED_SESSION_PRINCIPAL);
-	if (!seeded) throw unknownPrincipal(SEEDED_SESSION_PRINCIPAL);
-	return seeded.id;
-};
-
-const SEEDED_SESSION_PRINCIPAL = "alex";
+const actingPrincipal = () => session.actingPrincipal();
 
 /** Every board the reader may see, with the count of people on it and never the list. */
 export const listBoards = createServerFn({ method: "GET" }).handler(
 	async (): Promise<readonly BoardSummary[]> => {
+		// The acting principal is resolved even for a read every participant may make: this is
+		// where a browser's first request is issued its session, and a read that skipped it would
+		// leave the reader anonymous until they happened to post.
+		actingPrincipal();
 		const boards = store().listBoards();
 		return boards.map((board) => ({
 			...board,
@@ -168,9 +169,16 @@ const MEMBER_PERMISSIONS = [
 	"add:artifact",
 ] as const;
 
-/** The principal this build acts as, exposed so a harness can name it rather than guess. */
+/**
+ * The principal this request acts as.
+ *
+ * The one read that exists *for* the session rather than for the workspace, and the one a test
+ * uses to ask which participant it got instead of assuming an order (06c:22). It returns the
+ * principal and never the cookie — the cookie stays `HttpOnly` and unread from JavaScript, so
+ * this is the only way a caller can learn what it is acting as.
+ */
 export const readActingPrincipal = createServerFn({ method: "GET" }).handler(
-	() => actingPrincipalId(),
+	() => actingPrincipal(),
 );
 
 /**

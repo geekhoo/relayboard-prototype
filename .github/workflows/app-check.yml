@@ -80,6 +80,19 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Runs AFTER the build for the same reason the preset assertion below does: the guard it
+      # checks lives in the built entry, so there is nothing to import until the build exists.
+      # It imports the entry in a fresh process three times — with no SESSION_SECRET, with a
+      # secret that is present but too short, and with a usable one — and requires a fatal exit
+      # and a named variable in the first two and a clean load in the third. A guard that always
+      # threw would fail the third, which is what stops this being a check of nothing.
+      #
+      # Why a script and not a test: the app's `npm test` is a hermetic Node suite over src/**
+      # with no build, and a build is neither fast nor hermetic. Recording the split where it is
+      # made, because "why is this not in the test run" is the first question a reader asks.
+      - name: Assert the server refuses to serve without a session secret
+        run: npm run check:boot
+
       - name: Assert the build stayed a long-running Node server
         run: |
           # The in-memory store and the long-lived SSE stream need a single

@@ -17,6 +17,7 @@
     "lint": "biome lint",
     "check": "biome check",
     "check:styles": "node ../../scripts/check-app-styles.mjs",
+    "check:boot": "node ../../scripts/check-boot.mjs",
     "intent:list": "intent list",
     "intent:load": "intent load"
   },

@@ -22,6 +22,9 @@ export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	test: {
 		include: ["tests/**/*.test.ts"],
+		// Every suite runs in a process that could serve a request, so it carries the secret that
+		// requirement needs. The file says why that is not the same as weakening the check.
+		setupFiles: ["tests/setup.ts"],
 		environment: "node",
 		// A test may not reach the network, so a suite that hangs is a failure, not
 		// a slow pass. The budget is per test, not per file.

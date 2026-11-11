@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { BoardId } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
+import { actingPrincipalQuery } from "#/client/context";
 import type { BoardUnread } from "#/components/-unread";
 import { boardUnreadCounts } from "#/components/-unread";
 
@@ -86,7 +87,14 @@ export const unreadQuery = (client: RelayboardClientBound) => ({
 	},
 });
 
-/** Primes both reads on the server, so the first paint is the real rail. */
+/**
+ * Primes the rail's reads **and the acting principal** on the server.
+ *
+ * The principal is here rather than in its own helper because it has the same requirement as the
+ * counts: it must be present at first paint. The session note names the participant, and a note
+ * that said "one of the seeded participants" and then filled itself in after hydration would be
+ * the same defect as a thread count that starts at zero — measured in 06a, fixed the same way.
+ */
 export const primeRail = async (
 	queryClient: QueryClient,
 	client: RelayboardClientBound,
@@ -94,5 +102,6 @@ export const primeRail = async (
 	await Promise.all([
 		queryClient.ensureQueryData(boardsQuery(client)),
 		queryClient.ensureQueryData(unreadQuery(client)),
+		queryClient.ensureQueryData(actingPrincipalQuery(client)),
 	]);
 };

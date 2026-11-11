@@ -1,23 +1,31 @@
+import { useQuery } from "@tanstack/react-query";
 import { useRouteContext } from "@tanstack/react-router";
-import type { RelayboardClient } from "#/client";
+import type { Principal, RelayboardClient } from "#/client";
 
 /**
- * The app's one way to reach the data client.
+ * The app's one way to reach the data client, and its one way to learn who it acts as.
  *
- * A component asks this hook rather than importing `src/client/in-memory` or, worse, the
- * store: the client is created once per router and carried on the router context, so the
- * hook is the only place that knows where it comes from. That is also what makes the
- * transport swappable — 06a replaces the object on the context and nothing here changes.
+ * A component asks this hook rather than importing the adapter or, worse, the store: the
+ * client is created once per router and carried on the router context, so the hook is the only
+ * place that knows where it comes from. That is also what makes the transport swappable —
+ * 06c replaces the object on the context and nothing here changes.
+ *
+ * ## Why the principal comes from the transport and not from the seed
+ *
+ * **The transport is the only thing that knows who the caller is.** Over HTTP the server
+ * resolved a principal from the session cookie it issued, and the cookie is HttpOnly: the
+ * browser cannot read it, and guessing from the seed gets the second browser wrong. That was
+ * measured, not reasoned about — browser 1 was issued alex and browser 2 maya, while a
+ * seed-guess had both acting as alex, so the session note named the wrong participant in one
+ * of two windows. In memory there is no session, so the client answers from the principal it
+ * was constructed with.
+ *
+ * Putting the question on the interface (readActingPrincipal) is what keeps ONE rule in the UI
+ * — ask the transport — rather than a branch per component on which transport is in use.
  */
 export interface RelayboardClientBound extends RelayboardClient {
 	/**
-	 * The principal this client acts as.
-	 *
-	 * Named beside the operations rather than as one because it is not an operation: it is a
-	 * fact about the caller, resolved by the transport, that the UI reads and never sets. It
-	 * is here so that a component can mark its own entries, key a cache per reader, and show
-	 * the reader who they are — three things that would otherwise each reach for a second
-	 * source of truth.
+	 * The principal this client acts as, resolved by the transport rather than assumed.
 	 */
 	readonly actingPrincipalId: string;
 }
@@ -27,25 +35,41 @@ interface ClientContext {
 	readonly principalId: string;
 }
 
-/** The client plus the principal it acts as, both read from the router context. */
+/**
+ * The client plus the principal it acts as, both from the router context.
+ *
+ * principalId is primed by the route's loader through readActingPrincipal, so by the time a
+ * component renders the id and the data arrived together — the same rule the rail's counts
+ * follow, for the same reason: a value that corrects itself after hydration is briefly wrong on
+ * screen.
+ */
 export const useRelayboardClient = (): RelayboardClientBound => {
 	const { client } = useRouteContext({ from: "__root__" }) as ClientContext;
 	return client;
 };
 
-/** The principal the current client acts as. */
+/**
+ * The principal the current client acts as, as the transport resolved it.
+ *
+ * Read through the same Query definition the loader primes, so the answer is the server's and it
+ * is there at first paint rather than correcting itself after hydration. The router context's
+ * `principalId` is the fallback and only the fallback: the provisional value the client was
+ * constructed with, correct for the in-memory transport and replaced here whenever a resolved
+ * answer exists.
+ */
 export const useActingPrincipalId = (): string => {
-	const { principalId } = useRouteContext({
+	const { client, principalId } = useRouteContext({
 		from: "__root__",
 	}) as ClientContext;
-	return principalId;
+	const resolved = useQuery(actingPrincipalQuery(client));
+	return resolved.data?.id ?? principalId;
 };
 
 /**
- * Binds a client to the principal it acts as.
+ * The client bound to the principal it acts as.
  *
- * Kept here rather than in the in-memory module because it is a property of the *seam*, not
- * of one transport: 06a's HTTP client is bound the same way, from the resolved session.
+ * Here rather than in the in-memory module because it is a property of the *seam*: both
+ * transports are bound the same way, from the principal each of them resolved.
  */
 export const bindClient = (
 	client: RelayboardClient,
@@ -54,3 +78,20 @@ export const bindClient = (
 	Object.assign(Object.create(null) as RelayboardClientBound, client, {
 		actingPrincipalId: principalId,
 	});
+
+/** The Query definition for who I am, so a loader can prime it like any other read. */
+export const actingPrincipalQuery = (client: RelayboardClient) => ({
+	queryKey: ["acting-principal"] as const,
+	queryFn: () => client.readActingPrincipal(),
+});
+
+/**
+ * The principal the transport resolves, for a caller that has a client but no hook.
+ *
+ * The loader uses this: it needs the id before React renders, to build the context the frame
+ * reads. One function, so the loader and the hook ask the same question the same way, and a
+ * future server route (11a) can too.
+ */
+export const resolveActingPrincipal = async (
+	client: RelayboardClient,
+): Promise<Principal> => await client.readActingPrincipal();

@@ -6,6 +6,7 @@ To run this application:
 
 ```bash
 npm install
+cp .env.example .env      # then set SESSION_SECRET — see T3Env below
 npm run dev
 ```
 
@@ -44,8 +45,15 @@ npm run check
 ## T3Env
 
 - You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
+- Add environment variables to `src/env.ts` — not `src/env.mjs`, which never existed; this
+  line named a file the scaffold never generated.
+- **`SESSION_SECRET` is required.** Copy `.env.example` to `.env` and generate one with
+  `openssl rand -base64 32`, or export it into the process. The server serves nothing
+  without it: the resolver reads it at import time, so the first request fails with the
+  variable named rather than the app appearing to work until a cookie is needed.
+- `runtimeEnv` is the process environment with Vite's build-time snapshot merged under it.
+  `import.meta.env` alone cannot see a server-only variable at all — `NOTES.md` §5(d)
+  measured `SERVER_URL` coming back `undefined` that way.
 
 ### Usage
 

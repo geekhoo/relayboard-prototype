@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BoardRail } from "#/components/BoardRail";
+import { SessionNote } from "#/components/SessionNote";
 import { StoreLifetimeNote } from "#/components/StoreLifetimeNote";
 import "./WorkspaceFrame.css";
 
@@ -17,10 +18,13 @@ import "./WorkspaceFrame.css";
  */
 export function WorkspaceFrame({
 	activeBoardId,
+	actingPrincipalId,
 	pane,
 	conversation,
 }: {
 	readonly activeBoardId?: string;
+	/** Who the browser is acting as. Shown in the session note, which says what that means. */
+	readonly actingPrincipalId: string;
 	readonly pane?: ReactNode;
 	readonly conversation?: ReactNode;
 }) {
@@ -34,6 +38,7 @@ export function WorkspaceFrame({
 					Board contents
 				</h2>
 				<StoreLifetimeNote />
+				<SessionNote principalId={actingPrincipalId} />
 				{pane ?? (
 					<p className="workspace-frame__placeholder">
 						The thread list lands here next.

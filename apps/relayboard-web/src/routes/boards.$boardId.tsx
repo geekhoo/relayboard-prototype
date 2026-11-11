@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useRelayboardClient } from "#/client/context";
+import { useActingPrincipalId, useRelayboardClient } from "#/client/context";
 import { primeRail, threadsQuery } from "#/components/-rail-queries";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
 import { BOARD_VIEWS, parseBoardSearch } from "./-board-search";
@@ -61,6 +61,7 @@ function BoardRoute() {
 	return (
 		<WorkspaceFrame
 			activeBoardId={board.id}
+			actingPrincipalId={useActingPrincipalId()}
 			pane={
 				<BoardPane
 					name={board.name}
@@ -142,6 +143,7 @@ function BoardPane({
 function BoardNotFound() {
 	return (
 		<WorkspaceFrame
+			actingPrincipalId={useActingPrincipalId()}
 			pane={
 				<div className="flex flex-col gap-sm px-md py-lg">
 					<h1 className="m-0 text-headline text-ink-strong">Board not found</h1>

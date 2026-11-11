@@ -25,6 +25,7 @@ import type {
 	BoardId,
 	Entry,
 	PermissionName,
+	Principal,
 	PrincipalId,
 	ThreadId,
 } from "#/domain";
@@ -286,6 +287,8 @@ export const createInMemoryClient = (
 				name: principal.name,
 				kind: principal.kind,
 			})),
+
+		readActingPrincipal: async () => store.readPrincipal(actingAs) as Principal,
 
 		readPrincipal: async ({
 			principalId,
