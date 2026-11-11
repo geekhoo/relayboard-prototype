@@ -1,165 +1,119 @@
 # Thread sequencing and replay (source documentation)
 
-Ground truth for the `relayboard-thread-sequencing` skill. Everything here is
-read from the prototype's `app.js` (plain JavaScript, no backend) and from
-`README.md`, `PRODUCT.md`, and `QA.md`. The prototype is the authoritative
-behaviour today; where it only *simulates* a guarantee, this document says so.
+Ground truth for the `relayboard-thread-sequencing` skill. Read from
+`apps/relayboard-web/src/server/store/index.ts` (the one entry-writing path),
+`src/client/index.ts` (the watermarks a read returns), `src/server/stream.ts` (the
+wire vocabulary), and — for the rules the port had to reproduce — the prototype's
+`app.js`, which is kept at the repository root as the behavioural reference.
 
 ## What a thread is
 
 A thread is one flat, ordered line of work inside a board:
 
-```js
-{ id: 'delivery', boardId: 'platform', title: 'Durable message delivery', creator: 'maya', createdAt, pinned: true }
+```ts
+{ id: 'delivery', boardId: 'platform', title: 'Durable message delivery',
+  creatorId: 'maya', createdAt, pinned: true, status: 'open' | 'resolved', origin }
 ```
 
-Threads are flat. There is no reply tree; a message may carry a `relation`
-(`{ type: 'In response to', messageId }`) that points at another message, but
-that relation is presentation metadata and does **not** change ordering or
-nesting.
+Threads are flat. There is no reply tree; a **message** entry may carry a `relation`
+(`{ type, entryId }`) that points at another entry, but that relation is presentation
+metadata and does not change ordering or nesting.
+
+## Four kinds in one chronology
+
+A thread's entries are a union — `message`, `artifact`, `status-move`, `acknowledgement` —
+and all four take a position in the same sequence. This is the port's central widening:
+the prototype's `readMessages` returned messages, and the app's `readThread` returns
+entries.
+
+```ts
+Entry = MessageEntry | ArtifactEntry | StatusMoveEntry | AcknowledgementEntry
+// every member: id, seq, authorId, createdAt, origin, relation?
+// message:         text, references             artifact:        resourceId
+// status-move:     from, to                     acknowledgement: upTo
+```
+
+"The messages" is therefore not the unit to read, count or render, and a display that
+treats every entry as prose leaves three of the four kinds blank.
 
 ## The canonical sequence
 
-Every message carries a per-thread integer `seq`:
+Every entry carries a per-thread integer `seq`. The store enforces:
 
-```js
-{ id, threadId, boardId, seq, authorId, text, references, relation, createdAt }
-```
+1. **`seq` is per thread, starting at 1, and gapless.** Two threads both have a `#1`.
+2. **`seq` is assigned by the store, from the thread's last position**, never by a caller.
+3. **A rejected write consumes no position.** Validation runs first; an append that fails
+   leaves the counter where it was.
+4. **An entry's `seq` is never rewritten.** A correction is a new entry that points back
+   at the position it corrects.
 
-Rules the prototype actually enforces (all in `appendMessage`):
-
-1. `seq` is computed as `(last(threadId)?.seq || 0) + 1`, where `last()` is the
-   last stored message for that thread. Sequence is **per thread**, not per
-   board and not global; two threads independently number from 1.
-2. The sequence is assigned once, at commit, and never rewritten. A lone
-   corrective message is modelled as a *new* message that references the old
-   one, so the original position stays intact.
-3. `createdAt` is an ISO timestamp, but ordering is by `seq`, not by
-   `createdAt`. Seed data is generated with `ago(minutes)` timestamps that are
-   not monotonic with sequence, which is deliberate: the reading order is the
-   sequence.
-4. `readMessages(threadId, { after })` returns `db.messages` filtered to
-   `seq > after` and sorted by `seq` ascending. `after` is a **cursor**, i.e.
-   the last sequence the caller has already processed. `after: 0` returns the
-   whole thread.
-5. The UI renders `#<seq>` in the message byline (`.message-seq`, title
-   "Canonical thread sequence"), and the thread drawer reports
-   "Last sequence `#<n>`" and "Message order: Per thread".
-
-So the invariant to rely on is: for one thread, `seq` is a gap-free,
-strictly increasing, immutable position. Across threads there is no ordering
-relationship at all.
+Rules 1 and 3 are what make `seq` a usable cursor: a gap would mean an entry that was
+counted and then lost, and a re-used number would make two entries indistinguishable.
 
 ## Delivery is separate from history
 
-`db.stream` models a durable subscription:
+History is the entries. Delivery is what a particular connection has received, tracked as
+a `cursor`. They diverge whenever a reader is paused, offline, or has just reconnected.
 
-```js
-stream: {
-  connected: boolean,
-  cursors: { [threadId]: number },  // highest seq delivered to this client
-  log: [{ type, text, at }]         // last 20 entries
-}
-```
-
-- **Commit** always happens: `appendMessage` pushes the message and its
-  dedup record before any delivery decision.
-- **Delivery** happens only while `stream.connected` is true: the thread's
-  cursor jumps to the new `seq` and a `delivered` log entry is written
-  (`Message #<seq> delivered`).
-- **While paused**, an agent-authored message is still committed and gets a
-  `queued` log entry (`Message #<seq> awaiting replay`). The author's own
-  messages (`authorId === 'alex'` in the prototype) are never queued, because
-  the local client already has them.
-- `setConnection(connected)` returns `{ connected, pending }`. Reconnecting
-  sets every thread cursor to that thread's last `seq` and logs
-  `Replayed <n> missed message(s)` or `No missed messages to replay`.
-  Disconnecting logs `Subscription paused`.
-
-`pendingTotal()` is the sum over threads of messages with
-`seq > cursor[threadId]` that were not authored by the local user. That single
-number is what the "Paused · n" badge and the stream panel report.
+- **A pause is server state.** The cursor stops advancing; entries keep committing.
+  `setConnection({ connected: false })` returns a `pending` count computed from the
+  difference between the cursor and the thread's last `seq`, so the number is the
+  store's answer rather than a counter a component kept.
+- **A resume replays that difference.** Nothing is stored per subscriber: the replay is
+  derived from the cursor, which is why it cannot disagree with the history.
+- **A pause that lived only in the browser would break both.** The cursor would advance
+  with every commit, so `pending` would always be `0` and a resume would replay nothing.
+  The port made this mistake once and the ticket that required a working pause found it.
 
 ### What the UI hides while paused
 
-`visibleMessages(threadId)` keeps a message when the stream is connected, or
-when `seq <= cursors[threadId]`, or when it is the local user's own message.
-So a paused client shows history up to its cursor plus its own drafts, never
-an agent message it has not received yet — even though that message is
-already committed and durable.
+Nothing above the reader's `cursor`. The entries below it (by `seq`) are rendered; the
+ones above are committed and withheld. The app asserts both halves at the route seam:
+the entry is in the history and not in the paused reader's view.
 
-## Read state is not the delivery cursor
+## Three watermarks, three meanings
 
-`db.seen[threadId]` is the highest sequence the user has *looked at*, updated
-by `markRead()` only while connected, and only forward
-(`Math.max(seen, sequence)`). Unread counts, thread-row markers and the board
-badges are computed from `seen`, not from `cursors`. Treat them as two
-separate watermarks:
+| Watermark | Moves when | Answers |
+| --- | --- | --- |
+| `cursor` | an entry is delivered to this client | what have I received? |
+| `seen` | the reader reads a thread | how much have I read? |
+| `acknowledged` | the principal acknowledges, explicitly | how far do I say I have processed? |
 
-- `cursors[threadId]` — delivery. Advanced by commit (connected) or by
-  reconnect/replay.
-- `seen[threadId]` — human attention. Advanced by selecting or reading a
-  thread.
+They are separate because they answer different questions and move for different reasons.
+A single number would have to choose one meaning and silently drop the other two.
+
+**The unread badge counts every entry past `seen`, including the reader's own.** The
+prototype excluded the reader's own entries (`app.js` L135) and that exclusion was
+deliberately **not** carried: the watermark is the rule (`spec L502`), and three seeded
+threads read differently under the two rules. A badge written to the prototype's
+exclusion disagrees with the watermark the server reports.
+
+**Acknowledgement is a range, not a verdict.** `upTo` states how far a principal got; the
+model carries no "done", "agreed" or "signed off" state, and copy must not invent one.
+Acknowledging backwards is refused, as is acknowledging past the thread's last position.
 
 ## Idempotency
 
-`appendMessage` accepts an `idempotencyKey`. The prototype keeps
-`db.idem[key] = message.id` and returns the existing message when the same key
-is presented again, before checking thread existence or board membership. The
-composer generates one key per send attempt (`uid('submit')`) and the
-simulated stream generates one per simulated post (`uid('sim')`), so a
-double-submit of the same key cannot produce a second `seq`.
+`appendMessage` accepts an optional `idempotencyKey`. The lookup runs **before** the
+validation checks, so a replay of a stored key returns the stored entry even if the thread
+would now fail validation. On failure, **keep the key**: a retry must replay, and a fresh
+key makes the retry a second entry.
 
-Consequences worth stating plainly:
+## Reading in practice
 
-- Idempotency is keyed by the caller-supplied string, in the same
-  `localStorage` document. It is not a server-side dedup window.
-- A retry must reuse the *original* key to be deduplicated; a fresh key is a
-  new message and consumes a new sequence number.
-- Because the dedup record and the message are written in the same tick as
-  the outbox log line, the prototype is modelling a single atomic commit of
-  message + dedup + notification, which is what its seeded discussion on the
-  delivery thread recommends (transactional outbox).
-
-## Replay boundaries the prototype does not implement
-
-`README.md` and `PRODUCT.md` are explicit and the implementation agrees:
-
-- No distributed durability, no broker delivery guarantees, no authentication,
-  no cross-device sync. All state is `localStorage` in one browser profile.
-- There is no snapshot-to-live watermark handoff, no overlap deduplication,
-  and no server-side retention window; `readMessages` always reads the full
-  simulated store.
-- Reconnect replays by *jumping the cursor*, not by replaying a stored event
-  log. The stream `log` is a 20-entry human-readable trace, not an event
-  stream a client can consume.
-
-Any guidance you write about Relayboard replay must keep that distinction:
-the contract demonstrates cursor-based recovery; it does not prove
-at-least-once delivery from a real broker.
-
-## Working recipe: catch up after an absence
-
-```js
-const api = window.RelayboardMockAPI;
-let cursor = 0; // persist this per (client, thread)
-
-const missed = await api.readMessages('delivery', { after: cursor });
-for (const message of missed) {
-  render(message);            // order is already seq ascending
-  cursor = message.seq;       // only advance after the message is handled
-}
-```
-
-Then keep the same cursor for the live path: while connected, new commits
-advance the thread cursor in the same units. The `read-replay` seed thread
-states the rule the UI follows — "The same cursor must work across reconnects."
+1. `readThread(threadId)` returns the record and its entries, in `seq` order.
+2. `readMessages(threadId, { after })` returns the entries with `seq > after`, ascending —
+   the catch-up read. Start a fresh client at `0`.
+3. `readPositions(threadId)` returns every principal's watermarks on the thread.
+4. Advance the cursor **after** handling an entry, never before: an interruption then
+   re-reads rather than skips.
 
 ## Checklist
 
-- Ordering derived from `seq`, never from array position or `createdAt`.
-- Cursor advanced only after the message is processed, and persisted with the
-  reading client.
-- A paused client must not show messages beyond its cursor.
-- Retries reuse the original `idempotencyKey`.
-- Anything claiming durability beyond one browser profile is wrong.
+- [ ] Every read is ordered by `seq`, ascending — never by `createdAt`, never by array
+      position.
+- [ ] The cursor is kept per thread and advanced only after an entry is handled.
+- [ ] A paused view renders nothing above its cursor, and nothing is treated as lost.
+- [ ] The unread count follows `seen`, including the reader's own entries.
+- [ ] A retry reuses its original `idempotencyKey`.
+- [ ] Nothing claims guarantees beyond one process's memory.

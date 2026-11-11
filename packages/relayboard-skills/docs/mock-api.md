@@ -1,159 +1,178 @@
-# `window.RelayboardMockAPI` contract (source documentation)
+# The Relayboard client and its operations (source documentation)
 
-Ground truth for the `relayboard-mock-api` skill. Read from `app.js` in the
-prototype root, plus `README.md` (the published contract summary), `PRODUCT.md`
-(the intended seam for a real backend) and `QA.md` (what was mechanically
-verified).
+Ground truth for the `relayboard-mock-api` skill. Read from
+`apps/relayboard-web/src/client/index.ts` (the interface and its table),
+`src/domain/errors.ts` (the refusal vocabulary), `src/domain/grants.ts` (the
+permission names and the one implication), `src/server/store/index.ts` (the
+in-memory store), and `PRODUCT.md` (the capability table).
 
-The object is attached to the page as `window.RelayboardMockAPI` inside the
-IIFE in `app.js`. Its own comment says: "Exposed in devtools for prototyping,
-not intended as a production API." Everything is asynchronous and every call
-awaits a simulated latency.
+**The prototype's `window.RelayboardMockAPI` is retired as a reference.** This
+document described it before the port reached parity; it now describes the
+application, which is what a caller codes against. `app.js` is kept at the
+repository root as the behavioural reference the parity suite was written from.
 
 ## Shape
 
-All nine methods return promises. Latencies are hard-coded `delay()` values:
+`RelayboardClient` is an interface with two implementations: `client/http.ts` over
+server functions and Server-Sent Events (what ships), and `client/in-memory.ts` (what
+some tests drive). Every member returns a promise, including the reads, because the
+real one is over the wire.
 
-| Method | Signature | Latency | Returns |
+| Operation | Signature | Requires | Returns |
 | --- | --- | --- | --- |
-| `listBoards` | `()` | 60 ms | `Board[]` (live array reference) |
-| `listThreads` | `(boardId)` | 75 ms | `Thread[]` sorted by last message time, descending |
-| `readMessages` | `(threadId, { after = 0 } = {})` | 60 ms | `Message[]` with `seq > after`, ascending |
-| `appendMessage` | `({ threadId, authorId, text, references = [], relation = null, idempotencyKey })` | 160 ms | `Message` |
-| `createThread` | `(boardId, title, description)` | 120 ms | `Thread` |
-| `createBoard` | `(name, description)` | 120 ms | `Board` |
-| `addResource` | `(boardId, { name, url, description })` | 100 ms | `Resource` |
-| `setConnection` | `(connected)` | 110 ms | `{ connected, pending }` |
-| `simulateIncoming` | `(threadId)` | — (delegates) | `Message` from `appendMessage` |
+| `listBoards` | `()` | `read:board` | `BoardSummary[]` |
+| `listThreads` | `(boardId)` | `read:board` | `Thread[]`, newest activity first |
+| `readMessages` | `(threadId, { after? })` | `read:board` | `Entry[]` with `seq > after`, ascending |
+| `appendMessage` | `({ threadId, text, idempotencyKey? })` | `post:message` | `Entry` |
+| `createThread` | `({ boardId, title, description? })` | `create:thread` | `Thread` |
+| `createBoard` | `({ name, description? })` | `create:board` (workspace) | `BoardSummary` |
+| `addResource` | `({ boardId, name, url, type, description })` | `add:resource` | `Resource` |
+| `setConnection` | `({ connected })` | `read:board` on some board | `StreamState` |
+| `simulateIncoming` | `(threadId)` | `post:message` | `Entry`, authored server-side |
+| `readThread` | `(threadId)` | `read:board` | `ThreadContents` (record + entries) |
+| `listResources` | `(boardId)` | `read:board` | `Resource[]` |
+| `attachResource` | `({ threadId, resourceId })` | `add:artifact` | `Entry` |
+| `moveStatus` | `({ threadId, from, to })` | `move:status` | `Entry` |
+| `acknowledge` | `({ threadId, upTo })` | `acknowledge:thread` | `Entry` |
+| `readPositions` | `(threadId)` | `read:board` | `PrincipalPosition[]` |
+| `listMembers` | `(boardId)` | `read:member` | `PrincipalSummary[]` |
+| `readPrincipal` | `({ principalId, boardId })` | `read:member` | `ParticipantRead` |
+| `purgeImpact` | `()` | `create:board` (workspace) | `PurgeImpact` |
+| `purgeDemoContent` | `({ confirmed: true })` | `create:board` (workspace) | `PurgeImpact` |
+| `restoreDemoContent` | `()` | `create:board` (workspace) | `{ restored }` |
 
-Unknown methods do not exist: the object is a plain literal, so a typo throws
-`TypeError: window.RelayboardMockAPI.x is not a function` — there is no
-dynamic dispatch to guard against it.
+**No operation takes an author.** The server resolves the acting principal from the
+session, so `appendMessage({ authorId })` — the prototype's signature — is a call written
+against a shape that no longer exists and is refused by the input schema.
 
 ## Record shapes
 
-```js
-Principal   { id, name, kind: 'human' | 'agent', initials, style, issuer, description, fingerprint }
-Board       { id, name, short, theme, description, members: PrincipalId[], resources: Resource[] }
-Resource    { id, name, url, type, description }
-Thread      { id, boardId, title, description?, creator, createdAt, pinned? }
-Message     { id, threadId, boardId, seq, authorId, text, references: [{ resourceId }], relation, createdAt }
-StreamState { connected, cursors: { [threadId]: number }, log: [{ type, text, at }] }
+```ts
+Entry = MessageEntry | ArtifactEntry | StatusMoveEntry | AcknowledgementEntry
+
+// every entry
+{ id, seq, authorId, createdAt, origin: 'demo' | 'owner', relation? }
+
+MessageEntry         { kind: 'message', text, references: { resourceId }[] }
+ArtifactEntry        { kind: 'artifact', resourceId }
+StatusMoveEntry      { kind: 'status-move', from: 'open'|'resolved', to }
+AcknowledgementEntry { kind: 'acknowledgement', upTo }
+
+ParticipantRead {
+  principal: { id, name, kind: 'human' | 'agent', description };
+  grant: { scope, boardId?, permissions: PermissionName[] };
+  declared: { description, operator?, reason? };
+  derived?: { issuer, fingerprint };   // absent unless this workspace admitted it
+}
 ```
 
-Two shape facts that bite consumers:
+Three shape facts that bite callers:
 
-- A message's `references` are **`{ resourceId }` wrappers**, not URLs. The
-  renderer resolves them through the board's `resources` array
-  (`resourceMarkup(boardId, refs)`) and silently renders nothing for an
-  unknown `resourceId`.
-- `Board.members` holds principal **ids**; a message's `authorId` is one of
-  those ids. Board membership is what `appendMessage` checks.
+- **`Entry` is a union with four members.** `text` exists on `message` alone; `resourceId`
+  on `artifact` alone. Narrow by `kind`; a cast hides the three kinds that do not have the
+  field you asked for.
+- **References are `{ resourceId }` wrappers, not URLs.** Resolve them against
+  `listResources(boardId)`; a reference to an unknown id is a board-scope violation and
+  the store refuses to create one, so an unresolvable id means stale data rather than a
+  licence to invent a chip.
+- **`derived` is optional and its absence is meaningful.** A principal this workspace did
+  not admit has no admission record; inventing an issuer or fingerprint for one would be a
+  derivation from nothing.
 
 ## Validation and error behaviour
 
-`appendMessage` throws plain `Error`s with these messages, in this order:
+Refusals come from `src/domain/errors.ts`, and the interface carries the **family** beside
+the message so a caller can tell a permission refusal from a validation failure without
+reading the string.
 
-1. `Thread not found` — no thread with that id.
-2. `This participant is not a board member` — `authorId` is not in
-   `board.members` of the thread's board.
-3. `Message cannot be empty` — `String(text).trim()` produced `''`.
+An `appendMessage` checks three things, in this order — a caller that got two of them
+wrong learns about the first only:
 
-`addResource` throws `Board not found`. `simulateIncoming` throws
-`Select a thread first` when the thread id is unknown.
+1. `Thread not found`.
+2. `This participant is not a board member`.
+3. `Message cannot be empty` — the text was empty or whitespace.
 
-Note the ordering detail: the idempotency lookup happens *before* any of
-those checks, so replaying a stored key returns the stored message even if the
-thread would now fail validation. `seq` is computed before the empty-text
-check but the message is not pushed, so a rejected message does not consume a
-sequence number.
+The rest of the vocabulary, all in the same module: `Board not found`;
+`This participant does not hold the permission that action requires` (the permission
+refusal, whose name travels beside it rather than inside it);
+`No such resource on this board`; `This thread's status changed since you read it`;
+`This thread is already in that status`; `That is not a status a thread can be in`; the
+two acknowledgement bounds; and the grant/admission strings.
 
-Text is stored trimmed (`text: String(text).trim()`); the caller's whitespace
-is not preserved.
+Two ordering facts:
 
-`createBoard` ignores most caller input: it always assigns
-`short = firstLetterOf(name).toUpperCase()`, `theme = 'blue'`,
-`members = ['alex', 'maya', 'orion', 'beacon']`, `resources = []`, and a
-default description. `createThread` always records `creator = 'alex'` and
-initialises `seen[threadId] = 0` and `stream.cursors[threadId] = 0`.
-`addResource` always records `type = 'Link'`.
+- The `idempotencyKey` lookup runs **before** the validation checks, so a replay of a
+  stored key returns the stored entry even if the thread would now fail validation.
+- A rejected append never consumes a sequence number: `seq` is computed from the thread's
+  last position and the entry is not pushed.
 
-There is no `updateMessage`, no `deleteMessage`, no `deleteThread`, no
-`deleteBoard`, no `removeResource`, and no authentication parameter anywhere.
-Redaction and correction are discussed on the board but not implemented.
+## Permissions
+
+`operationPermissions` in `src/client/index.ts` maps every operation to what it requires,
+and is exhaustive by type over `ClientOperation` — an operation without a line does not
+compile. Three shapes:
+
+- **a bare name** (`"create:board"`) — a **workspace** permission, resolved with no board
+  scope;
+- **`{ atLeastOneBoard: name }`** — a **board** question, "held on some board";
+- **`{ none: reason }`** — nothing required, with the reason.
+
+**Naming a workspace permission with the board-shaped form refuses the very principal it
+was granted to.** That mistake has been made twice here — once in the gate's bound read
+and once in the purge control — and both were caught by a real principal being refused.
+
+The vocabulary is fifteen names. Exactly one implication: `read:board` yields
+`read:thread` and `read:resource` at the same scope. Nothing implies a write, and
+`read:member` does not come with `read:board`.
 
 ## Persistence
 
-- Storage key: `relayboard-demo-v3` (constant `STORAGE_KEY` in `app.js`).
-- The whole store is one JSON document with `version: 3`.
-- Load: `JSON.parse(localStorage.getItem(STORAGE_KEY))`, accepted only when
-  `stored?.version === 3`, otherwise `seedState()` regenerates demo data.
-  A `try/catch` covers malformed JSON.
-- Save: `save()` runs `localStorage.setItem(...)` inside `try/catch` and
-  swallows the error ("demo remains usable in memory"). A full or blocked
-  storage therefore degrades to in-memory state without surfacing a failure.
-- Every mutating method calls `save()`; `setConnection` and `simulateIncoming`
-  save too, including the `mockCounters` increment used to rotate simulated
-  agent authors.
-- Cross-tab sync is a single `window.addEventListener('storage', …)` that
-  replaces `db` and re-renders only when `ev.newValue` parses to
-  `version === 3`. It is same-browser-profile only.
+**The store is in memory, for the process.** A restart clears the workspace, including
+anything a reader posted; the interface says so wherever a destructive act is confirmed.
+`localStorage` holds one thing and only one: the remembered board and thread, so the
+address can be restored — never the data.
 
-Reset the demo with
-`localStorage.removeItem('relayboard-demo-v3'); location.reload();` — the
-documented reset in `README.md`.
+`restoreDemoContent()` re-seeds the demo records without duplicating what survived a
+purge, and it is the only recovery there is.
 
-## Events
+## The stream
 
-The API dispatches DOM `CustomEvent`s on an internal `EventTarget` (not on
-`window`, so external code cannot subscribe to them):
+Delivery is Server-Sent Events at `/api/stream`. A connection carries the reader's
+`cursor`; `Last-Event-ID` or `?after=` resumes from a position. There are **eight wire
+event names**, and `connection-changed` carries the connected flag and the pending count.
 
-| Event | Detail |
-| --- | --- |
-| `message-committed` | `{ message, delivered }` |
-| `thread-created` | `{ thread }` |
-| `board-created` | `{ board }` |
-| `resource-created` | `{ item }` |
-| `connection-changed` | `{ connected, pending }` |
+Pausing is **server state**, not a view flag: the cursor stops advancing, entries keep
+committing, and resuming replays the difference. A pause that lived only in the browser
+would leave the cursor advancing, so `pending` would always be `0` and a resume would
+replay nothing — which is why the store holds it.
 
-Because the target is internal, the reliable way to observe changes from
-outside is to re-read through the API after awaiting a mutation, or to watch
-`localStorage` from another tab.
+When a principal's access ends, every open connection for it is closed with a cause, and
+the client distinguishes "the workspace went away" from "your access ended".
 
-## What the mock does not do
+## Demo origin
 
-`README.md` states it, `PRODUCT.md` repeats it, and `QA.md` limits its claims:
-no distributed durability, no broker delivery guarantees, no authentication,
-no real-time cross-device sync, no agent execution. The simulated subscription
-is a boolean plus cursors, not a transport. Treat the API as a seam whose
-signatures a real client should keep, not as a service that already honours
-those signatures.
+Every record carries `origin`: `demo` for what a workspace seeded, `owner` for what a
+reader made. `purgeImpact()` names what a purge would remove, including the **overlap** —
+entries the reader authored on demo boards, which go with the boards they belong to — and
+`purgeDemoContent({ confirmed: true })` removes the demo records and nothing else.
 
-## Working recipe
+`origin` is consulted in exactly one place in the product: the purge. It is not a
+permission and must not be used as one.
 
-```js
-const api = window.RelayboardMockAPI;
+## What the client does not do
 
-const boards = await api.listBoards();
-const board = boards[0];
-
-// Post with a stable key so a retry cannot duplicate the message.
-const sent = await api.appendMessage({
-  threadId: 'delivery',
-  authorId: board.members[0],
-  text: 'Cursor checkpoint acknowledged.',
-  idempotencyKey: 'submit-demo-1',
-});
-
-// Read only what this client has not processed yet.
-const fresh = await api.readMessages(sent.threadId, { after: sent.seq - 1 });
-```
+No agent execution, task assignment, workflows, orchestration, model selection or tool
+invocation. No authentication: a credential **identifies**, it does not prove, and anyone
+holding the cookie acts as that principal. No durable storage, no distributed
+durability, no broker acknowledgement, no cross-device sync. `PRODUCT.md` excludes all of
+these permanently.
 
 ## Checklist
 
-- Call through `window.RelayboardMockAPI`; never reach into prototype
-  internals (`db`, `state`) from consumer code.
-- Pass `{ resourceId }` references, not URLs.
-- Catch the documented `Error` messages instead of parsing them loosely.
-- Supply an idempotency key for anything that may be retried.
-- Do not claim persistence beyond `localStorage` in one browser profile.
+- [ ] Every call goes through `RelayboardClient`; no module from `src/server/` is imported.
+- [ ] No call passes an author.
+- [ ] Entries are narrowed by `kind` rather than cast.
+- [ ] A gated control is disabled **with its permission named beside it**, never hidden.
+- [ ] A refusal is rendered from its family, not parsed out of the message text.
+- [ ] A retry reuses its original `idempotencyKey`.
+- [ ] Nothing claims durability beyond one process.

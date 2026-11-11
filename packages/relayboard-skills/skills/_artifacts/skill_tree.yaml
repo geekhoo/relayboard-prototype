@@ -65,16 +65,17 @@ skills:
     package: packages/relayboard-skills
     path: skills/relayboard-thread-sequencing/SKILL.md
     description: >-
-      Use when reading, ordering, replaying, or resuming Relayboard thread
-      messages in the prototype, including per-thread canonical sequence
-      numbers, delivery cursors versus read watermarks, catching up after a
-      pause, and idempotent re-sends. Covers the window.RelayboardMockAPI read
-      path only; use relayboard-mock-api to post messages or create boards and
-      threads.
+      Use when reading, ordering, replaying or resuming a Relayboard thread's
+      chronology, including its per-thread canonical sequence, the delivery
+      cursor versus the read and acknowledgement watermarks, catching up after a
+      pause, and retrying a send idempotently. Covers entry ordering and the
+      three watermarks; use relayboard-mock-api to write entries or create
+      boards and threads.
     purpose: >-
       Keep thread reads correct: order by the immutable per-thread sequence,
-      keep the delivery cursor separate from the human read watermark, catch up
-      with readMessages({ after }), and retry with the original idempotency key.
+      keep the delivery cursor separate from the read and acknowledgement
+      watermarks, catch up with readMessages({ after }), and retry with the
+      original key.
     sources:
       - docs/thread-sequencing.md
       - docs/mock-api.md
@@ -85,17 +86,19 @@ skills:
     package: packages/relayboard-skills
     path: skills/relayboard-mock-api/SKILL.md
     description: >-
-      Use when calling window.RelayboardMockAPI in the Relayboard prototype to
-      list boards and threads, post or simulate messages, create boards and
-      threads, add resource links, or toggle the simulated stream — and when
-      deciding what the mock does and does not persist. Covers method shapes,
-      error messages and localStorage behaviour; use
-      relayboard-thread-sequencing for read ordering and cursors.
+      Use when calling the Relayboard client to list boards and threads, read or
+      append entries, create a board or thread, add or attach a resource, move a
+      thread's status, acknowledge, or change the stream's connection — and when
+      deciding which permission an operation needs and what the store does and
+      does not persist. Covers the operation vocabulary, the entry kinds, the
+      refusal families and the demo-origin boundary; use
+      relayboard-thread-sequencing for read ordering and watermarks, and
+      relayboard-identity for authorship.
     purpose: >-
-      Call the prototype's asynchronous mock client correctly: the nine method
-      signatures, the record shapes they return, the exact errors they throw,
-      the localStorage key and reset, and the guarantees the mock deliberately
-      omits.
+      Call the app's client correctly: the operation vocabulary a caller
+      actually has, the entry kinds one chronology holds, the permission each
+      operation requires, the refusal families it can return, and the guarantees
+      the in-memory store deliberately omits.
     sources:
       - docs/mock-api.md
       - docs/thread-sequencing.md
@@ -107,17 +110,18 @@ skills:
     path: skills/relayboard-identity/SKILL.md
     description: >-
       Use when rendering or reasoning about Relayboard authorship and
-      provenance: deciding whether a message came from a human or an agent,
-      surfacing the principal id versus display name, showing the agent chip and
-      fingerprint, or reviewing a change that could imply verification,
-      permission or execution status for an agent. Use relayboard-mock-api to
-      write data; this skill covers what authoring information may be shown and
-      claimed.
+      provenance: deciding whether an entry came from a human or an agent,
+      showing a principal's id versus display name, rendering the agent chip, or
+      showing the issuer and fingerprint a workspace derived versus what a
+      principal declared — and when reviewing a change that could imply
+      verification, permission or execution for an agent. Use
+      relayboard-mock-api to write entries; this skill covers what authorship
+      information may be shown and claimed.
     purpose: >-
       Keep authorship legible and honest: one principal model for humans and
       agents, identity by durable id rather than name, the agent chip as the
-      only visual signal, provenance that never implies verification, permission
-      or execution.
+      only visual signal, derived kept separate from declared, and provenance
+      that never implies verification, permission or execution.
     sources:
       - docs/identity-provenance.md
     requires: []

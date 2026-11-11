@@ -155,11 +155,18 @@ the working example:
 ```json
 {
   "intent": {
-    "skills": ["@tanstack/*", "@relayboard/skills"],
-    "exclude": ["@relayboard/skills#relayboard-identity"]
+    "skills": ["@tanstack/*", "@relayboard/skills"]
   }
 }
 ```
+
+**The `exclude` list is now empty, and that is a fact about the app rather than a
+tidy-up.** `@relayboard/skills#relayboard-identity` was excluded because its guidance needed a
+principal read the prototype did not expose — `window.RelayboardMockAPI` had no
+`getPrincipal`, so `kind`, the grant, the issuer and the fingerprint were unreachable from
+consumer code. The port's ticket 12 shipped `readPrincipal` (one board-scoped read gated by
+`read:member`), the identity skill was rewritten against it, and the exclusion was removed
+with the package's Batch 2. A consumer can now load all three skills.
 
 `"@tanstack/*"` opts in to the Agent Skills that the installed TanStack packages ship
 themselves — see *TanStack's own skills* below. It is a scope rule, so it also covers
@@ -178,11 +185,34 @@ listed in intent.skills"*. That last rule is exactly why TanStack's skills were
 invisible until `"@tanstack/*"` was added: they are transitive dependencies of the app,
 and discovery finds them but does not grant trust.
 
+**The vendored tarball must be repacked whenever the package's guidance changes — and
+repacking alone changes nothing.** Every gate above reads the source tree; none of them reads
+`vendor/`. So a green `skills:check` with a stale tarball means the app is serving the previous
+guidance.
+
+**A repack does not re-install, and this is the trap.** npm treats a `file:` dependency whose
+*path* has not changed as unchanged: its `integrity` is recorded over the resolved package, not
+over the tarball file, so a tarball with a new shasum at the same path is invisible to it.
+Measured after rewriting the guidance: `npm install` printed **`up to date`** and left the old
+`node_modules` copy in place (5218 bytes, zero `readPrincipal` hits) while the tarball on disk was
+8319 bytes with four. `npm install --force` did not help, and neither did deleting
+`package-lock.json`. What re-resolves it is **naming the dependency explicitly**:
+
+```sh
+# apps/relayboard-web
+npm install 'file:vendor/relayboard-skills-0.1.0.tgz' --save-exact
+```
+
+That changes the lockfile's `integrity` and replaces the installed copy. **Then prove it against
+the installed copy, not the source**: `npx intent list --json` should list all three Relayboard
+skills with an empty exclusions array, and `npx intent load @relayboard/skills#relayboard-identity`
+should print the new guidance. Both read `node_modules`, so a stale install fails them.
+
 ### TanStack's own skills
 
 The scaffold's TanStack packages ship their own `skills/**/SKILL.md`. Once
 `"@tanstack/*"` is allowlisted, discovery surfaces **11 packages / 35 skills** alongside
-the two Relayboard ones (12 packages, 37 skills total, `hiddenSourceCount: 0`,
+the three Relayboard ones (12 packages, 37 skills total, `hiddenSourceCount: 0`,
 `conflicts: []`):
 
 | Package | Skills | Type |

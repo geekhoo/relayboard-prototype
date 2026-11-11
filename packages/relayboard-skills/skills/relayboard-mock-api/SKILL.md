@@ -1,17 +1,19 @@
 ---
 name: relayboard-mock-api
 description: >-
-  Use when calling window.RelayboardMockAPI in the Relayboard prototype to list
-  boards and threads, post or simulate messages, create boards and threads, add
-  resource links, or toggle the simulated stream — and when deciding what the
-  mock does and does not persist. Covers method shapes, error messages and
-  localStorage behaviour; use relayboard-thread-sequencing for read ordering
-  and cursors.
+  Use when calling the Relayboard client to list boards and threads, read or
+  append entries, create a board or thread, add or attach a resource, move a
+  thread's status, acknowledge, or change the stream's connection — and when
+  deciding which permission an operation needs and what the store does and does
+  not persist. Covers the operation vocabulary, the entry kinds, the refusal
+  families and the demo-origin boundary; use relayboard-thread-sequencing for
+  read ordering and watermarks, and relayboard-identity for authorship.
 metadata:
   purpose: >-
-    Call the prototype's asynchronous mock client correctly: the nine method
-    signatures, the record shapes they return, the exact errors they throw, the
-    localStorage key and reset, and the guarantees the mock deliberately omits.
+    Call the app's client correctly: the operation vocabulary a caller actually
+    has, the entry kinds one chronology holds, the permission each operation
+    requires, the refusal families it can return, and the guarantees the
+    in-memory store deliberately omits.
   type: core
   library: '@relayboard/skills'
   library_version: 0.1.0
@@ -20,143 +22,169 @@ sources:
   - 'docs/thread-sequencing.md'
 ---
 
-# Relayboard mock API
+# The Relayboard client
 
-`window.RelayboardMockAPI` is a plain object of nine async functions attached by
-`app.js`. It is the prototype's intended seam for a real backend: keep its
-signatures, do not assume its guarantees. Field-level detail, error ordering
-and storage behaviour are in [docs/mock-api.md](../../docs/mock-api.md).
+Relayboard's application is a TanStack Start app under `apps/relayboard-web`. Its
+client is an interface — `RelayboardClient` in `src/client/index.ts` — with an HTTP
+implementation over server functions and Server-Sent Events, and an in-memory
+implementation the tests drive. **There is no `window.RelayboardMockAPI`**: the
+prototype that had one is retired as a reference and no longer the thing to code
+against. Field-level detail is in [docs/mock-api.md](../../docs/mock-api.md).
 
 ## Setup
 
-Call the global from page code; there is nothing to import. Every method awaits
-a simulated latency, so treat all calls as pending network work.
+Every operation is a promise, including the reads, because the real one is over the
+wire. Do not assume the in-memory implementation's immediacy.
 
 ```ts
-interface MockMessage {
-  readonly id: string
-  readonly threadId: string
-  readonly boardId: string
-  readonly seq: number
-  readonly authorId: string
-  readonly text: string
-  readonly references: readonly { readonly resourceId: string }[]
-  readonly createdAt: string
+interface RelayboardClient {
+  // the prototype's nine, carried forward in name and intent
+  listBoards(): Promise<readonly BoardSummary[]>
+  listThreads(boardId: BoardId): Promise<readonly Thread[]>
+  readMessages(threadId: ThreadId, options?: { after?: Seq }): Promise<readonly Entry[]>
+  appendMessage(input: AppendMessageInput): Promise<Entry>
+  createThread(input: CreateThreadInput): Promise<Thread>
+  createBoard(input: CreateBoardInput): Promise<BoardSummary>
+  addResource(input: AddResourceInput): Promise<Resource>
+  setConnection(input: SetConnectionInput): Promise<StreamState>
+  simulateIncoming(threadId: ThreadId): Promise<Entry>
+
+  // a thread as a chronology, and the resources it points at
+  readThread(threadId: ThreadId): Promise<ThreadContents>
+  listResources(boardId: BoardId): Promise<readonly Resource[]>
+
+  // the authored acts beyond a message
+  attachResource(input: AttachResourceInput): Promise<Entry>
+  moveStatus(input: MoveStatusInput): Promise<Entry>
+  acknowledge(input: AcknowledgeInput): Promise<Entry>
+
+  // progress, participants, and the demo boundary
+  readPositions(threadId: ThreadId): Promise<readonly PrincipalPosition[]>
+  listMembers(boardId: BoardId): Promise<readonly PrincipalSummary[]>
+  readPrincipal(input: { principalId: PrincipalId; boardId: BoardId }): Promise<ParticipantRead>
+  purgeImpact(): Promise<PurgeImpact>
+  purgeDemoContent(input: { confirmed: true }): Promise<PurgeImpact>
+  restoreDemoContent(): Promise<{ restored: number }>
 }
+```
 
-interface MockApi {
-  listBoards(): Promise<readonly { readonly id: string; readonly name: string }[]>
-  appendMessage(input: {
-    readonly threadId: string
-    readonly authorId: string
-    readonly text: string
-    readonly idempotencyKey: string
-  }): Promise<MockMessage>
-}
+**Nothing takes an `authorId`.** Authorship is resolved server-side from the session,
+so a caller cannot say who spoke. The prototype's
+`appendMessage({ threadId, authorId, text, idempotencyKey })` was superseded; a call
+that passes an author is a call written against the old shape.
 
-declare const api: MockApi
-
-const post = async (): Promise<MockMessage> =>
-  api.appendMessage({
-    threadId: 'delivery',
-    authorId: 'alex',
-    text: 'Cursor checkpoint acknowledged.',
-    idempotencyKey: 'submit-demo-1',
-  })
+```ts
+const post = (client: RelayboardClient, text: string): Promise<Entry> =>
+  client.appendMessage({ threadId: 'delivery', text, idempotencyKey: 'submit-demo-1' })
 ```
 
 ## Core patterns
 
-### Post with a stable idempotency key
+### Ask for the permission you need, before you call
 
-Deduplication is keyed by the caller's string. Generate one key per user
-intent, keep it for the retry, and let the mock return the original message.
-
-```ts
-const sendOnce = async (
-  api: MockApi,
-  key: string,
-  text: string,
-): Promise<{ readonly seq: number; readonly replayed: boolean }> => {
-  const first = await api.appendMessage({
-    threadId: 'delivery',
-    authorId: 'alex',
-    text,
-    idempotencyKey: key,
-  })
-  const again = await api.appendMessage({
-    threadId: 'delivery',
-    authorId: 'alex',
-    text,
-    idempotencyKey: key,
-  })
-  return { seq: first.seq, replayed: first.id === again.id }
-}
-```
-
-### Reference a resource by id, not by URL
-
-`Message.references` holds `{ resourceId }` wrappers resolved against the
-board's `resources`. A reference to an unknown id renders nothing at all.
+Every operation declares the permission it requires, in `operationPermissions` — a
+table that is exhaustive by type over `ClientOperation`, so an operation without a
+line does not compile. Read it rather than guessing, and read it *before* rendering a
+control: a control a reader may not use is disabled **with the missing permission
+named beside it**, never hidden.
 
 ```ts
-const reference = (resourceId: string): { readonly resourceId: string } => ({ resourceId })
+// The two shapes a requirement can take, and the distinction that matters:
+//   a bare string        -> a WORKSPACE permission, resolved with no board scope
+//   { atLeastOneBoard }  -> a BOARD question: "held on some board"
+// Naming a workspace permission with the shaped form refuses the very principal it
+// was granted to. That mistake has been made twice in this repository.
 ```
 
-### Expect these errors verbatim
+The vocabulary is fifteen names, and there is one implication:
+`read:board` yields `read:thread` and `read:resource` at the same scope. Nothing
+implies a write. `PRODUCT.md`'s permission table is the authoritative list.
 
-`appendMessage` throws `Error('Thread not found')`, then
-`Error('This participant is not a board member')`, then
-`Error('Message cannot be empty')` — in that order. `addResource` throws
-`Error('Board not found')`; `simulateIncoming` throws
-`Error('Select a thread first')`. Match on the message text; there are no error
-codes.
+### One chronology, four kinds of entry
 
-One ordering detail matters: the `idempotencyKey` lookup runs **before** any of
-those checks, so a replay of a stored key returns the stored message even if the
-thread would now fail validation. A rejected message never consumes a sequence
-number, because `seq` is computed but the message is not pushed.
+A thread is a chronology of **entries**, not a list of messages. `Entry` is a union:
+`message`, `artifact`, `status-move`, `acknowledgement`. Every one carries a `seq`, an
+`authorId`, a `createdAt` and an `origin`. A `message` additionally carries `text` and
+`references`; an `artifact` carries `resourceId` and nothing else about the resource.
 
 ```ts
-const isMembershipError = (error: unknown): boolean =>
-  error instanceof Error && error.message === 'This participant is not a board member'
+const textOf = (entry: Entry): string =>
+  // Narrow by the discriminant; never cast. An act's detail lives in its own fields.
+  entry.kind === 'message' ? entry.text : ''
 ```
 
-### Reset the demo deliberately
+Narrow with the discriminant. A display that treats every entry as prose will render
+three of the four kinds as blank rows, and a display that ranks them has invented a
+hierarchy the model does not carry.
 
-State lives in `localStorage['relayboard-demo-v3']` as a single `version: 3`
-document. A version mismatch or unparsable JSON silently reseeds demo data.
+### Reference a resource by id, never by URL or content
+
+A message's `references` hold `{ resourceId }` wrappers and an artifact holds a
+`resourceId`; both resolve against `listResources(boardId)`. The resource is the
+canonical object and the entry points at it — never copy its content into a thread,
+and never treat a missing id as a reason to invent one. A message with references
+shows them exactly as an artifact shows its own: same chip, same canonical href.
+
+### Expect a refusal with a family, not just a message
+
+A failed operation returns an error carrying a **family** as well as a message, so a
+caller can tell a permission refusal from a validation failure without reading the
+string. Render the family's sentence; do not parse the text.
 
 ```ts
-const resetRelayboardDemo = (): void => {
-  localStorage.removeItem('relayboard-demo-v3')
-  location.reload()
-}
+// An append can fail with three strings, in this order — a caller that got two things
+// wrong learns about the first one only:
+//   'Thread not found'
+//   'This participant is not a board member'
+//   'Message cannot be empty'
+// A rejected append never consumes a sequence number.
+//
+// The same module holds the rest of the vocabulary: 'This participant does not hold the
+// permission that action requires', 'No such resource on this board', "This thread's
+// status changed since you read it", 'This thread is already in that status', and the two
+// acknowledgement bounds. They live in `src/domain/errors.ts` — one place, so a caller
+// and a test assert the same literal.
 ```
+
+`idempotencyKey` is optional, and a retry should supply the original one. The lookup runs **before** those checks, so a replay of a stored key
+returns the stored entry even if the thread would now fail validation. On failure,
+**keep the key**: a retry must replay, and a fresh key makes the retry a second post.
+
+### Demo content is demo-origin, and it can be purged
+
+Every record carries `origin`: `demo` for what a workspace seeded, `owner` for what a
+reader made. The purge removes `demo` records and leaves the reader's own, and it
+reports the **overlap** — entries the reader authored on demo boards — before it runs.
+Code that reads a seeded board should therefore expect the purge rather than be
+surprised by it, and should not treat `origin` as a permission: it decides what a
+purge removes and nothing else.
+
+### The store is in memory, and every surface should say so
+
+A restart clears the workspace. `restoreDemoContent()` brings the demo back without
+duplicating what survived, and that is the only recovery there is. No distributed
+durability, no broker acknowledgement, no cross-device sync, no authentication (a
+credential identifies; it does not prove), and no agent execution.
 
 ## Common mistakes
 
-- **Assuming creation inputs are honoured.** `createBoard` overrides `short`,
-  `theme: 'blue'`, a fixed member list and an empty `resources` array;
-  `createThread` always sets `creator: 'alex'`; `addResource` always sets
-  `type: 'Link'`. Read the returned record instead of the input you passed.
-- **Subscribing to the API's custom events.** `message-committed`,
-  `thread-created`, `board-created`, `resource-created` and
-  `connection-changed` are dispatched on an internal `EventTarget`, not on
-  `window`. Re-read through the API after awaiting a mutation instead.
-- **Expecting a write error to surface when storage is full.** `save()` wraps
-  `localStorage.setItem` in `try/catch` and keeps an in-memory demo running, so
-  a persistence failure is invisible unless you check storage yourself.
+- **Passing an author.** `appendMessage({ authorId })` is the superseded signature.
+  The server resolves the author from the session, and an author on the wire would be a
+  caller choosing its own attribution.
+- **Assuming creation inputs are honoured.** `createBoard` grants its **creator** the
+  board's member set and nothing else; `createThread` records its creator. Read the
+  returned record rather than the input you passed.
+- **Treating a thread as messages.** Four kinds share one chronology and one sequence.
 - **Reaching for methods that do not exist.** There is no `updateMessage`,
-  `deleteMessage`, `deleteThread`, `deleteBoard`, `removeResource`, or auth
-  parameter. Corrections are new messages.
-- **Presenting the mock as a service.** No distributed durability, broker
-  delivery guarantees, authentication, cross-device sync, or agent execution —
-  `README.md` and `PRODUCT.md` exclude all of them permanently.
+  `deleteMessage`, `deleteThread`, `deleteBoard`, `removeResource`, or auth parameter.
+  Corrections are new entries.
+- **Presenting the client as a service.** In-memory store, identifying credential, purgable
+  demo seed. `README.md` and `PRODUCT.md` exclude the rest permanently.
 
 ## Completion
 
-You are done when every call goes through `window.RelayboardMockAPI`, retries
-reuse their original idempotency key, errors are matched by their documented
-message text, references are `{ resourceId }` wrappers, and nothing in your
-change or copy claims persistence beyond one browser profile.
+You are done when every call goes through `RelayboardClient`, no call passes an author,
+every gated control is disabled with its permission named rather than hidden, entries are
+narrowed by kind rather than assumed prose, retries reuse their original key, no
+resource content is copied into a thread, and nothing in your change or copy claims
+durability beyond one process.

@@ -4,13 +4,15 @@ library:
 domains:
   - slug: messaging-replay
     summary: >-
-      Reading, ordering and resuming thread messages: canonical per-thread
-      sequence, delivery cursors versus read watermarks, replay after a pause,
-      idempotent re-sends.
+      Reading, ordering and resuming a thread's chronology: the four entry
+      kinds in one sequence, the delivery cursor versus the seen and
+      acknowledged watermarks, replay after a pause, idempotent re-sends.
   - slug: api-contract
     summary: >-
-      Calling window.RelayboardMockAPI: method shapes, validation errors,
-      localStorage persistence and reset, and the guarantees the mock omits.
+      Calling the app's RelayboardClient: the operation vocabulary, the
+      permission each operation requires, the entry kinds one chronology holds,
+      the refusal families, demo-origin content and the purge, and the
+      guarantees the in-memory store omits.
   - slug: identity-provenance
     summary: >-
       Authoring and provenance: one principal model for humans and agents,
@@ -28,39 +30,43 @@ skills:
       - 'Read a thread in canonical order after a reconnect'
       - 'Persist and advance a per-thread delivery cursor while catching up'
       - 'Explain why unread counts and delivery cursors differ'
-      - 'Retry a send without appending a duplicate message'
+      - 'Retry a send without appending a duplicate entry'
     covers:
-      - 'per-thread seq assignment in appendMessage'
-      - 'readMessages({ after }) cursor semantics'
-      - 'stream.cursors versus seen watermarks'
+      - 'per-thread seq assignment in the one entry-writing path'
+      - 'the four entry kinds sharing one chronology'
+      - 'readMessages({ after }) and readThread cursor semantics'
+      - 'the delivery cursor versus the seen and acknowledged watermarks'
       - 'idempotencyKey deduplication'
     failure_modes:
-      - 'Advancing the cursor before the message is handled'
+      - 'Advancing the cursor before the entry is handled'
       - 'Sharing one cursor across threads'
       - 'Ordering by createdAt or array position'
-      - 'Claiming broker-grade replay the prototype does not implement'
+      - 'Excluding the readers own entries from the unread count'
+      - 'Claiming replay the in-memory store does not implement'
   - name: relayboard-mock-api
     slug: relayboard-mock-api
     domain: api-contract
     description: >-
-      Call the nine asynchronous mock methods with the right payload shapes,
-      match their documented error messages, reset localStorage state, and
-      avoid assuming guarantees the prototype excludes.
+      Call RelayboardClient with the right payload shapes, ask for the
+      permission each operation needs before rendering a control, narrow entries
+      by kind, render refusals by their family, and avoid assuming guarantees
+      the in-memory store excludes.
     tasks:
-      - 'List boards and threads through window.RelayboardMockAPI'
-      - 'Append a message with an idempotency key and handle the documented errors'
-      - 'Add a resource link and reference it from a message'
-      - 'Reset the demo state stored under relayboard-demo-v3'
+      - 'List boards and threads through RelayboardClient'
+      - 'Append an entry with an idempotency key and handle the documented errors'
+      - 'Add a resource and attach it to a thread without copying its content'
+      - 'Purge demo content without touching what the reader made'
     covers:
-      - 'the nine method signatures and their simulated latencies'
-      - 'record shapes for boards, resources, threads and messages'
-      - 'verbatim error messages and their check order'
+      - 'the operation vocabulary and what each requires'
+      - 'the three requirement shapes and which one a workspace permission needs'
+      - 'the Entry union and its four kinds'
+      - 'verbatim refusal strings, their families and their check order'
       - 'idempotency lookup ordering ahead of validation'
-      - 'localStorage version gate and reset procedure'
+      - 'demo origin, the purge overlap, and the in-memory store'
     failure_modes:
-      - 'Expecting createBoard/createThread/addResource inputs to be preserved'
-      - 'Subscribing to the internal CustomEvent target'
-      - 'Assuming a storage write failure surfaces to the caller'
+      - 'Passing an author, which the superceded appendMessage signature did'
+      - 'Naming a workspace permission with the board-shaped requirement'
+      - 'Treating every entry as prose and casting instead of narrowing'
       - 'Calling methods that do not exist (updateMessage, delete*, auth)'
   - name: relayboard-identity
     slug: relayboard-identity
@@ -70,31 +76,40 @@ skills:
       with the AGENT chip, handle the unknown-principal fallback, and keep
       provenance free of verification, permission and execution claims.
     tasks:
-      - 'Render a message byline with author, kind, time and sequence'
+      - 'Render an entry byline with author, kind, time and sequence'
       - 'Distinguish a human author from an agent author without inspecting text'
-      - 'Resolve an unknown authorId safely'
+      - 'Show the grant a principal holds on one board'
+      - 'Show a derived issuer and fingerprint apart from what a principal declared'
       - 'Review copy that could imply an agent was verified or authorised'
     covers:
       - 'the shared principal record for humans and agents'
-      - 'byline, people list, identity drawer and thread participant rendering'
-      - "the 'service' fallback kind for unresolved authors"
+      - 'byline, people list and participant panel rendering'
+      - 'the board-scoped principal read (readPrincipal) and its read:member gate'
+      - 'derived versus declared, and the absent derivation for a seeded principal'
+      - 'the three progress readouts rather than one bar'
       - 'product exclusions for execution, tasks and orchestration'
-      - 'the fact that the mock API exposes no principal record'
     failure_modes:
-      - 'Treating issuer or fingerprint as a verification result'
+      - 'Treating issuer or fingerprint as a verification of the principal claims'
+      - 'Labelling a declared value verified, or merging derived with declared'
+      - 'Inventing a derived value for a principal never admitted'
       - 'Showing agent runtime, tool or task state on the board'
-      - 'Reading a message as an approval or permission grant'
+      - 'Reading an entry as an approval or permission grant'
       - 'Adding a second visual channel for agents beyond the chip'
-      - 'Substituting a hard-coded id list for the unreachable principal record'
+      - 'Substituting a hard-coded id list for the principal read the app now has'
 gaps:
   - >-
-    `window.RelayboardMockAPI` exposes no principal read (no `getPrincipal` /
-    `listPrincipals`), so `kind`, `issuer` and `fingerprint` are unreachable
-    from consumer code. Both the identity skill and its source document say so
-    explicitly and name the two honest options (render unknown, or extend the
-    API as part of the backend seam). Adding that method would let the identity
-    task be completed end-to-end and is the obvious next batch item.
+    CLOSED. `window.RelayboardMockAPI` exposed no principal read, so `kind`,
+    `issuer` and `fingerprint` were unreachable from consumer code and this
+    package's `relayboard-identity` skill was excluded from the app's Intent
+    allowlist. The port's ticket 12 shipped `readPrincipal` — one board-scoped
+    read gated by `read:member` — and 15c removed the exclusion. What the skill
+    still may not claim is recorded in its body: a credential identifies rather
+    than authenticates, so a derived fingerprint is evidence about this
+    workspace's record and never about the principal's honesty.
   - >-
-    Accessibility behaviour of the byline and composer is documented in the
-    prototype README/QA but not yet a skill; it belongs to the app's own skills,
-    not to this package.
+    Accessibility behaviour of the byline and composer is still not a skill in
+    this package. It is now asserted rather than documented: the app's
+    `e2e/keyboard.spec.ts` and `e2e/geometry.spec.ts` own focus order, the focus
+    ring's colour per surface, the live region for arriving entries, and the type
+    and contrast floors. Recorded as a deliberate boundary rather than a gap: a
+    skill that restated those assertions would be a second source that drifts.

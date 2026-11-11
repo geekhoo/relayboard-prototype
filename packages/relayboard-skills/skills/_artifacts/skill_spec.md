@@ -2,7 +2,10 @@
 
 Coverage, maintainer decisions, check results and batch history for the Agent
 Skills shipped by this package. Source evidence for every skill lives in
-`docs/` beside `skills/`; the prototype itself is the authoritative behaviour.
+`docs/` beside `skills/`. **Since Batch 2 the authoritative behaviour is the
+application under `apps/relayboard-web`**, which has reached parity with the
+prototype; `app.js` at the repository root is kept as the behavioural reference
+the parity suite was written from and is no longer what guidance cites.
 
 ## Batch 1 — initial three-skill batch (2026-11-10)
 
@@ -127,13 +130,59 @@ script another prefix.
 
 ### Remaining gaps
 
-- No end-to-end client task skill (see `gaps` in `domain_map.yaml`); it needs a
-  real consumer, which does not exist yet.
-- Prototype accessibility behaviour is documented in the prototype's own
-  README/QA and is out of scope for this package.
+- **CLOSED in Batch 2**: the missing principal read. `readPrincipal` shipped with the
+  app's ticket 12, so `relayboard-identity` is loadable and its exclusion was removed.
+- Accessibility behaviour is **asserted rather than documented**: `e2e/keyboard.spec.ts`
+  and `e2e/geometry.spec.ts` own focus order, the focus ring's colour per surface, the
+  live region for arriving entries, and the type and contrast floors. A skill restating
+  those assertions would be a second source that drifts, so it is a boundary rather than a
+  gap.
+- No skill covers the admission cycle (knock → decide → credential) as a developer task.
+  It is described inside `relayboard-identity` because the derived/declared split is what
+  a developer needs there, but a consumer building the gate itself would look for it
+  separately. Recorded as the next batch's candidate rather than as work this one owes.
+
+## Batch 2 — guidance rewritten against the application (15c)
+
+Scope: the same three skills, rewritten because the code they described was replaced. The
+port reached parity and the static prototype retired as a reference, so guidance that
+documented `window.RelayboardMockAPI`, the `authorId`-bearing `appendMessage` signature and
+a `localStorage` store was describing software nobody runs.
+
+What changed, per skill:
+
+- **`relayboard-mock-api`** — the whole surface. It documents `RelayboardClient`'s operation
+  vocabulary, the three requirement shapes (and which one a **workspace** permission needs,
+  a mistake made twice in this repository), the `Entry` union's four kinds, the refusal
+  vocabulary with its check order and its families, the demo-origin boundary with
+  `purgeImpact`'s overlap, and the in-memory store's limits. The superseded signature is
+  named explicitly so a reader recognises their own stale code.
+- **`relayboard-thread-sequencing`** — corrected where it claimed a thread's entries are
+  messages, and extended with the third watermark (`acknowledged`) and the carried unread
+  rule. Its two surviving rules (order by `seq`; filter by thread) are worded exactly as
+  before, which is the evidence that the rewrite was a correction and not a rewrite of the
+  parts that were right.
+- **`relayboard-identity`** — rewritten against `readPrincipal`, and its **exclusion removed**
+  from `apps/relayboard-web/package.json`. Derived and declared are separate fields rather
+  than one bag of strings. Every honesty rule was sharpened: the derived fingerprint is
+  evidence about this workspace's record and never about the principal's honesty, an absent
+  derivation is stated rather than faked, and a credential identifies rather than
+  authenticates.
+
+Distribution: the package is repacked and the vendored tarball the app installs was replaced,
+because the gates read the source tree and never `vendor/` — without the repack the app keeps
+serving the old guidance from a green build.
+
+Review: four outcomes recorded (`updated` for the three skills, `updated` for the planning
+records) with source paths at HEAD `7520bd1`. A fresh-consumer task check was **not run** —
+this repository has no harness that hands an independent agent a task — and that limitation is
+recorded in the review evidence rather than implied away.
 
 ## History
 
+- 2026-11-12 — Batch 2: all three skills and their source documents rewritten against the
+  application; `relayboard-identity`'s exclusion removed; package repacked; four review
+  outcomes recorded.
 - 2026-11-10 — Batch 1 created: three skills, three source documents, typed
   TypeScript surface, CI workflow copied from Intent 0.5.6.
 - 2026-11-10 — Consumer verification added under `.consumer-demo/`; planning
