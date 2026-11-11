@@ -64,6 +64,27 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
  * from whatever shell ran the command, so the harness is reproducible from a cold terminal and in
  * CI.
  */
+/**
+ * Which transport the harness is testing, and why it is the in-memory one today.
+ *
+ * The app has two implementations of `RelayboardClient` and, from 06c, a UI that will be switched
+ * to the HTTP one. Until then the **in-memory client is what a reader actually gets**, so it is
+ * what the route seam must drive — a harness pointed at a transport no build ships would be
+ * asserting a screen nobody can open.
+ *
+ * The consequence is a real limitation rather than a detail, and it belongs here where the next
+ * person will hit it: **the in-memory client builds its store per router** (04a), so a reload gets a
+ * fresh workspace. Measured: a message posted in the browser is present in the page that posted it
+ * and **gone after a reload**. So:
+ *
+ * - A test must not assert durability across a reload. Nothing in this file does.
+ * - The workspace-reset fixture is currently **inert against what the page shows** — it resets the
+ *   process store, which this transport never reads. It becomes load-bearing at 06c, when the UI
+ *   shares that store, and it is asserted live (a broken id fails every test) so it cannot rot
+ *   silently in the meantime.
+ * - 06c should flip this to the HTTP transport in the same change that makes the writes available,
+ *   and at that point a durability assertion becomes both possible and necessary.
+ */
 const SERVER_ENV: Record<string, string> = {
 	SESSION_SECRET: "e2e-session-secret-0123456789abcdef",
 	RELAYBOARD_TEST_MODE: "1",

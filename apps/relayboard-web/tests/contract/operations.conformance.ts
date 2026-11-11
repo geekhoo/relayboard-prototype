@@ -428,6 +428,38 @@ export const describeOperationsConformance = (
 			).toHaveLength(1);
 		});
 
+		it("appends exactly one entry when two calls are in flight with the same key", async () => {
+			// The other guard, and 05's criteria list them separately because one sentence cannot
+			// describe both. A **retry** replays a key deliberately, after a failure the caller
+			// noticed; a **double submit** is two calls that are both in flight before either
+			// resolves — a nervous second click, or a slow connection. An implementation can have
+			// either without the other, and the idempotency check being *before* validation (02b) is
+			// what makes the concurrent case work rather than racing.
+			//
+			// The key is supplied here because it is what the composer will supply: one key per draft,
+			// minted when the draft becomes sendable, so a second click sends the same key rather than
+			// a second intent. The route seam asserts the click; this asserts the mechanism under it.
+			const api = await client();
+			const before = await api.readThread(threadId);
+			const text = "Submitted once, clicked twice.";
+			const idempotencyKey = `${label}-in-flight-key`;
+
+			const [first, second] = await Promise.all([
+				api.appendMessage({ threadId, text, idempotencyKey }),
+				api.appendMessage({ threadId, text, idempotencyKey }),
+			]);
+
+			// Both callers get the same commit, not one commit and one error: a second click on a
+			// send that is already in flight must not surface a failure to the reader.
+			expect(second.id).toBe(first.id);
+			expect(second.seq).toBe(first.seq);
+			const after = await api.readThread(threadId);
+			expect(after.entries.length - before.entries.length).toBe(1);
+			expect(after.entries.filter((entry) => entry.text === text)).toHaveLength(
+				1,
+			);
+		});
+
 		it("simulates an incoming entry from an agent on the board, at a real position", async () => {
 			const api = await client();
 			const before = await api.readThread(threadId);

@@ -1,8 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useActingPrincipalId } from "#/client/context";
+import { primeConversation } from "#/components/-conversation-queries";
 import { primeRail } from "#/components/-rail-queries";
 import { primePane, threadRowsQuery } from "#/components/-thread-queries";
 import { BoardPane } from "#/components/BoardPane";
+import { Conversation } from "#/components/Conversation";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
 import { type BoardView, parseBoardSearch } from "./-board-search";
 
@@ -69,6 +71,21 @@ export const Route = createFileRoute("/boards/$boardId")({
 		// and cannot disagree.
 		const threadExists =
 			deps.thread === "" || rows.some((row) => row.thread.id === deps.thread);
+		// The open thread's own contents are primed too, because the conversation is what a reader
+		// came for and its first paint must be the real chronology. This is the fourth time this rule
+		// has been paid for — the rail's counts, the session note, the pane's rows — so it is stated
+		// once more rather than discovered a fifth time: **if a column reads it at first paint, the
+		// loader primes it.** The read is `readThread`, which advances `seen`: the reader's own
+		// progress moves as a consequence of opening a link, which is 03's decision and is why the
+		// conversation invalidates the rail's counts afterwards.
+		if (threadExists && deps.thread !== "") {
+			await primeConversation(
+				context.queryClient,
+				context.client,
+				board.id,
+				deps.thread,
+			);
+		}
 		return { board, threadExists };
 	},
 	component: BoardRoute,
@@ -96,7 +113,11 @@ function BoardRoute() {
 				/>
 			}
 			conversation={
-				threadExists ? undefined : (
+				threadExists ? (
+					search.thread === "" ? undefined : (
+						<Conversation boardId={board.id} threadId={search.thread} />
+					)
+				) : (
 					<ThreadNotFound
 						boardId={board.id}
 						search={search}
