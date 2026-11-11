@@ -108,6 +108,39 @@ export interface StoreOptions {
 	isBoardMember(principalId: PrincipalId, boardId: BoardId): boolean;
 }
 
+/**
+ * What a caller supplies to create a board.
+ *
+ * The mark and the hue are derived here rather than asked for, because `createBoard`
+ * in the prototype does exactly that (`app.js` L116: `short: name[0].toUpperCase()`,
+ * `theme: 'blue'`) — a board made through the app must render in the rail like a
+ * seeded one.
+ */
+export interface CreateBoardInput {
+	readonly name: string;
+	readonly description?: string;
+}
+
+/** What a caller supplies to create a thread in a board. */
+export interface CreateThreadInput {
+	readonly boardId: BoardId;
+	readonly title: string;
+	/** The acting principal, which the thread intro names (05). Resolved by the transport, never by the caller. */
+	readonly creatorId: PrincipalId;
+	/** The prototype asks for this and does not store it (app.js L165, L115); kept in the input for the UI. */
+	readonly description?: string;
+}
+
+/** What a caller supplies to add a canonical resource to a board. */
+export interface AddResourceInput {
+	readonly boardId: BoardId;
+	readonly name: string;
+	readonly url: string;
+	/** Ticket 09 closes this to `Document | Repository | Design | Link`; until then it is a string. */
+	readonly type: string;
+	readonly description: string;
+}
+
 /** What a caller supplies to append prose. The author is the acting principal, resolved below the client. */
 export interface AppendMessageInput {
 	readonly threadId: ThreadId;
@@ -138,6 +171,18 @@ interface Marks {
 	acknowledged: number;
 }
 
+/** A commit, as it is announced to whoever is listening. */
+export interface Commit {
+	readonly threadId: ThreadId;
+	readonly entry: Entry;
+	/** Whether delivery reached every connected subscriber. False means it is awaiting replay. */
+	readonly delivered: boolean;
+}
+
+export type CommitListener = (commit: Commit) => void;
+
+export type Unsubscribe = () => void;
+
 /** The operations a caller has. Reads hand out frozen records; writes are synchronous. */
 export interface Store {
 	listBoards(): readonly Board[];
@@ -149,6 +194,15 @@ export interface Store {
 	/** A board's canonical resources. Never copies of one: an entry points at a resource by id. */
 	listResources(boardId: BoardId): readonly Resource[];
 	readPrincipal(principalId: PrincipalId): Principal | undefined;
+
+	/**
+	 * The principals on one board today, in the seed's order.
+	 *
+	 * Read through the provisional membership predicate, so it is the same stand-in the
+	 * append's refusal uses: one answer to "is this principal on this board", asked two
+	 * ways. 07a replaces the predicate with a grant lookup and both follow.
+	 */
+	listMembers(boardId: BoardId): readonly Principal[];
 
 	/**
 	 * A thread's entries as one principal may see them.
@@ -174,7 +228,29 @@ export interface Store {
 	/** The principal read the thread: `seen` catches up to the last position. `cursor` does not move. */
 	markRead(principalId: PrincipalId, threadId: ThreadId): void;
 
+	/**
+	 * Called after every commit, with the entry and the thread it landed in.
+	 *
+	 * The store keeps **no queue** for anyone: a subscriber that is paused is withheld
+	 * the event and resumes from its own `cursor` (spec L358). This is the notification
+	 * that a stream is built on, not a backlog — 11a's route and 11b's panel are its
+	 * consumers, and 03 proves the in-memory stream can be driven by it.
+	 */
+	onCommit(listener: CommitListener): Unsubscribe;
+
+	/** Press `seq` numbering without writing an entry, so a subscriber does not renumber. Never reuses a value. */
+	lastSeq(threadId: ThreadId): number;
+
 	appendMessage(input: AppendMessageInput): Entry;
+
+	/** A new board in the workspace. Its mark is derived from the name and its hue defaulted. */
+	createBoard(input: CreateBoardInput): Board;
+
+	/** A new thread in an existing board: empty, and ready to post into. */
+	createThread(input: CreateThreadInput): Thread;
+
+	/** A new canonical resource on a board. Its url is validated at the boundary (06c, 09), never here. */
+	addResource(input: AddResourceInput): Resource;
 }
 
 const EMPTY_ENTRIES: readonly Entry[] = Object.freeze([]);
@@ -228,9 +304,17 @@ export const createStore = (
 	options: StoreOptions = NO_MEMBERS,
 ): Store => {
 	const principals = collection(seed.principals);
-	const boards = collection(seed.boards);
-	const threads = collection(seed.threads);
-	const resources = collection(seed.resources);
+	// Boards, threads and resources grow through the create operations, so these are the
+	// store's own mutable lists, copied from the seed's rather than aliasing them.
+	let boards: readonly Board[] = collection(seed.boards);
+	let threads: readonly Thread[] = collection(seed.threads);
+	let resources: readonly Resource[] = collection(seed.resources);
+	let sequence = 0;
+	/** Ids for records a caller created. The prefix matches the prototype's `uid('thread')` reading. */
+	const nextId = (prefix: string): string => {
+		sequence += 1;
+		return `${prefix}-${sequence}`;
+	};
 	// Copied, ordered and frozen at seed time: the seed's own arrays are the caller's,
 	// and a store that kept one would let two stores share the same list.
 	const entriesByThread = new Map<ThreadId, readonly Entry[]>();
@@ -243,6 +327,9 @@ export const createStore = (
 
 	const entriesOf = (threadId: ThreadId): readonly Entry[] =>
 		entriesByThread.get(threadId) ?? EMPTY_ENTRIES;
+	/** A thread's last position: the number a replay or a read catches up to. */
+	const lastSeqOf = (threadId: ThreadId): number =>
+		lastSeq(entriesOf(threadId));
 	const threadOf = (threadId: ThreadId): Thread | undefined =>
 		threads.find((thread) => thread.id === threadId);
 
@@ -280,6 +367,10 @@ export const createStore = (
 	// about another. Everyone starts connected, as the prototype did.
 	const paused = new Set<PrincipalId>();
 
+	// Whoever asked to be told about commits. A set rather than a single callback,
+	// because two subscribers on one store are two readers with their own cursors.
+	const listeners = new Set<CommitListener>();
+
 	return {
 		listBoards: () => boards,
 		readBoard: (boardId) => boards.find((board) => board.id === boardId),
@@ -291,6 +382,13 @@ export const createStore = (
 			resources.filter((resource) => resource.boardId === boardId),
 		readPrincipal: (principalId) =>
 			principals.find((principal) => principal.id === principalId),
+
+		listMembers: (boardId) =>
+			principals.filter((principal) =>
+				options.isBoardMember(principal.id, boardId),
+			),
+
+		lastSeq: lastSeqOf,
 
 		readView: (threadId, principalId) => {
 			const { cursor } = marksOf(principalId, threadId);
@@ -329,6 +427,63 @@ export const createStore = (
 			// Deliberately does not touch `cursor`: receiving and reading are different
 			// facts, and collapsing them is what makes a paused reader look caught up.
 			marks.seen = Math.max(marks.seen, lastSeq(entriesOf(threadId)));
+		},
+
+		onCommit: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+
+		createBoard: (input) => {
+			const name = input.name.trim();
+			// `app.js` L116: the mark is the name's first letter and the hue defaults to blue.
+			const board: Board = Object.freeze({
+				id: nextId("board"),
+				name,
+				short: (name[0] ?? "B").toUpperCase(),
+				theme: "blue" as const,
+				description:
+					input.description?.trim() || "Shared conversations and resources.",
+				origin: "owner" as const,
+			});
+			boards = Object.freeze([...boards, board]);
+			return board;
+		},
+
+		createThread: (input) => {
+			if (!boards.some((board) => board.id === input.boardId)) {
+				throw new Error(errorMessages.boardNotFound);
+			}
+			const thread: Thread = Object.freeze({
+				id: nextId("thread"),
+				boardId: input.boardId,
+				title: input.title.trim(),
+				creatorId: input.creatorId,
+				createdAt: new Date().toISOString(),
+				origin: "owner" as const,
+			});
+			threads = Object.freeze([...threads, thread]);
+			entriesByThread.set(thread.id, EMPTY_ENTRIES);
+			return thread;
+		},
+
+		addResource: (input) => {
+			if (!boards.some((board) => board.id === input.boardId)) {
+				throw new Error(errorMessages.boardNotFound);
+			}
+			const resource: Resource = Object.freeze({
+				id: nextId("res"),
+				boardId: input.boardId,
+				name: input.name.trim(),
+				url: input.url,
+				type: input.type,
+				description: input.description,
+				origin: "owner" as const,
+			});
+			resources = Object.freeze([...resources, resource]);
+			return resource;
 		},
 
 		appendMessage: (input) => {
@@ -373,9 +528,16 @@ export const createStore = (
 			// Delivery is a consequence of the commit and never a condition of it: a paused
 			// principal's cursor stays where it is, and the entry it did not receive is
 			// still in the thread.
+			let delivered = true;
 			for (const principal of principals) {
-				if (paused.has(principal.id)) continue;
+				if (paused.has(principal.id)) {
+					delivered = false;
+					continue;
+				}
 				marksOf(principal.id, input.threadId).cursor = seq;
+			}
+			for (const listener of listeners) {
+				listener({ threadId: input.threadId, entry, delivered });
 			}
 			return entry;
 		},

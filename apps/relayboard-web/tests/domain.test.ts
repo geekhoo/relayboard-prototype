@@ -4,8 +4,10 @@ import type {
 	BoardTheme,
 	Entry,
 	EntryRelation,
+	Grant,
 	MessageEntry,
 	Origin,
+	PermissionName,
 	Principal,
 	Resource,
 	Seq,
@@ -312,6 +314,49 @@ describe("the watermarks", () => {
 	});
 });
 
+describe("the permission vocabulary", () => {
+	it("is the fifteen names of spec L326-339, and no other", () => {
+		// Asserted as an exact union rather than as a list, because nothing in the domain
+		// executes yet: the vocabulary is a type, and 07a is the ticket that gives it
+		// enforcement. When 07a adds a runtime list, *this* is the assertion that keeps it
+		// honest, because adding a name here is what a new permission costs.
+		expectTypeOf<PermissionName>().toEqualTypeOf<
+			| "read:board"
+			| "read:thread"
+			| "read:resource"
+			| "read:member"
+			| "post:message"
+			| "create:thread"
+			| "create:board"
+			| "update:board"
+			| "add:resource"
+			| "add:artifact"
+			| "move:status"
+			| "acknowledge:thread"
+			| "admit:agent"
+			| "revoke:agent"
+			| "grant:permission"
+		>();
+		// A permission is <verb>:<object> and nothing else, so the shape is checkable from
+		// the type alone: every name has one colon and a non-empty side either way.
+		const sample: PermissionName = "post:message";
+		expect(sample.split(":")).toHaveLength(2);
+		expect(sample.startsWith(":")).toBe(false);
+	});
+
+	it("is scoped, because an unscoped grant is a workspace-wide grant nobody chose", () => {
+		expectTypeOf<Grant["scope"]>().toEqualTypeOf<"workspace" | "board">();
+		expectTypeOf<Grant["permissions"]>().toEqualTypeOf<
+			readonly PermissionName[]
+		>();
+		const onOneBoard: Grant = { scope: "board", permissions: ["read:board"] };
+		expect(onOneBoard.permissions).toEqual(["read:board"]);
+		// Two scopes and no third: there is no "no scope" and no "all boards", because a
+		// permission held nowhere would be a workspace-wide one nobody chose.
+		expectTypeOf<Grant["scope"]>().not.toEqualTypeOf<string>();
+	});
+});
+
 describe("the domain module", () => {
 	it("exports no runtime value except the documented error strings", () => {
 		// 02a could assert something stronger — that the module held no runtime value at
@@ -347,6 +392,9 @@ describe("the domain module", () => {
 			threadNotFound: "Thread not found",
 			notABoardMember: "This participant is not a board member",
 			messageEmpty: "Message cannot be empty",
+			// The create path's own failure (spec L514), documented beside the others so
+			// there is still one place a user-visible string can come from.
+			boardNotFound: "Board not found",
 		});
 	});
 

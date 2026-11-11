@@ -21,9 +21,17 @@ export const errorMessages = {
 	notABoardMember: "This participant is not a board member",
 	/** The text was empty, or held nothing but whitespace. */
 	messageEmpty: "Message cannot be empty",
+	/** The board a create operation names does not exist in this workspace (spec L514). */
+	boardNotFound: "Board not found",
 } as const;
 
-/** The three strings above, as a list in the documented order. */
+/**
+ * The three strings an append can fail with, in the order an append checks them.
+ *
+ * Not every documented string: `Board not found` belongs to the create path and is
+ * asserted by the operation that raises it, so a caller comparing this list to a
+ * series of rejected appends gets exactly the append vocabulary.
+ */
 export const errorMessageList = [
 	errorMessages.threadNotFound,
 	errorMessages.notABoardMember,

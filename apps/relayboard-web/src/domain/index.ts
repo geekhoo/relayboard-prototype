@@ -12,6 +12,7 @@
 
 export type { ErrorMessages } from "./errors";
 export { errorMessageList, errorMessages } from "./errors";
+export type { Grant, PermissionName } from "./permissions";
 export type {
 	Board,
 	BoardId,
