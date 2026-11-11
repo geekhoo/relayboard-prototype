@@ -981,3 +981,100 @@ describe("the fingerprint is derived, and declared values are ignored", () => {
 		expect(derived?.issuer).not.toBe("myself");
 	});
 });
+
+describe("an ending reaches the store, which is what a stream watches", () => {
+	// **This is 11c's seam, and it was a gap until a deliberate defect found it.** Removing the
+	// `store.endAccess` call from `revoke` left the whole suite green: the store's announcement is tested,
+	// the stream's reaction is tested, and the **call between them** — the one an actual revocation makes
+	// — was asserted by nothing. 08c's revoke is a plain module, so unlike a server function it can be
+	// driven here.
+	it("a revocation is announced to the store, with its cause", () => {
+		const { store, admissions } = surface();
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "never" },
+		});
+		const poll = admissions.pollAdmission(
+			receipt.requestId,
+			receipt.pollingSecret,
+		);
+		if (poll.state !== "admitted") throw new Error("unreachable");
+
+		expect(store.accessEndedFor(poll.principalId)).toBeUndefined();
+		admissions.revoke({ requestId: receipt.requestId, revokedBy: "alex" });
+
+		// The store holds the cause, which is what a stream asks, and it is **"revoked"** rather than
+		// merely "ended" — 11c:15 needs a decision told apart from a window closing.
+		expect(store.accessEndedFor(poll.principalId)).toBe("revoked");
+	});
+
+	it("a listener sees the ending, so an open connection can close on it", () => {
+		const { store, admissions } = surface();
+		const seen: { principalId: string; cause: string }[] = [];
+		const stop = store.onAccessEnded((event) => seen.push(event));
+		try {
+			const receipt = admissions.knock({
+				boardId: "platform",
+				name: "Scout",
+				operator: "Acme Research",
+				reason: "To contribute",
+			});
+			admissions.admit({
+				requestId: receipt.requestId,
+				grantedBy: "alex",
+				permissions: ["read:board"],
+				expiry: { kind: "never" },
+			});
+			const poll = admissions.pollAdmission(
+				receipt.requestId,
+				receipt.pollingSecret,
+			);
+			if (poll.state !== "admitted") throw new Error("unreachable");
+
+			admissions.revoke({ requestId: receipt.requestId, revokedBy: "alex" });
+			expect(seen).toEqual([
+				{ principalId: poll.principalId, cause: "revoked" },
+			]);
+		} finally {
+			stop();
+		}
+	});
+
+	it("an expired admission answers through the registered check, with its own cause", () => {
+		// Expiry is a clock, so there is no event to announce; the admission module registers a predicate
+		// and the store asks it. This asserts the registration is real rather than a no-op.
+		let at = Date.parse("2026-11-11T12:00:00.000Z");
+		const store = createStore(demoSeed(), demoOptions());
+		const admissions = createAdmissions(store, () => at);
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 1 },
+		});
+		const poll = admissions.pollAdmission(
+			receipt.requestId,
+			receipt.pollingSecret,
+		);
+		if (poll.state !== "admitted") throw new Error("unreachable");
+
+		expect(store.accessEndedFor(poll.principalId)).toBeUndefined();
+		at += 2 * 60 * 60 * 1000;
+		// **"expired", not "revoked"** — the other half of the distinction 11c requires.
+		expect(store.accessEndedFor(poll.principalId)).toBe("expired");
+	});
+});

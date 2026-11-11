@@ -168,6 +168,26 @@ export const createInMemoryClient = (
 		emit(entryCommitted(commit.threadId, commit.entry, commit.delivered));
 	});
 
+	/**
+	 * **An ending reaches an open subscription**, as it does on the SSE route (spec L362, 11c:14).
+	 *
+	 * Announced first and then closed, in that order, so the reader is told *why* rather than watching a
+	 * stream go quiet. The subscriptions are cleared after the announcement, which is what makes the
+	 * next commit fail to reach this client — the assertion 11c:24 asks for.
+	 *
+	 * There is no polling here, and that is the honest shape: the in-memory transport has no clock, so a
+	 * revocation announced through the store is the only ending it can observe. Expiry is a clock, and
+	 * its cause arrives the same way through the store's registered check whenever anything asks.
+	 */
+	store.onAccessEnded((event) => {
+		if (event.principalId !== actingAs) return;
+		emit(connectionChanged(false, 0, event.cause));
+		for (const subscription of subscriptions) {
+			subscription.closed = true;
+		}
+		subscriptions.clear();
+	});
+
 	return {
 		listBoards: async (): Promise<readonly BoardSummary[]> =>
 			store.listBoards().map((board) => ({
@@ -357,6 +377,16 @@ export const createInMemoryClient = (
 		subscribe: (handlers: StreamHandlers): Unsubscribe => {
 			const subscription: Subscription = { handlers, closed: false };
 
+			// The reader's actual state rather than an assumption — the same correction the SSE route
+			// needed for 11b:21.
+			const ended = store.accessEndedFor(actingAs);
+			if (ended !== undefined) {
+				// **The same ending the SSE route reports**, so a reader sees one behaviour whichever
+				// transport it is on (11c:21). Announced, then closed — not a silent no-op.
+				handlers.onEvent(connectionChanged(false, 0, ended));
+				return () => undefined;
+			}
+
 			// Replay first, then report the count — `pending` always present, including zero.
 			let pending = 0;
 			for (const board of store.listBoards()) {
@@ -373,8 +403,6 @@ export const createInMemoryClient = (
 					}
 				}
 			}
-			// The reader's actual state rather than an assumption — the same correction the SSE route
-			// needed for 11b:21.
 			handlers.onEvent(connectionChanged(!store.isPaused(actingAs), pending));
 
 			subscriptions.add(subscription);

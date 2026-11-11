@@ -97,3 +97,30 @@
 	font-size: var(--text-label);
 	color: var(--color-ink-faint);
 }
+
+/* Access ended: a stated state, not an alert. The copy names what happened (11c:17), and the ink is
+   body rather than a warning tone because the reader has not lost any history — their entries keep
+   their authorship. */
+.stream-panel__ended {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+	padding: var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface-tint);
+}
+
+.stream-panel__ended-title {
+	margin: 0;
+	font-size: var(--text-body);
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.stream-panel__ended-detail {
+	margin: 0;
+	font-size: var(--text-label);
+	line-height: 1.45;
+	color: var(--color-ink-muted);
+}

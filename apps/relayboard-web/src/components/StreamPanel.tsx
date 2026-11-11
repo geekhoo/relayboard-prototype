@@ -60,6 +60,15 @@ export function StreamPanel({
 	});
 	const [log, setLog] = useState<readonly string[]>([]);
 	/**
+	 * **Why access ended, when it did.** `null` means it has not.
+	 *
+	 * 11c:14-15 and 11c:17: a revoked or expired principal is told that **access ended**, not that the
+	 * connection failed — and the two causes are distinguishable, because one is a person's decision and
+	 * the other is a window closing. The wording stays on the decided side: "your access was ended", not
+	 * "error". And the control is withdrawn rather than offering a retry that would be refused.
+	 */
+	const [ended, setEnded] = useState<"revoked" | "expired" | null>(null);
+	/**
 	 * **One toggle per click, synchronously guarded** — the pattern 06c found, 08b applied to decisions
 	 * and 09 to creates. Fourth surface, same shape: React state is asynchronous, so two activations in
 	 * one tick would both read the old `connected` and send two contradictory pauses.
@@ -149,6 +158,14 @@ export function StreamPanel({
 					};
 					setState(next);
 					queryClient.setQueryData(streamStateQuery(client).queryKey, next);
+					if (event.cause !== undefined) {
+						setEnded(event.cause);
+						append(
+							event.cause === "revoked"
+								? "Access was ended by a gate holder"
+								: "Access expired",
+						);
+					}
 					return;
 				}
 				if (
@@ -215,22 +232,31 @@ export function StreamPanel({
 							: pending.toString() +
 								" entries are awaiting replay. New posts are still committed to history."}
 			</p>
-			<button
-				className="stream-panel__toggle"
-				data-stream-toggle
-				type="button"
-				onClick={() => void toggle()}
-			>
-				{state.connected ? "Pause stream" : "Reconnect & replay"}
-			</button>
-			<button
-				className="stream-panel__toggle"
-				data-stream-simulate
-				type="button"
-				onClick={() => void simulate()}
-			>
-				Simulate agent post
-			</button>
+			{/*
+			 * **The controls stand down once access has ended.** Offering "Reconnect & replay" to a
+			 * revoked principal would be an affordance that is refused on the click — the disabled-with-
+			 * reason rule from 07a, applied to a state rather than a permission.
+			 */}
+			{ended !== null ? null : (
+				<>
+					<button
+						className="stream-panel__toggle"
+						data-stream-toggle
+						type="button"
+						onClick={() => void toggle()}
+					>
+						{state.connected ? "Pause stream" : "Reconnect & replay"}
+					</button>
+					<button
+						className="stream-panel__toggle"
+						data-stream-simulate
+						type="button"
+						onClick={() => void simulate()}
+					>
+						Simulate agent post
+					</button>
+				</>
+			)}
 			<p className="stream-panel__section">Delivery activity</p>
 			<div className="stream-panel__log" data-stream-log>
 				{log.length === 0 ? (
@@ -258,6 +284,26 @@ export function StreamPanel({
 				this workspace on an agent's behalf, and every event is delivered by
 				this server.
 			</p>
+			{ended === null ? null : (
+				<div className="stream-panel__ended" data-stream-ended={ended}>
+					<p className="stream-panel__ended-title">
+						{ended === "revoked"
+							? "Your access to this workspace was ended"
+							: "Your access to this workspace expired"}
+					</p>
+					<p className="stream-panel__ended-detail">
+						{/*
+						 * **Access ended, not an error.** 11c:17: the copy names access-ended rather than a
+						 * failure, and 11c:15 distinguishes a decision from a window closing. The entries this
+						 * principal authored stay attributed to it — ended access is not erased history.
+						 */}
+						{ended === "revoked"
+							? "A gate holder ended this admission. Ask them for a new one if you should still be here."
+							: "The admission window closed. Renew it with the credential you were issued to keep your history."}
+						{" Entries you authored keep your name."}
+					</p>
+				</div>
+			)}
 		</section>
 	);
 }

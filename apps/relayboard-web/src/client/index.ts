@@ -285,6 +285,14 @@ export type StreamEvent =
 			readonly connected: boolean;
 			/** How many entries a resume replayed. Present even when zero (11a:17). */
 			readonly pending: number;
+			/**
+			 * **Why** the connection ended, when it ended because access did (11c:14-15).
+			 *
+			 * Absent for an ordinary connect or disconnect. Present as `"revoked"` or `"expired"` so the
+			 * reader can be told access has ended rather than that the connection failed — and so the
+			 * client does not retry into a stream it may no longer read.
+			 */
+			readonly cause?: "revoked" | "expired";
 	  }
 	| {
 			/**

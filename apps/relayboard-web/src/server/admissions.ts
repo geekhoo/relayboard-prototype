@@ -318,6 +318,30 @@ export const createAdmissions = (
 	// module rather than importing it, because the import would be a cycle; registering here means a
 	// bearer token resolves from the moment the admission surface exists and to nobody before it —
 	// which is the honest answer for a build with no admissions.
+	/**
+	 * **Expiry is registered rather than announced.** A revocation is an event — somebody did it, and
+	 * 08c's `revoke` tells the store. An expiry is a clock: nothing happens at the moment it passes, so
+	 * there is no event to send and a stream would have to poll to notice.
+	 *
+	 * This is that poll, in the one form that keeps the knowledge where it belongs: the admission
+	 * surface knows which records have expired, the store knows who is connected, and neither imports
+	 * the other's machinery.
+	 */
+	store.registerAccessCheck((principalId) => {
+		const record = [...knockRecords.values()].find(
+			(candidate) => candidate.principalId === principalId,
+		);
+		if (!record) return undefined;
+		if (record.state === "revoked") return "revoked";
+		if (
+			record.expiresAt !== undefined &&
+			Date.parse(record.expiresAt) <= now()
+		) {
+			return "expired";
+		}
+		return undefined;
+	});
+
 	registerAgentCredential({
 		resolve: (token) => {
 			const principalId = state.issued.get(hash(token));
@@ -625,6 +649,16 @@ export const createAdmissions = (
 			record.state = "revoked";
 			record.revokedBy = input.revokedBy;
 			record.revokedAt = new Date(now()).toISOString();
+			// **Announced, so a live connection learns it now** (spec L362, 11c:13). A revoked principal
+			// must be disconnected rather than left holding a stream it may no longer read — and the
+			// alternative, waiting for its next request, is a connection that keeps delivering.
+			//
+			// The store owns this rather than the stream asking about admissions: the stream is one
+			// consumer and the refusal path is another, and both want the same answer to "has this
+			// principal's access ended".
+			if (record.principalId !== undefined) {
+				store.endAccess(record.principalId, "revoked");
+			}
 			return { principalId: record.principalId as PrincipalId };
 		},
 

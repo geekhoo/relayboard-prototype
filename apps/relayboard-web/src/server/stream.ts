@@ -6,6 +6,7 @@ import type {
 	Thread,
 	ThreadId,
 } from "#/client";
+import type { AccessEndCause } from "#/server/store";
 
 /**
  * The stream's event contract, written down in one place.
@@ -193,10 +194,27 @@ export const resourceCreated = (resource: Resource): StreamEvent => ({
  * and a zero would render differently in a client that distinguished `undefined` from `0`, and the
  * ticket says which of those the protocol promises.
  */
+/**
+ * The connection event, with `pending` **always present** and an optional **cause**.
+ *
+ * 11a:17, floor-verified: "replaying zero reports zero rather than omitting the field". A missing field
+ * and a zero would render differently in a client that distinguished `undefined` from `0`.
+ *
+ * `cause` is 11c's addition, and it is **inside the existing event** rather than a ninth wire name:
+ * the vocabulary is fixed at eight (spec L358), and a `connection-changed` that says why it changed is
+ * the same event saying more. The client needs it to tell "your access ended" from "the network
+ * dropped", because one of those must not be retried.
+ */
 export const connectionChanged = (
 	connected: boolean,
 	pending: number,
-): StreamEvent => ({ type: "connection-changed", connected, pending });
+	cause?: AccessEndCause,
+): StreamEvent => ({
+	type: "connection-changed",
+	connected,
+	pending,
+	...(cause === undefined ? {} : { cause }),
+});
 
 /** The entry-bearing event for a committed entry, its `delivered` flag set from the store's answer. */
 export const entryCommitted = (

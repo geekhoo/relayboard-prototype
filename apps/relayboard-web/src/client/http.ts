@@ -389,6 +389,8 @@ export const createHttpClient = (): RelayboardClient => ({
 		let cursor = 0;
 		let source: EventSource | null = null;
 		let closed = false;
+		/** Set when the server reports why the connection ended; see the `error` handler below. */
+		let endedCause: "revoked" | "expired" | null = null;
 
 		const open = () => {
 			if (closed) return;
@@ -403,12 +405,30 @@ export const createHttpClient = (): RelayboardClient => ({
 				source.addEventListener(name, (event) => {
 					const parsed = eventOf(`data: ${(event as MessageEvent).data}`);
 					if (!parsed) return;
+					// **The ending, remembered before the error that follows it.** The server sends
+					// `connection-changed` with a cause and then closes; the browser reports that close as an
+					// `error`, so this is what tells the two apart.
+					if (
+						parsed.type === "connection-changed" &&
+						parsed.cause !== undefined
+					) {
+						endedCause = parsed.cause;
+					}
 					cursor = advanceCursor(cursor, parsed);
 					handlers.onEvent(parsed);
 				});
 			}
 
 			source.addEventListener("error", () => {
+				// **A closed door is not a dropped connection** (11c:14). An `EventSource` fires `error` for
+				// both, and it reconnects on its own — which for a revoked principal would be a retry loop
+				// against a stream it may no longer read. So the ended cause, once reported, closes the
+				// source for good and reports the ending rather than a transport failure.
+				if (endedCause !== null) {
+					source?.close();
+					source = null;
+					return;
+				}
 				// **A stated failure, not silence.** The name is the client's own and is deliberately not on
 				// the wire (spec L518).
 				handlers.onEvent({

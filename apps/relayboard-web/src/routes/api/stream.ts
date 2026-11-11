@@ -85,6 +85,21 @@ export const Route = createFileRoute("/api/stream")({
 							}
 						};
 
+						// **The open-time check**, because a connection can be opened after the ending: a reader
+						// that reloads with a revoked credential must be told, not handed a stream that then
+						// closes as if the transport failed.
+						const endedAtOpen = store.accessEndedFor(principal.id);
+						if (endedAtOpen !== undefined) {
+							send(frameOf(connectionChanged(false, 0, endedAtOpen)));
+							close();
+							try {
+								controller.close();
+							} catch {
+								// Already closed.
+							}
+							return;
+						}
+
 						// **Replay first, then report the count.** The entries past the client's cursor are
 						// exactly what it missed, and the count is reported in `connection-changed` with
 						// `pending` always present — including zero (11a:17).
@@ -112,6 +127,29 @@ export const Route = createFileRoute("/api/stream")({
 							),
 						);
 
+						/**
+						 * **A closed stream is announced before it is closed** (11c:14).
+						 *
+						 * The `access-ended` frame is not one of the eight wire events: the wire vocabulary is fixed
+						 * by spec L358 and a ninth name would break 11a's own literal-set assertion. So the ending
+						 * travels as a `connection-changed` with `connected: false`, and the **cause rides in the
+						 * same payload** — which is what lets the client tell "your access ended" from "the
+						 * connection dropped", and therefore whether to retry.
+						 */
+						const stopForCause = store.onAccessEnded((event) => {
+							if (event.principalId !== principal.id) return;
+							send(frameOf(connectionChanged(false, 0, event.cause)));
+							// The stream ends. Closing it is the point: a revoked principal must not hold a live
+							// connection it may no longer read, and leaving it open would keep the listener and
+							// the response alive for a reader that will be refused on every other request.
+							close();
+							try {
+								controller.close();
+							} catch {
+								// Already closed by the client.
+							}
+						});
+
 						unsubscribe = store.onCommit((commit) => {
 							// **Withheld, not queued.** A paused principal receives nothing and its cursor does
 							// not advance, so a resume replays exactly these entries from the cursor. The
@@ -127,7 +165,10 @@ export const Route = createFileRoute("/api/stream")({
 
 						// A reader that navigates away must not leave a listener in the store. The abort signal
 						// is the only notification of that.
-						request.signal.addEventListener("abort", close);
+						request.signal.addEventListener("abort", () => {
+							stopForCause();
+							close();
+						});
 					},
 					cancel() {
 						// Both the abort listener and the stream's own cancellation can fire; closing twice is

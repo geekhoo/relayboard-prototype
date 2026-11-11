@@ -305,6 +305,40 @@ test.describe("the stream panel", () => {
 		}
 	});
 
+	test("the simulation control commits one visible entry, authored server-side", async ({
+		browser,
+		baseURL,
+	}) => {
+		// 11c:18 and 11c:23: the entry arrives through the same commit path as a real post — same `seq`
+		// counter, same event — and its author is chosen **server-side** from the board's agent
+		// principals, never by the client (spec L377). So the caller cannot say which agent speaks.
+		const { page, close } = await asPrincipal(
+			browser,
+			baseURL ?? "http://127.0.0.1:3218",
+			"alex",
+		);
+		try {
+			await openThread(page);
+			const before = await page.locator(".entry").count();
+
+			await page.locator("[data-stream-simulate]").click();
+
+			// One entry, and the sequence advanced by exactly one: the same counter a post uses.
+			await expect(page.locator(".entry")).toHaveCount(before + 1);
+			const last = page.locator(".entry").last();
+			const seq = Number(await last.getAttribute("data-entry-seq"));
+			expect(seq).toBe(before + 1);
+
+			// **Authored by an agent, not by the reader.** The byline names the author and the agent tag is
+			// present, which is what the server-side choice produces.
+			await expect(last.locator(".entry__kind")).toHaveText(/agent/i);
+			const author = await last.locator(".entry__author").textContent();
+			expect(author ?? "").not.toBe("");
+		} finally {
+			await close();
+		}
+	});
+
 	test("the simulation control states that it is a demonstration", async ({
 		browser,
 		baseURL,

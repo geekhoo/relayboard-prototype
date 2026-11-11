@@ -133,8 +133,22 @@ describe("the in-memory client", () => {
  * and failed. Measured. The HTTP transport has exactly one store in the process, so the in-memory
  * subject must have one too, or the two transports are not being compared.
  */
-const shared = createStore(demoSeed(), demoOptions());
+/**
+ * **Rebuilt per test, and that is a finding rather than tidiness.** These cases end a principal's
+ * access, and an ending is permanent state on the store — so the first version, with one store for the
+ * whole suite, made every later case start from a workspace where `alex` had already been revoked.
+ * The expiry case timed out waiting for an ending it could never see, and the two-principal case
+ * failed for the same reason.
+ *
+ * Two clients over **one** store, because two stores are two unrelated universes (spec L12) — but the
+ * workspace itself is fresh for each case.
+ */
+let shared = createStore(demoSeed(), demoOptions());
+
 describeStreamConformance({
+	reset: () => {
+		shared = createStore(demoSeed(), demoOptions());
+	},
 	makeClient: () =>
 		createInMemoryClient({ store: shared, principalId: "alex" }),
 	makeOtherClient: () =>
@@ -142,6 +156,9 @@ describeStreamConformance({
 	actor: "alex",
 	boardId: "platform",
 	threadId: "delivery",
+	// The mechanism the workspace actually has: the store's `endAccess`, which is what 08c's revocation
+	// calls and what the registered expiry check answers.
+	endAccess: (principalId, cause) => shared.endAccess(principalId, cause),
 });
 
 describe("the in-memory subscription", () => {

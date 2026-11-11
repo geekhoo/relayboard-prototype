@@ -20,6 +20,21 @@ import { isWellFormedGrant, satisfies } from "#/domain/grants";
 import { checkGrant, unknownPermission } from "#/server/grants";
 
 /**
+ * Why a principal's access ended.
+ *
+ * Two causes because the reader is told different things: a revocation is a decision a person made, an
+ * expiry is a window that closed. Both end the stream; only one of them is somebody's choice, and 11c
+ * requires the refusal to distinguish them so an operator can tell a policy decision from a bug.
+ */
+export type AccessEndCause = "revoked" | "expired";
+
+/** What an ending announces to whoever is watching a connection. */
+export type AccessEndListener = (event: {
+	readonly principalId: PrincipalId;
+	readonly cause: AccessEndCause;
+}) => void;
+
+/**
  * The store: the workspace's state, and the operations over it.
  *
  * A factory that takes its seed as an argument, so a test can start from an empty
@@ -280,6 +295,37 @@ export interface Store {
 	 * that a stream is built on, not a backlog — 11a's route and 11b's panel are its
 	 * consumers, and 03 proves the in-memory stream can be driven by it.
 	 */
+	/**
+	 * **How a principal's access ended**, or `undefined` while it still holds one.
+	 *
+	 * Revocation is an event and expiry is a clock, so the two arrive by different routes: `endAccess` is
+	 * called by whoever ends it (08c's `revoke`), and the registered checker is asked on each call for a
+	 * cause nothing announces. Both answers land here, because a long-lived connection needs **one
+	 * question** rather than two mechanisms — the stream asks this and closes on the answer.
+	 */
+	endAccess(principalId: PrincipalId, cause: AccessEndCause): void;
+
+	/** Whether this principal's access has ended, and why. `undefined` means it has not. */
+	accessEndedFor(principalId: PrincipalId): AccessEndCause | undefined;
+
+	/**
+	 * Register the check that answers "has this principal's access ended" for a cause nothing announces.
+	 *
+	 * Expiry is a clock: no commit, no grant, no event. So the admission surface registers a predicate
+	 * here rather than the stream knowing about admissions — the store stays the workspace's state and
+	 * the module that owns expiry stays the authority on it.
+	 */
+	registerAccessCheck(
+		check: (principalId: PrincipalId) => AccessEndCause | undefined,
+	): void;
+
+	/**
+	 * Be told when any principal's access ends.
+	 *
+	 * A second listener set rather than reusing `onCommit`: a commit and an ending are different facts
+	 * with different payloads, and one set carrying both would make every listener branch on a shape.
+	 */
+	onAccessEnded(listener: AccessEndListener): Unsubscribe;
 	onCommit(listener: CommitListener): Unsubscribe;
 
 	/** Press `seq` numbering without writing an entry, so a subscriber does not renumber. Never reuses a value. */
@@ -570,6 +616,15 @@ export const createStore = (
 	// about another. Everyone starts connected, as the prototype did.
 	const paused = new Set<PrincipalId>();
 
+	/** Principals whose access has ended, and why. A map rather than a set because the cause matters. */
+	const ended = new Map<PrincipalId, AccessEndCause>();
+	/** The predicate for a cause nothing announces — expiry, which is a clock. */
+	let accessCheck:
+		| ((principalId: PrincipalId) => AccessEndCause | undefined)
+		| undefined;
+	/** Whoever asked to be told about an ending. Separate from commits: they are different facts. */
+	const accessListeners = new Set<AccessEndListener>();
+
 	// Whoever asked to be told about commits. A set rather than a single callback,
 	// because two subscribers on one store are two readers with their own cursors.
 	const listeners = new Set<CommitListener>();
@@ -678,6 +733,30 @@ export const createStore = (
 			// Deliberately does not touch `cursor`: receiving and reading are different
 			// facts, and collapsing them is what makes a paused reader look caught up.
 			marks.seen = Math.max(marks.seen, lastSeq(entriesOf(threadId)));
+		},
+
+		endAccess: (principalId, cause) => {
+			ended.set(principalId, cause);
+			// **An ending is an event**, because a long-lived connection has to learn about it rather than
+			// poll for it (spec L362). Notified through the same listener set as a commit: the stream
+			// already watches that, and a second channel would be a second thing to keep alive.
+			for (const listener of accessListeners) {
+				listener({ principalId, cause });
+			}
+		},
+
+		accessEndedFor: (principalId) =>
+			ended.get(principalId) ?? accessCheck?.(principalId),
+
+		registerAccessCheck: (check) => {
+			accessCheck = check;
+		},
+
+		onAccessEnded: (listener) => {
+			accessListeners.add(listener);
+			return () => {
+				accessListeners.delete(listener);
+			};
 		},
 
 		onCommit: (listener) => {

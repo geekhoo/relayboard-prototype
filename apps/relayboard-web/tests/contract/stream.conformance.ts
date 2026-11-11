@@ -25,6 +25,25 @@ export interface StreamConformanceSubject {
 	readonly threadId: string;
 	/** A second principal over the same workspace, for the per-principal assertions. */
 	readonly makeOtherClient: () => RelayboardClient | Promise<RelayboardClient>;
+	/**
+	 * A fresh workspace for this case.
+	 *
+	 * Needed because these cases **end access**, which is permanent state: one store across the suite would
+	 * make every later case start from a workspace where the actor had already been revoked. Measured —
+	 * the expiry case timed out waiting for an ending it could never see.
+	 */
+	readonly reset: () => void;
+	/**
+	 * End a principal's access, as 08c's revocation does.
+	 *
+	 * Part of the subject rather than the client because ending access is not a participant operation:
+	 * a caller cannot revoke itself, and putting it on `RelayboardClient` would give every participant a
+	 * method to end its own admission. The subject supplies the mechanism its workspace actually has.
+	 */
+	readonly endAccess: (
+		principalId: string,
+		cause: "revoked" | "expired",
+	) => void;
 }
 
 /** Everything one subscription observed, in order, plus a way to wait for a condition. */
@@ -53,6 +72,7 @@ export const describeStreamConformance = (
 
 	describe("the stream conformance suite", () => {
 		it("emits exactly the eight wire event names and never a ninth", async () => {
+			subject.reset();
 			// The set is the contract module literal tuple, imported by both transports. A name that
 			// appeared in one and not the other would be invisible until a component handled it.
 			expect([...WIRE_EVENT_NAMES].sort()).toEqual(
@@ -99,6 +119,7 @@ export const describeStreamConformance = (
 		});
 
 		it("carries each entry seq on every entry-bearing event, with no client arithmetic", async () => {
+			subject.reset();
 			const api = await client();
 			const seen = recorder();
 			const stop = api.subscribe({ onEvent: seen.observe });
@@ -130,6 +151,7 @@ export const describeStreamConformance = (
 		});
 
 		it("delivers nothing to a paused subscriber while the entry stays in history", async () => {
+			subject.reset();
 			// The criterion that makes the pause a pause rather than a filter: the entry is committed,
 			// it is in the chronology, and the paused reader is simply not told.
 			const api = await client();
@@ -158,6 +180,7 @@ export const describeStreamConformance = (
 		});
 
 		it("replays from the subscriber cursor on resume and reports the count, including zero", async () => {
+			subject.reset();
 			const api = await client();
 			await api.setConnection({ connected: false });
 			await api.appendMessage({
@@ -211,6 +234,7 @@ export const describeStreamConformance = (
 		});
 
 		it("reports a stream-error rather than silence when the transport cannot be reached", () => {
+			subject.reset();
 			// **A client-reported name, not a wire one.** The assertion is about the interface: a
 			// transport that cannot reach the stream must be able to say so, because the alternative is a
 			// stream that silently stopped and therefore renders as an empty thread (spec L518).
@@ -226,7 +250,101 @@ export const describeStreamConformance = (
 			expect(WIRE_EVENT_NAMES as readonly string[]).not.toContain(event.type);
 		});
 
+		it("closes a revoked subscriber's stream, and says access ended rather than that the transport failed", async () => {
+			subject.reset();
+			// **11c:21 and 11c:14, against both transports.** A revoked principal must not keep a live
+			// connection: not "its next message is refused", which would leave a panel that looks live and
+			// never updates.
+			//
+			// The ending reaches the store through `endAccess`, which is what a revocation calls and what the
+			// registered expiry check answers. The two transports then behave the same way because they ask
+			// the same question — that is the whole reason the cause lives on the store rather than in the
+			// SSE route.
+			const api = await client();
+			const seen = recorder();
+			const stop = api.subscribe({ onEvent: seen.observe });
+			try {
+				await seen.until(
+					() =>
+						seen.events.some((event) => event.type === "connection-changed"),
+					"the opening connection event",
+				);
+
+				// End this principal's access the way 08c does.
+				subject.endAccess(subject.actor, "revoked");
+
+				await seen.until(
+					() =>
+						seen.events.some(
+							(event) =>
+								event.type === "connection-changed" &&
+								event.connected === false &&
+								event.cause === "revoked",
+						),
+					"a disconnect for revocation",
+				);
+
+				// **It says "revoked", not "the stream broke"**, and 11c:15 needs the expiry case told apart.
+				const ending = seen.events.find(
+					(event) =>
+						event.type === "connection-changed" && event.cause !== undefined,
+				);
+				if (ending?.type !== "connection-changed")
+					throw new Error("unreachable");
+				expect(ending.cause).toBe("revoked");
+				expect(ending.cause).not.toBe("expired");
+			} finally {
+				stop();
+			}
+		});
+
+		it("closes an expired admission the same way, with a distinguishable cause", async () => {
+			subject.reset();
+			const api = await client();
+			const seen = recorder();
+			const stop = api.subscribe({ onEvent: seen.observe });
+			try {
+				subject.endAccess(subject.actor, "expired");
+				await seen.until(
+					() =>
+						seen.events.some(
+							(event) =>
+								event.type === "connection-changed" &&
+								event.cause === "expired",
+						),
+					"a disconnect for expiry",
+				);
+			} finally {
+				stop();
+			}
+		});
+
+		it("closes an expired admission the same way, with a distinguishable cause", async () => {
+			subject.reset();
+			// The other cause, and the assertion that they are **not the same value**: a reader that could
+			// not tell a decision from a window closing would not know whether to ask for a new admission
+			// or wait.
+			const api = await client();
+			const seen = recorder();
+			const stop = api.subscribe({ onEvent: seen.observe });
+			try {
+				subject.endAccess(subject.actor, "expired");
+				await seen.until(
+					() =>
+						seen.events.some(
+							(event) =>
+								event.type === "connection-changed" &&
+								event.cause === "expired",
+						),
+					"a disconnect for expiry",
+				);
+			} finally {
+				stop();
+			}
+		});
+
 		it("keeps two principals subscriptions independent, each on its own cursor", async () => {
+			subject.reset();
 			const one = await client();
 			const other = await subject.makeOtherClient();
 
