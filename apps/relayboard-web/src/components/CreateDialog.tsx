@@ -177,6 +177,12 @@ export function CreateAction({
 			<dialog className="create-dialog" ref={dialog} aria-label={label}>
 				<form
 					method="dialog"
+					// **`noValidate`, so the app's own validator is the one that refuses.** Without it Chrome
+					// blocks a `type="url"` submit before React's handler runs, so the reader gets the
+					// browser's transient message and `httpUrl`'s durable, testable reason never appears —
+					// two sources of truth for one refusal, and the one that wins is browser chrome that
+					// 09:18 does not own. Found by 15a's parity line 26.
+					noValidate
 					onSubmit={(event) => {
 						event.preventDefault();
 						void submit();

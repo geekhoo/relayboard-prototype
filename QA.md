@@ -1,35 +1,146 @@
-# Prototype validation
+# Validation
 
-This record covers the **static reference prototype** at the repository root, which is what it was written against. It is not a record of the application being built under `apps/relayboard-web`; ticket 15 in `.scratch/relayboard-app/issues/` replaces this file with a route-level suite for the app and rewrites it accordingly.
+This record covers the **application** at `apps/relayboard-web`, and it replaces the prototype record that
+stood here. The history matters and is kept: the behaviour this app must reproduce was verified against
+the dependency-free static prototype at the repository root, and `.scratch/relayboard-app/parity-checklist.md`
+froze those 64 assertions, each rewritten as a claim about this app at its own route seam. Ticket 15a
+built the suite that asserts them; this file records the run.
 
-**Method:** Headless Google Chrome 157.0.8103.40 (`C:\Program Files\Google\Chrome\Application\chrome.exe`) driven by `puppeteer-core` 25.16.0 installed only in `%TEMP%\relayboard-qa` (no dependency added to this project), against `index.html` served over HTTP from a throwaway Node static server on an ephemeral localhost port (not `file://`). Viewports: **1440×900** and **390×844** (mobile emulation, `hasTouch`), plus 1200×900, 980×900, 680×900 and 320×700 for the layout checks. Every scenario starts from a cleared `localStorage` and a fresh load. Assertions read DOM state, element counts, the `relayboard-demo-v3` blob, and `scrollWidth`/`clientWidth`; no assertion depends on fonts, colours, or other computed styles. Files under test: `index.html` sha256:abc3e15cf9f5, `app.js` sha256:57f544259161, `styles.css` sha256:d1939f87275c. Harness: `%TEMP%\relayboard-qa\run-qa.js`, machine-readable output in `%TEMP%\relayboard-qa\result.json`.
+**Method:** Playwright 1.65.0 driving **Chromium** against the **built** server (`npm run build`, then
+`node .output/server/index.mjs` on port 3218 with `RELAYBOARD_TEST_MODE=1`), not the dev server. Two
+defects this project found were visible only in a build: a server-rendered false first paint, and a
+module-scope throw that shipped into the client bundle and left every control inert. Viewports:
+**1440x900** and **390x844**, plus **320x700**, **680x900**, **980x900** and **1200x900** for the layout
+checks, all six named once in `e2e/helpers/layout.ts` so no two suites can drift into seven sets of
+numbers. Every test starts from a reset workspace through 06a's hook (the fixture makes that
+unconditional rather than a habit each file remembers) and a fresh browser context, and
+`e2e/isolation.spec.ts` asserts the reset's effect rather than assuming it.
+
+**Suite:** `npm run e2e` — **172 tests in 17 files**. The parity scenarios are `e2e/parity.spec.ts`,
+where every test title begins `parity N:` and N is the number of the line in the frozen checklist it
+asserts. `e2e/helpers/parity.ts` holds all 64 lines as data, and three tests in that file make the
+coverage countable rather than judged: the 64 numbers are present exactly once each, every line that is
+not `covered` carries a reason, and every claimed test title exists verbatim in the spec. Proven to bite —
+renumbering one line fails the first, and renaming one test fails the second.
 
 ## Verified
 
-64 assertions across 12 scenarios, all passing in the recorded run.
+**60 of the frozen checklist's 64 assertions pass** (57 asserted by this suite and 3 at the contract seam, cited in the data file with the file that owns each), across the 13 bullets the prototype recorded
+(`QA.md`'s original file said "12 scenarios" because its two stream-pause bullets were run as one; the
+checklist counts the bullets, so 64 across 13 is the number to quote). Two are not carried across and
+two more could not be met as written; all four are listed below with reasons rather than dropped, and
+the checklist file itself was not edited to fit the suite.
 
-- **Initial load** renders "Durable message delivery" with exactly 9 message elements, stored sequence `1–9` with no gaps, header subtitle "Platform workspace · 9 messages", state seeded under `relayboard-demo-v3` (version 3).
-- **Posting** appends exactly one message (9 → 10), advances the canonical sequence by one (badge `#10`), clears the composer, and the Send button is disabled while empty and enabled once a draft exists. The committed text matches what was typed.
-- **Stream pause:** the pill reads "Live" with a "Pause stream" control; pausing flips it to "Paused" with "Reconnect & replay" and the panel reports "Stream paused".
-- **Paused + "Simulate agent post":** pending count is reported as `Paused · 1` with "1 message awaiting replay", and the message is committed to history (10 stored) while remaining withheld from the stream (delivery cursor 9, 9 bubbles rendered). **"Reconnect & replay"** replays it, the pill returns to "Live", bubbles go 9 → 10, the toast reads "Replayed 1 missed message", and the cursor catches up to the canonical sequence.
-- **Board → thread → post:** creating a board adds it to the sidebar (4 boards), selects it, and shows 0 threads with a "Start a conversation" empty state; creating a thread in it yields one row and "QA Sandbox · 0 messages"; posting there starts at sequence `#1` and the subtitle becomes "QA Sandbox · 1 message". Board, thread and message all survive a reload.
-- **Resources:** the seeded 3 links are listed; adding `https://example.com/qa-spec` appends a 4th row and stores it, with the toast "Resource link added". A non-HTTP scheme (`ftp://…`) is rejected with "Use an HTTP or HTTPS URL", stores nothing, and keeps the dialog open. A malformed value (`not-a-url`) never submits — native validation blocks it (`checkValidity()===false`, "Please enter a URL."). Resource chips inside messages are `<a>` elements with `http(s)` hrefs, `target="_blank"`, `rel="noopener noreferrer"`.
-- **Tabs:** Threads is the default (5 rows); Resources shows 3 rows; People shows 5 members including 2 agent tags; returning to Threads restores the 5 rows. `aria-selected` follows the active tab throughout. People rows are full-width (335px inside a 335px list), left-aligned, and `cursor:pointer`; clicking a row opens that participant's drawer, and clicking the row's chevron opens the same drawer.
-- **Thread search** narrows the list (5 → 1 for "replay", matching "Reconnect and replay behavior"), renders a zero-result empty state for "zzzz" ("No matching threads" / "Try a different search term."), and clearing the input restores all 5. The Unread filter narrows to the 2 unread threads with `aria-pressed="true"` and clears back to 5.
-- **Keyboard:** `/`, `Ctrl+K` and `Cmd/Meta+K` all move focus to the thread search field. Typing `/` inside the composer keeps focus and the draft in the composer. `Ctrl+Enter` and `Cmd/Meta+Enter` both commit the draft and clear the composer.
-- **No horizontal overflow:** `documentElement.scrollWidth === clientWidth` at 1440×900 (Threads, Resources, People and the stream dialog), at 390×844 (thread list, conversation, boards drawer, resources, stream dialog), and at 320×700.
-- **Stream dialog geometry** at 1440/1200/980/680/390 wide: fully inside the viewport, anchored to the right edge (25px gap desktop, 10px at ≤680px), sitting directly below the connection pill, and with zero geometric overlap of the composer dock; it is modal by design, its own controls stay hittable, and the composer is focusable again once it closes.
-- **Supporting paths:** the thread details drawer reports "Messages 9" / "Last sequence #9" and closes on `Escape`; clicking a message author opens the participant identity drawer with its fingerprint; in-thread message search filters ("broker" → 3 hits, "qqqqq" → "No matching messages") and restores 9 on close; triple-clicking Send still posts exactly one message; sending works from the 390px composer.
-- **No uncaught exceptions or console errors:** zero `Runtime.exceptionThrown`, zero error-level `Log.entryAdded`, zero `pageerror`, zero `console.error`, and no HTTP response ≥ 400 across every scenario above.
+What the parity suite asserts, by scenario:
 
-- **The horizontal-overflow result is weaker than it sounds.** `overflow: hidden` is set on `html` and `body`, so `documentElement.scrollWidth === clientWidth` would hold even if content were clipped. The harness also reports `body.scrollWidth` and the dialog's own rect, which is why the stream-dialog geometry checks are sound, but a true overflow assertion has to measure the scrollable content box of each pane. The port's equivalent criterion does exactly that.
+- **Initial load** — the address names the open thread and the title is that thread's; nine entries each
+  with its own position; the rendered positions are `#1`..`#9` with no gap and no repeat; the stated
+  entry count matches the entries rendered. *(The prototype's `relayboard-demo-v3` storage key is not
+  carried: this app has no `localStorage` store.)*
+- **Posting** — one new entry and a count that rises by one; the next position, not a reused one; the
+  composer clears and Send returns to disabled; Send is disabled while the draft is empty or whitespace;
+  the committed text is the typed text, trimmed.
+- **Pause, simulate, replay** — the indicator starts connected and offers pausing; pausing flips the word
+  and offers resuming; one entry committed while paused reads as a pending count of one; resuming renders
+  the withheld entry and returns the indicator to connected. *(The cursor values themselves are asserted
+  at the contract seam, where the watermark is observable; this suite asserts what a reader sees.)*
+- **Board, thread, post** — creating a board adds a rail row, opens it and shows its empty state; an empty
+  board's state names the next action; a new thread is one row holding nothing; its first entry is `#1`
+  and the stated count is one; and board, thread and entry survive a reload **with the thread still open**
+  — the line where this app is deliberately the opposite of the prototype, whose selection reset on
+  reload was recorded as a gap.
+- **Resources** — the seeded resources are listed with names and URLs; adding one renders a row that
+  survives a re-read; a non-HTTP URL is refused with a reason and stores nothing while the surface stays
+  open; a malformed URL is refused **by the app's own validator**; and a resource referenced in a thread
+  renders a safe external link (`target="_blank"`, `rel="noopener noreferrer"`).
+- **Board views** — a bare board URL renders threads with that view marked selected; resources and people
+  render and mark themselves; returning to threads renders the same list; a person row opens that
+  principal's panel; and the row exposes exactly one activation rather than the prototype's two.
+- **Search and the unread filter** — a term narrows the list; a zero-result state reads differently from
+  an empty board; clearing restores every thread; and the unread filter narrows from the **`seen`
+  watermark**, exposes `aria-pressed`, and clears.
+- **Keyboard** — `/`, `Ctrl+K` and `Cmd/Meta+K` all focus thread search; a `/` typed in the composer stays
+  text and keeps the draft; `Ctrl+Enter` and `Cmd/Meta+Enter` both post.
+- **Horizontal overflow** — measured **per scroll container**, never on `documentElement`. At 1440 in the
+  thread view, in People and Resources, and with the stream panel; at 390 for the thread list, the
+  conversation, the rail as an overlay drawer and the resources view; at 320 for the thread list, the
+  conversation and a usable composer.
+- **The stream panel's geometry** — inside the viewport horizontally at all six widths; the connection
+  indicator is inside it and visible; it never overlaps the composer at any width; and its controls are
+  operable while it is open.
+- **Supporting paths** — thread details state the entry count and the last position; a participant's panel
+  distinguishes derived from declared and says plainly when this workspace derived nothing; in-thread
+  search narrows, shows zero matches and restores; sending works at 390; in-thread search is reachable
+  below 680px; and at 320 nothing overflows and the composer is usable.
+- **No errors** — a walk of every scenario route produces no `pageerror`, no error-level console entry,
+  and no unprovoked HTTP response >= 400. *(Suite-level conditions: a Playwright test cannot observe a
+  sibling test's console, so the walk is the closest honest equivalent and is stated as such.)*
+
+Asserted beyond the checklist, because a port has obligations the prototype could not have:
+
+- **The type and contrast floors, over real product text.** No text computes below 11px, body copy stays
+  at or above 13px, and every text run meets WCAG AA (4.5:1) against the surface it is actually painted
+  on — resolved from the browser's computed colours, not from a token. This is the one deliberate
+  exception to the prototype's "no assertion depends on fonts or colours" rule: a floor **is** a font
+  size and a contrast measurement **is** a colour pair, and neither can be asserted any other way.
+- **The app is not the scaffold.** No starter route resolves to starter content, there is no site header
+  or footer, no theme control and no `data-theme`, the body computes to the self-hosted IBM Plex Sans
+  rather than a generic fallback, and the walk contacts no external host.
+
+## Not carried across (2)
+
+- **The prototype's `relayboard-demo-v3` storage key.** This app has no `localStorage` store; `spec L505`
+  leaves `localStorage` holding only a remembered location. Its equivalent facts are that the workspace
+  opens with the demo seed and that the store is in-memory for the process, both of which are asserted
+  elsewhere. Asserting a storage key would assert the prototype's mechanism rather than the product's
+  behaviour.
+- **The prototype's People-row geometry** (full-width inside a fixed 335px list, `cursor: pointer`).
+  That is a measurement of its own stylesheet with no requirement behind it in `DESIGN.md`, and these
+  column widths are not the prototype's. The behavioural parts — the list, the row opening the panel,
+  one activation — are asserted.
+
+## Could not be met as written (2)
+
+- **Checklist line 51** asks that the stream panel's rect be inside the viewport vertically at all six
+  widths. The panel is **inline content in the conversation column**, not an overlay: it scrolls with its
+  column, so a viewport-fitting vertical claim would force a panel the product does not want. The
+  horizontal fit is asserted at every width, and the vertical claims that are true of it — the indicator
+  inside it, no overlap with the composer — are asserted too.
+- **Checklist line 52** asks that the panel be anchored to the right edge with a 25px gap on desktop and
+  10px below 680px. There is no anchored panel to measure; the same decision as line 51. Wrapping the
+  stream state in a fixed-position box to satisfy a geometry assertion would be building the prototype's
+  chrome rather than this product.
+
+Both are recorded in `e2e/helpers/parity.ts` as `blocked-by-the-app`, naming the tickets (11b, 13a) whose
+decisions made them unmeetable, so a reviewer can disagree with those decisions rather than wonder at two
+missing numbers.
 
 ## Not verified
 
-- **In-thread message search is not reachable at mobile widths.** The `#search-messages-btn` control is `display:none` with no layout box at 390px, and nothing else opens the message-search bar, so that feature exists only at desktop widths. Recorded here as a known gap, not a pass.
-- **Selection does not survive a reload.** After creating a board and thread, a reload keeps the data but returns the app to the default "Platform workspace" board and "Durable message delivery" thread.
-- Cross-browser behaviour: only Chromium was exercised. Firefox, Safari, and real iOS/Android browsers are untested.
-- Touch gestures, screen readers, and keyboard-only traversal beyond the shortcuts listed above were not tested.
-- Real multi-tab or multi-device sync, and the `storage` event path, were not exercised.
+Re-derived rather than copied, because the previous list described a prototype with different gaps. **The
+two gaps that list recorded are closed in this app and are asserted as passing features:** the selected
+board and thread survive a reload (the address names them), and in-thread message search is reachable at
+every width including below 680px.
 
-**Limitations:** This is a client-side simulation. `window.RelayboardMockAPI` runs in the same page as the UI with `setTimeout` latency, so there is no real network durability, no persistence across devices or browsers, no broker acknowledgements, and no server-side ordering guarantee — `localStorage` under `relayboard-demo-v3` is the only store and it is per-browser-profile. The pause/replay sequence demonstrates a UI contract, not delivery semantics. Accessibility was checked only for landmarks, labels, focus targets, and the shortcuts above; nothing here constitutes a production accessibility certification (no full WCAG audit, no assistive-technology testing), and no performance, load, or security testing was performed.
+What still is not verified, stated so nothing here implies coverage it does not have:
+
+- **Cross-browser.** Chromium only. Firefox, Safari and real iOS/Android browsers are untested, and no
+  engine-specific CSS is asserted.
+- **Real assistive technology.** Focus order, focus rings, live-region announcements and heading structure
+  are asserted through the DOM and computed styles; no screen reader (NVDA, JAWS, VoiceOver, TalkBack) was
+  run, and nothing here constitutes a WCAG audit or an accessibility certification.
+- **Performance and load.** No measurement of time to interactive, bundle size beyond the client-asset
+  string check, frame rate, or behaviour under many concurrent readers. No load test.
+- **Security.** No penetration testing, no CSRF or XSS audit beyond the two structural rules the suite
+  does assert (no server-only string reaches a client asset, and a resource link is `noopener`), and no
+  review of the session cookie's handling. A credential here identifies rather than authenticates, by
+  design, and that is a scope decision rather than a security claim.
+- **Touch and gestures.** Viewports are set, but no touch interaction is dispatched.
+- **Real multi-device sync.** Two browser contexts in one process are asserted (one workspace, two
+  participants); two processes, two devices and reconnection across a restart are not.
+
+**Limitations:** the store is **in-memory**, so a restart clears the workspace; the interface says so where
+a destructive act is confirmed. A credential **identifies** rather than authenticates — anyone holding this
+browser's cookie acts as that principal. The demo seed is **demo-origin and purgable**, and a purge is
+reversible only until the process restarts. Authorship is recorded and never confers authority. None of
+this is a production delivery guarantee: the stream demonstrates a delivery contract, not broker semantics.

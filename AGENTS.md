@@ -38,6 +38,10 @@ npm run start        # serve the build (node-server preset)
 npm run check        # biome
 npm run typecheck    # tsc --noEmit
 npm run check:styles # no colour literal outside the token block; no clipped frame
+npm test             # vitest: the unit, domain and contract seams
+npm run e2e          # playwright: the route seam, against the built server
+npm run check:boot   # the built server refuses to start without a usable SESSION_SECRET
+npm run check:bundle # no server-only string reaches a client asset
 
 # packages/relayboard-skills
 npm run build        # tsc → dist/
@@ -49,9 +53,15 @@ npm run skills:check # the same gate, with the package's artifact path
 npm run app:check    # the app's check + typecheck + build, without cd
 ```
 
-`.github/workflows/app-check.yml` runs the app's four gates on every pull request and
-then asserts the build is still `node-server`, so a serverless build fails there
-rather than at runtime.
+`.github/workflows/app-check.yml` runs every gate above — check, styles, typecheck, `npm test`,
+build, boot, bundle and `npm run e2e` — on every pull request, and then asserts the build is
+still `node-server`, so a serverless build fails there rather than at runtime.
+
+**`npm test` and `npm run e2e` are part of the gate, not optional extras.** The unit suite covers
+the domain, the store and the client contract; the route seam covers what only a browser can
+observe — the rendered chronology, the watermarks, the geometry at six widths, the focus contract
+and `e2e/parity.spec.ts`, which exercises every behaviour `QA.md` verified for the prototype. A
+ticket is not done until all of them pass.
 
 ## Conventions
 

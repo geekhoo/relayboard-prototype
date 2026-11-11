@@ -33,6 +33,25 @@ colors:
   paused-line: "#e6dcc2"
   focus: "#0f6b52"
   focus-on-rail: "#9be0bd"
+  # The four board-mark hues §241 requires and previously named none of. The values are the
+  # prototype's (styles.css L396-410), verified against the app's rendered rail: each clears 4.5:1 as
+  # white-on-hue, which is what keeps the 30px letterform legible without a second treatment.
+  #
+  # **The prototype's un-themed default (#527b72) is deliberately not a token.** `BoardTheme` is a
+  # closed union of four and `createBoard` defaults a new board to blue, so a mark with no hue is
+  # unreachable rather than unstyled — a fifth token would be a value nothing can select.
+  board-mark-ochre: "#8a6553"
+  board-mark-lavender: "#6d6a96"
+  board-mark-blue: "#4d7091"
+  board-mark-sage: "#477263"
+  # The active rail row's 1px inset lighter edge (§153). Named because the rule stated the treatment
+  # and carried no value, so the prototype's #4d6c62 was the only source.
+  rail-edge: "#4d6c62"
+  # The focus-within edge for a field and the composer. It is **not** a second focus colour: the ring
+  # is `focus`, and this is the 1px edge that shifts under it (§237, §238). Declared here because two
+  # sidecar snippets carried the literal and DESIGN.md named nothing, which made it a colour outside
+  # the token block the app forbids.
+  field-focus-edge: "#7fb79c"
 typography:
   display:
     fontFamily: "IBM Plex Sans, ui-sans-serif, sans-serif"
@@ -220,6 +239,13 @@ Avatars are rounded squares (9–11px), not circles: the circle is reserved for 
 - **Primary:** solid Working Green with white text, 8px 13px padding; hover deepens to Deep Working Green.
 - **Disabled:** a filled pale grey-green (#dfe9e3) with #55665d text — legible as text, visibly inert as a control. It does not fade the label to illegibility.
 - **Secondary:** white with a #d3e0d7 edge and #3d5c4c text; hover tints the fill rather than the border alone.
+- **Unavailable to this reader:** the control **stays present**, in the disabled treatment above, with the
+  missing capability named in 11px Ink-muted **beside it** — never in a tooltip and never by removing the
+  control. A reader who cannot see a control cannot ask for the permission it needs, and a reader who can
+  see it greyed out with no reason can only guess. See **The Stated Reason Rule** below.
+
+### Named Rules
+**The Stated Reason Rule.** A control a reader may not use is disabled *and* says why, in place, in Ink-muted at 11px: the permission by name where a permission is missing (`create:board`, `post:message`), or the state that prevents it where a state is ("Move the thread to resolved first"). The control is never hidden and the reason is never a hover-only tooltip — a keyboard or touch reader must reach both. This is what makes an unavailable action a fact the reader can act on rather than a gap they have to infer, and it is why every gated control in the app renders as a disabled button with an adjacent reason rather than an absent one.
 
 ### Chips
 - **Agent chip:** #ebf5ee fill, #2c6b4e text, 11px, 4px radius, uppercase. It sits inline in the byline, immediately after the author name, and is the only place an agent is visually distinguished from a human.

@@ -99,6 +99,15 @@ test.describe("two participants, one workspace", () => {
 			await one.goto("/boards/platform");
 			await two.goto("/boards/platform");
 
+			// **Wait for both lists before reading either, which is what this test was missing.**
+			// `allTextContents()` does not wait, and `goto` resolves before the loader's rows are painted,
+			// so a read taken here compared one page's five rows against the other page's zero. Measured:
+			// the test failed twice in three full runs and never when run alone — the signature of a
+			// first-paint race rather than a difference between the two participants. The same defect
+			// class 04a recorded for the pane's false first paint, here in the test rather than the app.
+			await expect(one.locator(".thread-row").first()).toBeVisible();
+			await expect(two.locator(".thread-row").first()).toBeVisible();
+
 			// The same three boards, in the same order, with the same thread count: the workspace is
 			// one workspace even though the readers are two people.
 			expect(await one.locator(".board-rail__name").allTextContents()).toEqual(
