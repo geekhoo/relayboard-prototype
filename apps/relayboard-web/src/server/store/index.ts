@@ -259,6 +259,16 @@ export interface Store {
 	 */
 	setConnection(principalId: PrincipalId, connected: boolean): void;
 
+	/**
+	 * Whether this principal is paused, which is what a **per-principal stream** must ask.
+	 *
+	 * The commit listener's `delivered` flag is workspace-wide: it is false when *any* principal is
+	 * paused, because the store is announcing one commit to every listener. A stream serving one
+	 * reader needs that reader's answer, and asking it here is the only way to get one — the
+	 * alternative would be a listener per principal, which is a queue by another name.
+	 */
+	isPaused(principalId: PrincipalId): boolean;
+
 	/** The principal read the thread: `seen` catches up to the last position. `cursor` does not move. */
 	markRead(principalId: PrincipalId, threadId: ThreadId): void;
 
@@ -646,6 +656,8 @@ export const createStore = (
 				});
 			});
 		},
+
+		isPaused: (principalId) => paused.has(principalId),
 
 		setConnection: (principalId, connected) => {
 			if (!connected) {

@@ -51,6 +51,12 @@ import {
 	setConnection as setConnectionFn,
 	simulateIncoming,
 } from "#/server/functions/write";
+import {
+	advanceCursor,
+	eventOf,
+	STREAM_PATH,
+	WIRE_EVENT_NAMES,
+} from "#/server/stream";
 
 /**
  * The families a caller can act on differently.
@@ -360,9 +366,64 @@ export const createHttpClient = (): RelayboardClient => ({
 	 * spec L518 forbids. A caller that ignores this will get an exception at the call site,
 	 * which is where 11a's implementation will be.
 	 */
-	subscribe: (_handlers: StreamHandlers): Unsubscribe => {
-		throw new Error(
-			"subscribe is not served in this build: the stream is a server route, not a server function, and it arrives with ticket 11a",
-		);
+	/**
+	 * The stream, over `EventSource` at the route 11a added.
+	 *
+	 * `EventSource` rather than a hand-rolled `fetch` reader, for one reason that matters to this ticket:
+	 * it is the browser feature that **sends `Last-Event-ID` on a reconnect for you** (11a:18). A manual
+	 * reader would have to track the last id and put it in a header, which is the bespoke client
+	 * bookkeeping the criterion replaces.
+	 *
+	 * What it does not do: sequence arithmetic. The cursor moves to the `id` the server sent, through
+	 * `advanceCursor`, which cannot compute a position of its own (11a:15).
+	 *
+	 * A transport failure arrives as `stream-error`, never as silence (spec L518): a stream that silently
+	 * stopped would render as an empty thread, which is the failure the panel exists to avoid.
+	 */
+	subscribe: (handlers: StreamHandlers): Unsubscribe => {
+		// Server-side there is no `EventSource`, and a subscription during SSR would be a connection per
+		// render. A no-op with a stated reason rather than a throw, because a component that subscribes in
+		// an effect legitimately runs on the server first.
+		if (import.meta.env.SSR) return () => undefined;
+
+		let cursor = 0;
+		let source: EventSource | null = null;
+		let closed = false;
+
+		const open = () => {
+			if (closed) return;
+			// The cursor rides in the URL as well as in the browser's own `Last-Event-ID`, because a **new**
+			// `EventSource` after an error does not resend the header the old one sent — the header belongs
+			// to a reconnect of the same instance. Measured: without the parameter, a re-open after a
+			// transport failure replayed the whole thread.
+			const url = cursor > 0 ? `${STREAM_PATH}?after=${cursor}` : STREAM_PATH;
+			source = new EventSource(url);
+
+			for (const name of WIRE_EVENT_NAMES) {
+				source.addEventListener(name, (event) => {
+					const parsed = eventOf(`data: ${(event as MessageEvent).data}`);
+					if (!parsed) return;
+					cursor = advanceCursor(cursor, parsed);
+					handlers.onEvent(parsed);
+				});
+			}
+
+			source.addEventListener("error", () => {
+				// **A stated failure, not silence.** The name is the client's own and is deliberately not on
+				// the wire (spec L518).
+				handlers.onEvent({
+					type: "stream-error",
+					message: "The stream could not be reached",
+				});
+			});
+		};
+
+		open();
+
+		return () => {
+			closed = true;
+			source?.close();
+			source = null;
+		};
 	},
 });

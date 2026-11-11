@@ -226,8 +226,21 @@ export const simulateIncoming = createServerFn({ method: "POST" })
  */
 export const setConnection = createServerFn({ method: "POST" })
 	.validator(setConnectionInput)
-	.handler(async (): Promise<StreamState> => {
+	.handler(async ({ data }): Promise<StreamState> => {
 		const actor = authorizeAs("setConnection");
+		// **The pause reaches the store.** Until 11a this handler ignored its input, on the reasoning that
+		// pause was the reader's own state rather than a server fact. The stream proved that wrong: a
+		// paused reader's cursor has to hold still, or a resume replays nothing and the "no backlog,
+		// replay from the cursor" model loses its only mechanism. The store's primitive has existed
+		// since 02b; this is the wire that lets a client reach it.
+		//
+		// **Asserted at the store, not here.** Removing this line leaves the whole suite green, measured:
+		// the in-memory transport reaches `store.setConnection` directly, and a `createServerFn` cannot be
+		// driven under `vitest run` (06c measured that four ways). So the pause's *mechanism* is asserted
+		// (`tests/store-contract.ts`) and its *wire* is asserted by 11b, where a pause affordance exists
+		// for the route seam to click. Recorded rather than implied, because a line no test can see is
+		// the kind of line that gets deleted.
+		store().setConnection(actor.id, data.connected);
 		const pending = store()
 			.listBoards()
 			.flatMap((board) => store().listThreads(board.id))
@@ -241,7 +254,7 @@ export const setConnection = createServerFn({ method: "POST" })
 					.reduce((last, entry) => Math.max(last, entry.seq), 0);
 				return total + Math.max(0, latest - cursor);
 			}, 0);
-		return { connected: true, pending };
+		return { connected: data.connected, pending };
 	});
 
 /**

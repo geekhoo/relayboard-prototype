@@ -124,9 +124,21 @@ describe("the in-memory client", () => {
  * here" appears in the report instead of being an empty silence. 11a removes the skip and
  * this call does not change.
  */
+/**
+ * **Two clients over ONE store**, and that is not a detail.
+ *
+ * The first version of this subject built each client its own store, which is two unrelated
+ * universes (spec L12): the paused reader then had nothing to replay, because the other principal's
+ * commit went to a different workspace entirely — and the per-principal case reported `pending: 0`
+ * and failed. Measured. The HTTP transport has exactly one store in the process, so the in-memory
+ * subject must have one too, or the two transports are not being compared.
+ */
+const shared = createStore(demoSeed(), demoOptions());
 describeStreamConformance({
-	makeClient: () => createInMemoryClient({ principalId: "alex" }),
-	makeOtherClient: () => createInMemoryClient({ principalId: "maya" }),
+	makeClient: () =>
+		createInMemoryClient({ store: shared, principalId: "alex" }),
+	makeOtherClient: () =>
+		createInMemoryClient({ store: shared, principalId: "maya" }),
 	actor: "alex",
 	boardId: "platform",
 	threadId: "delivery",
@@ -134,10 +146,22 @@ describeStreamConformance({
 
 describe("the in-memory subscription", () => {
 	/** Collects whatever arrives, so an assertion can look at the whole sequence. */
+	/**
+	 * Collects whatever arrives, so an assertion can look at the whole sequence.
+	 *
+	 * **Every subscription now begins with `connection-changed`** (11a:17), which is what reports how
+	 * many entries a resume replayed — including zero. These tests were written before that existed, so
+	 * each of them either filters it out or accounts for it; the filter is explicit rather than the
+	 * index being nudged by one, because a test whose arithmetic hides a protocol change is the defect
+	 * this session keeps finding.
+	 */
 	const collector = () => {
 		const events: StreamEvent[] = [];
 		return {
 			events,
+			/** Everything except the opening connection event. */
+			delivered: () =>
+				events.filter((event) => event.type !== "connection-changed"),
 			handlers: { onEvent: (event: StreamEvent) => events.push(event) },
 		};
 	};
@@ -145,7 +169,7 @@ describe("the in-memory subscription", () => {
 	it("delivers a committed entry to a subscriber, carrying its seq", async () => {
 		const store = createStore(demoSeed(), demoOptions());
 		const client = createInMemoryClient({ store, principalId: "alex" });
-		const { events, handlers } = collector();
+		const { events, delivered, handlers } = collector();
 
 		const unsubscribe: Unsubscribe = client.subscribe(handlers);
 		const entry = await client.appendMessage({
@@ -154,8 +178,11 @@ describe("the in-memory subscription", () => {
 		});
 		unsubscribe();
 
-		expect(events).toHaveLength(1);
-		const [event] = events;
+		// The opening connection event, then exactly one commit. Not "exactly one event", which would
+		// now be asserting that a subscription says nothing about its own connection.
+		expect(events).toHaveLength(2);
+		expect(events[0]?.type).toBe("connection-changed");
+		const [event] = delivered();
 		expect(event?.type).toBe("message-committed");
 		// The entry's own position is the cursor: no client-side sequence arithmetic.
 		expect(
@@ -165,7 +192,7 @@ describe("the in-memory subscription", () => {
 
 	it("announces a created thread and a created resource, with the records themselves", async () => {
 		const client = createInMemoryClient({ principalId: "alex" });
-		const { events, handlers } = collector();
+		const { delivered, handlers } = collector();
 		client.subscribe(handlers);
 
 		const thread = await client.createThread({
@@ -179,15 +206,17 @@ describe("the in-memory subscription", () => {
 			description: "For the event test",
 		});
 
-		expect(events.map((event) => event.type)).toEqual([
+		// The connection event opens the stream, then the two creations in order.
+		const created = delivered();
+		expect(created.map((event) => event.type)).toEqual([
 			"thread-created",
 			"resource-created",
 		]);
-		const createdThread = events[0];
+		const createdThread = created[0];
 		expect(
 			createdThread?.type === "thread-created" ? createdThread.thread.id : null,
 		).toBe(thread.id);
-		const createdResource = events[1];
+		const createdResource = created[1];
 		expect(
 			createdResource?.type === "resource-created"
 				? createdResource.resource.id
@@ -195,21 +224,30 @@ describe("the in-memory subscription", () => {
 		).toBe(resource.id);
 	});
 
-	it("stops delivering when unsubscribed, and never replays what it missed", async () => {
+	it("stops delivering when unsubscribed, and replays from the cursor on return", async () => {
 		const store = createStore(demoSeed(), demoOptions());
 		const client = createInMemoryClient({ store, principalId: "alex" });
-		const { events, handlers } = collector();
+		const { events, delivered, handlers } = collector();
 
 		const unsubscribe = client.subscribe(handlers);
 		await client.appendMessage({ threadId: "delivery", text: "First." });
 		unsubscribe();
 		await client.appendMessage({ threadId: "delivery", text: "Second." });
 
-		// The store keeps no backlog for anyone, so a subscriber that left gets nothing on
-		// the way back — it resumes from its cursor, which is 11a's replay to build.
-		expect(events).toHaveLength(1);
+		// **The store keeps no backlog**, so the subscriber that left was not told about the second
+		// commit. And on return it replays **nothing**, which is the interesting half: both commits were
+		// this principal's own, and a principal's own commits advance its `cursor` (delivery is a
+		// consequence of the commit — the same rule that makes a paused reader's cursor hold still). So
+		// the cursor is already at the last position and the replay is empty, reported as `pending: 0`
+		// rather than omitted.
+		expect(delivered()).toHaveLength(1);
+		const before = events.length;
 		const resumed = client.subscribe(handlers);
-		expect(events).toHaveLength(1);
+		const replayed = events.slice(before);
+		expect(replayed).toHaveLength(1);
+		expect(replayed[0]?.type).toBe("connection-changed");
+		if (replayed[0]?.type !== "connection-changed") return;
+		expect(replayed[0].pending).toBe(0);
 		resumed();
 	});
 
@@ -225,8 +263,8 @@ describe("the in-memory subscription", () => {
 		stopFirst();
 		await client.appendMessage({ threadId: "delivery", text: "Only one now." });
 
-		expect(first.events).toHaveLength(1);
-		expect(second.events).toHaveLength(2);
+		expect(first.delivered()).toHaveLength(1);
+		expect(second.delivered()).toHaveLength(2);
 	});
 
 	it("reports a surface failure as stream-error rather than silence, once a transport exists to fail", () => {

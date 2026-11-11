@@ -10,6 +10,7 @@ import type {
 } from "#/client";
 import { useActingClient } from "#/client/context";
 import {
+	applyStreamEvent,
 	conversationPositionsQuery,
 	conversationQuery,
 	conversationRosterQuery,
@@ -149,6 +150,24 @@ export function Conversation({
 	// badge for a thread the reader never saw.
 	const { isSuccess: conversationRead } = conversation;
 	const queryClient = useQueryClient();
+
+	/**
+	 * **The stream, applied to the cache and to nothing else** (11a:23).
+	 *
+	 * An arriving event does not render itself: it invalidates the query whose answer changed, and the
+	 * reader sees the same shape a navigation would have produced. That is what keeps one source of
+	 * truth — the chronology — rather than a live list beside it that can drift.
+	 *
+	 * The dependency list is the *client and the query client*, not the event: subscribing once and
+	 * letting the handler close over the cache is what stops a re-render from tearing down the
+	 * connection and immediately opening another.
+	 */
+	useEffect(() => {
+		const unsubscribe = client.subscribe({
+			onEvent: (event) => applyStreamEvent(queryClient, client, event),
+		});
+		return unsubscribe;
+	}, [client, queryClient]);
 	useEffect(() => {
 		if (!conversationRead) return;
 		// Invalidating the rail's counts is what makes the badge follow the read. It runs AFTER the

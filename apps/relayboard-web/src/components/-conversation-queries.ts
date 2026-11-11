@@ -1,11 +1,14 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type {
 	BoardId,
 	Entry,
 	PrincipalSummary,
+	StreamEvent,
 	Thread,
 	ThreadId,
 } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
+import { unreadQuery } from "#/components/-rail-queries";
 import { peopleQuery } from "#/components/-thread-queries";
 
 /**
@@ -69,6 +72,56 @@ export const conversationPositionsQuery = (
 	] as const,
 	queryFn: () => client.readPositions(threadId),
 });
+
+/**
+ * Apply one stream event to the Query cache — the **only** thing the stream may do to the UI.
+ *
+ * 11a:23: "The stream adds no second data layer to the UI: it updates the Query cache rather than
+ * bypassing it." So an arriving event does not render itself: it invalidates the specific query whose
+ * answer changed, and the reader sees the same shape it would have seen by navigating. That is the
+ * difference between a live entry and an entry only the stream knows about — and it is why the entry's
+ * `seq` is enough: the cache refetches from the chronology, which is the one source of truth.
+ *
+ * What each kind invalidates is a decision rather than a blanket refetch, for the reason 09 recorded
+ * when creating a board left the rail stale: a blanket refetch would hide the mistake of invalidating
+ * the wrong thing.
+ */
+export const applyStreamEvent = (
+	queryClient: QueryClient,
+	client: RelayboardClientBound,
+	event: StreamEvent,
+): void => {
+	switch (event.type) {
+		case "message-committed":
+		case "artifact-attached":
+		case "status-moved":
+		case "acknowledged":
+			// An entry landed: the chronology changed, and so did this thread's row and its counts.
+			void queryClient.invalidateQueries({
+				queryKey: conversationQuery(client, event.threadId).queryKey,
+			});
+			void queryClient.invalidateQueries({
+				queryKey: conversationPositionsQuery(client, event.threadId).queryKey,
+			});
+			void queryClient.invalidateQueries({
+				queryKey: unreadQuery(client).queryKey,
+			});
+			return;
+		case "connection-changed":
+			// A reconnect replayed entries the cache does not have, so the counts are stale. Named
+			// rather than refetching everything, for the same reason.
+			void queryClient.invalidateQueries({
+				queryKey: unreadQuery(client).queryKey,
+			});
+			return;
+		default:
+			// `thread-created`, `board-created`, `resource-created` and `stream-error` change things
+			// outside the conversation a reader is in. They are emitted and typed, and the surfaces that
+			// consume them are 11b's and 11c's; what this function must not do is pretend, so it does
+			// nothing and says so.
+			return;
+	}
+};
 
 export const conversationRosterQuery = (
 	client: RelayboardClientBound,

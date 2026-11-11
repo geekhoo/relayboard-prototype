@@ -69,14 +69,19 @@ describe("the HTTP client", () => {
 		}
 	});
 
-	it("throws rather than returning an empty subscription for the stream", () => {
-		// An empty subscription is indistinguishable from a thread with no entries, which is the
-		// failure spec L518 forbids being rendered as an absence. The stream is a server route rather
-		// than a server function (spec L357), so it is 11a's and it says so.
-		expect(() => client.subscribe({ onEvent: () => {} })).toThrow(/11a/);
-		expect(() => client.subscribe({ onEvent: () => {} })).toThrow(
-			/server route/,
-		);
+	it("subscribes to the route rather than throwing a ticket name", () => {
+		// **This assertion used to require a throw, and that is what a placeholder costs.** Until 11a the
+		// stream did not exist, so the honest behaviour was to fail loudly naming the ticket (06a rule).
+		// 11a implements it, so the same call now returns a working unsubscribe - and the test changes
+		// with it rather than being deleted, because "subscribe does not throw" is a claim that a
+		// transport arrived.
+		//
+		// `import.meta.env.SSR` is true under `vitest run`, so the client returns a no-op with a stated
+		// reason instead of opening an `EventSource` that does not exist in Node. The browser branch is
+		// asserted at the route seam, where a real `EventSource` connects to a real server.
+		const unsubscribe = client.subscribe({ onEvent: () => {} });
+		expect(typeof unsubscribe).toBe("function");
+		expect(() => unsubscribe()).not.toThrow();
 	});
 
 	it("declares every operation the interface declares, so none is silently missing", () => {

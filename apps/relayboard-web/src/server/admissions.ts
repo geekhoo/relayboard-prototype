@@ -510,14 +510,18 @@ export const createAdmissions = (
 			// The choice, recorded rather than inferred: `never` is a value the decider stated, and a
 			// missing field could not distinguish it from "not set yet" (08b:18).
 			record.expiry = input.expiry;
+			// **On the injected clock, not on `Date.now()`.** This read the real clock until a clocked
+			// test caught it: the surface took a `now` parameter and then bypassed it in the one place an
+			// expiry is computed, so an admission made at a fake instant expired against the real one and
+			// "an expired admission is refused on the next request" could not be asserted at all. The
+			// defect is the same shape as 08b's dropped expiry — a value that travels through three layers
+			// and is not used at the end — and it was found the same way: by a test that moved the clock.
 			record.expiresAt =
 				input.expiry.kind === "bounded"
-					? new Date(
-							Date.now() + input.expiry.hours * 60 * 60 * 1000,
-						).toISOString()
+					? new Date(now() + input.expiry.hours * 60 * 60 * 1000).toISOString()
 					: undefined;
 			record.decidedBy = input.grantedBy;
-			record.decidedAt = new Date().toISOString();
+			record.decidedAt = new Date(now()).toISOString();
 			record.grantedPermissions = input.permissions;
 		},
 
@@ -539,7 +543,7 @@ export const createAdmissions = (
 			record.state = "denied";
 			record.denialReason = input.reason;
 			record.decidedBy = input.deniedBy;
-			record.decidedAt = new Date().toISOString();
+			record.decidedAt = new Date(now()).toISOString();
 		},
 
 		resolveCredential: (token) => {

@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiStreamRouteImport } from './routes/api/stream'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards.$boardId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStreamRoute = ApiStreamRouteImport.update({
+  id: '/api/stream',
+  path: '/api/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
@@ -25,27 +31,31 @@ const BoardsBoardIdRoute = BoardsBoardIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/stream': typeof ApiStreamRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/stream': typeof ApiStreamRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/stream': typeof ApiStreamRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/boards/$boardId'
+  fullPaths: '/' | '/api/stream' | '/boards/$boardId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/boards/$boardId'
-  id: '__root__' | '/' | '/boards/$boardId'
+  to: '/' | '/api/stream' | '/boards/$boardId'
+  id: '__root__' | '/' | '/api/stream' | '/boards/$boardId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiStreamRoute: typeof ApiStreamRoute
   BoardsBoardIdRoute: typeof BoardsBoardIdRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stream': {
+      id: '/api/stream'
+      path: '/api/stream'
+      fullPath: '/api/stream'
+      preLoaderRoute: typeof ApiStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/boards/$boardId': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiStreamRoute: ApiStreamRoute,
   BoardsBoardIdRoute: BoardsBoardIdRoute,
 }
 export const routeTree = rootRouteImport

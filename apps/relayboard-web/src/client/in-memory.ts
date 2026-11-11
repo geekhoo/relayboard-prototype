@@ -32,6 +32,7 @@ import { errorMessages } from "#/domain";
 import type { Store } from "#/server/store";
 import { createStore } from "#/server/store";
 import { demoOptions, demoSeed } from "#/server/store/demo-seed";
+import { connectionChanged, entryCommitted } from "#/server/stream";
 
 /**
  * The in-memory implementation of `RelayboardClient`.
@@ -158,12 +159,13 @@ export const createInMemoryClient = (
 	// subscription: the store announces commits, and this client turns them into events
 	// for whoever is watching.
 	store.onCommit((commit) => {
-		emit({
-			type: "message-committed",
-			threadId: commit.threadId,
-			entry: commit.entry,
-			delivered: commit.delivered,
-		});
+		// **The same contract module the SSE route uses**, not a second literal. Since 11a there are two
+		// transports, and a name that appeared in one and not the other would be invisible until a
+		// component handled it — which is exactly the divergence 11a:19 asks the contract test to catch.
+		// Asking the *per-principal* question rather than the commit's workspace-wide flag, for the
+		// reason the route does.
+		if (store.isPaused(actingAs)) return;
+		emit(entryCommitted(commit.threadId, commit.entry, commit.delivered));
 	});
 
 	return {
@@ -237,15 +239,21 @@ export const createInMemoryClient = (
 			return resource;
 		},
 
-		setConnection: async (
-			_input: SetConnectionInput,
-		): Promise<StreamState> => ({
-			// A no-op: the reader is connected for as long as it holds this client. `pending`
-			// is derived from the cursor rather than from a counter, so nothing here can
-			// disagree with the watermarks the store keeps.
-			connected: true,
-			pending: pendingTotal(),
-		}),
+		/**
+		 * Pause or resume this reader, **through the store**, which owns the primitive.
+		 *
+		 * Until 11a this was a no-op returning `connected: true`: the store's pause existed since 02b
+		 * and nothing wired it, so the contract test's "a paused subscriber receives nothing" failed
+		 * with the entry delivered. The fix is one call — and it is the reason the ticket says the
+		 * pause primitive 02b built is what 11a wires rather than replaces.
+		 *
+		 * `pending` is derived from the cursor rather than from a counter, so nothing here can
+		 * disagree with the watermarks the store keeps.
+		 */
+		setConnection: async (input: SetConnectionInput): Promise<StreamState> => {
+			store.setConnection(actingAs, input.connected);
+			return { connected: input.connected, pending: pendingTotal() };
+		},
 
 		simulateIncoming: async (threadId) => {
 			const thread = store.readThread(threadId);
@@ -330,8 +338,39 @@ export const createInMemoryClient = (
 				authorId: actingAs,
 			}),
 
+		/**
+		 * The stream, on the same contract the SSE route serves.
+		 *
+		 * **It replays on subscribe and reports the count**, which the first version did not: it simply
+		 * registered a listener, so a subscriber that arrived after a commit never learned about it and
+		 * the two transports disagreed about what a fresh subscription means. The contract test is what
+		 * caught it — the same case run against both transports, which is precisely why 11a:19 asks for
+		 * that test rather than two tests.
+		 *
+		 * The cursor is the **reader's own** watermark, so a second principal's replay is different and
+		 * neither advances the other's (11a:22).
+		 */
 		subscribe: (handlers: StreamHandlers): Unsubscribe => {
 			const subscription: Subscription = { handlers, closed: false };
+
+			// Replay first, then report the count — `pending` always present, including zero.
+			let pending = 0;
+			for (const board of store.listBoards()) {
+				for (const thread of store.listThreads(board.id)) {
+					const cursor =
+						store
+							.readPositions(thread.id)
+							.find((position) => position.principalId === actingAs)?.watermarks
+							.cursor ?? 0;
+					for (const entry of store.readEntries(thread.id)) {
+						if (entry.seq <= cursor) continue;
+						pending += 1;
+						handlers.onEvent(entryCommitted(thread.id, entry, true));
+					}
+				}
+			}
+			handlers.onEvent(connectionChanged(true, pending));
+
 			subscriptions.add(subscription);
 			return () => {
 				subscription.closed = true;

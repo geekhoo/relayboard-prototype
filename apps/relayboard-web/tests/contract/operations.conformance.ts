@@ -804,10 +804,17 @@ export const describeOperationsConformance = (
 			>().toEqualTypeOf<StreamState>();
 			expect(live.connected).toBe(true);
 			expect(live.pending).toBe(0);
-			// `setConnection` is a no-op over the transport: pause is the reader's own state
-			// and delivery belongs to the stream (11b:17), so the call is always answerable
-			// and changes nothing a participant could observe.
-			expect(await api.setConnection({ connected: false })).toEqual(live);
+			// **Since 11a this is no longer a no-op, and the old assertion asserted the bug.** The store's
+			// pause primitive existed since 02b and nothing wired it; 11a wires it, so a disconnect is
+			// now a fact the store holds and a paused reader's cursor holds still. What stays true is the
+			// shape: `connected` and a `pending` derived from the cursor rather than from a counter.
+			const paused = await api.setConnection({ connected: false });
+			expect(paused.connected).toBe(false);
+			expect(paused.pending).toBeGreaterThanOrEqual(0);
+			// And resuming restores it, so the call is answerable in both directions.
+			expect((await api.setConnection({ connected: true })).connected).toBe(
+				true,
+			);
 		});
 	});
 };
