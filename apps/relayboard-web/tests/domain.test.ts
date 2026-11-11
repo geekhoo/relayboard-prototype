@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type {
 	Board,
+	BoardTheme,
 	Entry,
 	EntryRelation,
 	MessageEntry,
@@ -29,6 +30,8 @@ const human: Principal = {
 	name: "Alex Morgan",
 	kind: "human",
 	origin: "demo",
+	description: "Product & engineering",
+	browserSelectable: true,
 };
 
 const agent: Principal = {
@@ -36,6 +39,8 @@ const agent: Principal = {
 	name: "Orion",
 	kind: "agent",
 	origin: "demo",
+	description: "Research agent · independent runtime",
+	browserSelectable: false,
 };
 
 describe("Principal", () => {
@@ -45,13 +50,28 @@ describe("Principal", () => {
 		expect(agent.kind).toBe("agent");
 	});
 
-	it("is an id, a name, a kind and an origin, and holds nothing that grants anything", () => {
-		expect(Object.keys(human).sort()).toEqual(["id", "kind", "name", "origin"]);
+	it("is an id, a name, a kind, an origin, a declared description and a seed mark, and holds nothing that grants anything", () => {
+		expect(Object.keys(human).sort()).toEqual([
+			"browserSelectable",
+			"description",
+			"id",
+			"kind",
+			"name",
+			"origin",
+		]);
+		// The two fields past 02a are neither capabilities nor derived values:
+		// `description` is what the principal says about itself (declared, never
+		// verified — 12 renders it labelled as declared), and `browserSelectable` is a
+		// fact about the demo seed (spec L366: the session names a principal "selected
+		// round-robin from those the seed marks as browser-selectable"), not a
+		// permission. Neither may be read as "what this principal may do".
 		expectTypeOf<Principal>().toEqualTypeOf<{
 			readonly id: string;
 			readonly name: string;
 			readonly kind: "human" | "agent";
 			readonly origin: Origin;
+			readonly description: string;
+			readonly browserSelectable: boolean;
 		}>();
 	});
 
@@ -78,6 +98,8 @@ describe("Origin", () => {
 const board: Board = {
 	id: "platform",
 	name: "Platform workspace",
+	short: "P",
+	theme: "sage",
 	description: "Engineering discussions, architecture, and shared decisions.",
 	origin: "demo",
 };
@@ -213,13 +235,37 @@ describe("Board and Thread", () => {
 		expect(thread.origin).toBe("demo");
 	});
 
-	it("a board is a name and a description, with no member list", () => {
+	it("a board is a name, a description, its mark and no member list", () => {
+		// `short` and `theme` are the rail's 30px rounded-square mark at four documented
+		// hues (DESIGN.md §241). `members` is deliberately absent: who is on a board is
+		// the grant, so a member list here would be a second source of truth (07a).
 		expectTypeOf<Board>().toEqualTypeOf<{
 			readonly id: string;
 			readonly name: string;
+			readonly short: string;
+			readonly theme: BoardTheme;
 			readonly description: string;
 			readonly origin: Origin;
 		}>();
+		expect(Object.keys(board).sort()).toEqual([
+			"description",
+			"id",
+			"name",
+			"origin",
+			"short",
+			"theme",
+		]);
+	});
+
+	it("a board's theme is one of four documented hues and no other value", () => {
+		// A closed set rather than a free string, because the four hues are what the
+		// design system documents and a fifth would render unstyled.
+		expectTypeOf<BoardTheme>().toEqualTypeOf<
+			"sage" | "ochre" | "lavender" | "blue"
+		>();
+		expect(board.theme).toBe("sage");
+		// One character, not a letter invented per render: the mark is the datum.
+		expect(board.short).toHaveLength(1);
 	});
 
 	it("a thread carries no member list: a principal is on a board by holding a grant there", () => {

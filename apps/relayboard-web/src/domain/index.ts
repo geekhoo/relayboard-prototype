@@ -15,6 +15,7 @@ export { errorMessageList, errorMessages } from "./errors";
 export type {
 	Board,
 	BoardId,
+	BoardTheme,
 	Entry,
 	EntryId,
 	EntryReference,

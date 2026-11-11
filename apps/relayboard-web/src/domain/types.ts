@@ -15,6 +15,16 @@
 export type Origin = "demo" | "owner";
 
 /**
+ * The four hues a board's mark may take.
+ *
+ * `DESIGN.md` §241 makes "30px rounded-square board marks at 4 hues" normative, so the
+ * set is closed here rather than left a string the rail would have to guess at. The
+ * prototype uses `sage`, `ochre` and `lavender` for its three boards and `blue` as
+ * the default for a board created in the app (`app.js` L116).
+ */
+export type BoardTheme = "sage" | "ochre" | "lavender" | "blue";
+
+/**
  * A thread's canonical position. Per thread it starts at 1 and is gapless,
  * immutable once assigned, and assigned to every entry rather than only messages.
  * Nothing in this product orders by `createdAt`; `seq` is the order.
@@ -48,6 +58,27 @@ export interface Principal {
 	readonly name: string;
 	readonly kind: "human" | "agent";
 	readonly origin: Origin;
+	/**
+	 * What the principal says about itself — its operator, its role, its runtime.
+	 *
+	 * **Declared, never verified.** The prototype carries the same string on every
+	 * principal (`app.js` L21-27) and its drawer shows it under "Verified identity";
+	 * ticket 12 must label this one as declared and keep anything derived separate
+	 * (`GLOSSARY.md`: "Declared — never verified, never tinted with the accent, never
+	 * carrying a checkmark").
+	 */
+	readonly description: string;
+	/**
+	 * Whether a browser session may be issued this principal.
+	 *
+	 * A fact about the demo seed, not a capability: spec L366 says the first request
+	 * names a principal "selected round-robin from those the seed marks as
+	 * browser-selectable", with L370 making the selection cyclic and stable within one
+	 * store instance. It says nothing about what the principal may do, which is its
+	 * grant and only its grant (07a). A principal that is not selectable is still a
+	 * participant that can act.
+	 */
+	readonly browserSelectable: boolean;
 }
 
 /** A board-scoped named reference to something living elsewhere — a document, a spec, a repository, a design file. */
@@ -77,6 +108,16 @@ export interface Resource {
 export interface Board {
 	readonly id: BoardId;
 	readonly name: string;
+	/**
+	 * The monogram a 30px rounded-square board mark shows — one character.
+	 *
+	 * The prototype stores it (`app.js` L30-32: `short: 'P'`) and `createBoard` derives
+	 * it from the name's first letter (`app.js` L116), so a board made through the app
+	 * has one too freezes the mark rather than re-deriving it at each render.
+	 */
+	readonly short: string;
+	/** Which of the four documented hues the mark takes. Closed, because a fifth would render unstyled. */
+	readonly theme: BoardTheme;
 	readonly description: string;
 	readonly origin: Origin;
 }

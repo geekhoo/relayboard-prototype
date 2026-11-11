@@ -57,6 +57,23 @@ export interface StoreSeed {
 }
 
 /**
+ * One principal's watermarks in one thread, as the seed supplies them.
+ *
+ * The prototype keeps a single `seen` map and a single stream `cursors` map
+ * (`app.js` L83) because it hard-coded one reader. The port keeps the same two
+ * numbers *per principal*, so the demo seed reproduces both browser-selectable
+ * principals' badges and a test can tell them apart (02c).
+ */
+export interface SeedWatermarks {
+	/** How far delivery had reached this principal. Absent means "the whole seeded thread". */
+	readonly cursor?: number;
+	/** How far this principal had read. Absent means "nothing read". */
+	readonly seen?: number;
+	/** How far this principal reports it has taken the thread into account (10a). Absent means "not yet". */
+	readonly acknowledged?: number;
+}
+
+/**
  * What the store needs besides the seed, supplied by whoever builds it.
  *
  * Separate from `StoreSeed` on purpose: the seed is the workspace's content — five
@@ -64,7 +81,21 @@ export interface StoreSeed {
  * where the stand-ins live until the real things arrive. The one today is
  * membership.
  */
+export type StoreWatermarks = Readonly<
+	Record<PrincipalId, Readonly<Record<ThreadId, SeedWatermarks>>>
+>;
+
 export interface StoreOptions {
+	/**
+	 * The seed's watermarks, keyed by principal and then by thread.
+	 *
+	 * This is the seeding path's second input, beside membership: the demo seed's
+	 * `seen` map and stream `cursors` (`app.js` L83) become entries here, and a
+	 * principal with no entry starts at the baseline — everything seeded is delivered,
+	 * nothing is read.
+	 */
+	readonly watermarks?: StoreWatermarks;
+
 	/**
 	 * Whether this principal is on this board today.
 	 *
@@ -218,18 +249,19 @@ export const createStore = (
 	/** Keys to the entry they already committed, so a replay finds the record rather than the text. */
 	const committed = new Map<string, Entry>();
 
-	// The watermarks, per `(principal, thread)`, in three rungs that stay apart. Seeded
-	// history counts as already delivered, which is what the prototype's stream cursors
-	// said, and nobody is credited with having read it.
+	// The watermarks, per `(principal, thread)`, in three rungs that stay apart. The
+	// seed's own maps win; a principal it says nothing about gets the baseline, which is
+	// that seeded history counts as delivered and nothing is credited as read.
 	const watermarks = new Map<string, Marks>();
 	const keyOf = (principalId: PrincipalId, threadId: ThreadId) =>
 		`${principalId}\u0000${threadId}`;
 	for (const principal of principals) {
 		for (const thread of threads) {
+			const seeded = options.watermarks?.[principal.id]?.[thread.id];
 			watermarks.set(keyOf(principal.id, thread.id), {
-				cursor: lastSeq(entriesOf(thread.id)),
-				seen: 0,
-				acknowledged: 0,
+				cursor: seeded?.cursor ?? lastSeq(entriesOf(thread.id)),
+				seen: seeded?.seen ?? 0,
+				acknowledged: seeded?.acknowledged ?? 0,
 			});
 		}
 	}
