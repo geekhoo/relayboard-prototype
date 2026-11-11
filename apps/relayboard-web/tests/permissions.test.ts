@@ -299,6 +299,13 @@ describe("kind is consulted in exactly one place", () => {
 		"src/components/BoardPane.tsx":
 			"renders the 'Agent' tag; a label a reader sees",
 		"src/routes/-conversation.ts": "decides whether an entry carries the tag",
+		// **12's addition, and the same justification as BoardPane's.** The panel says "Human" or
+		// "Agent" under the participant's name. That is a word a reader sees, it decides nothing, and a
+		// test on this file's own terms requires that: 07a's scan allows a comparison only where it is a
+		// label, and the panel's copy is definitionally one — the grant above it is what states what the
+		// participant may do, and it is read rather than derived from this.
+		"src/components/ParticipantPanel.tsx":
+			"names the kind; the grant beside it decides what may be done",
 	} as const;
 
 	const sourceFiles = (): readonly string[] =>

@@ -132,6 +132,24 @@ export interface DeclaredValues {
 }
 
 /**
+ * What this workspace **derived** about a principal, as opposed to what it declared.
+ *
+ * 08c:21: the fingerprint is an HMAC over the principal id, keyed by the installation secret, so it is
+ * stable across credentials, unique per principal and impossible for a caller to supply. The issuer is
+ * the human whose grant admitted it. **Neither is ever read from a value the principal asserted**, which
+ * is the whole difference between this field and `declared` on the read below.
+ *
+ * Absent for a principal this workspace did not admit — a seeded human has no admission record, and
+ * inventing one would be a derivation from nothing.
+ */
+export interface DerivedIdentity {
+	/** Who admitted this principal. Derived from the grant that admitted it. */
+	readonly issuer: string;
+	/** A keyed digest of the principal id. Stable across credentials, unique per principal. */
+	readonly fingerprint: string;
+}
+
+/**
  * One participant, with the grant it holds **on one board**.
  *
  * The board id is a parameter rather than a field of the result because "what may this
@@ -146,6 +164,30 @@ export interface ParticipantRead {
 	readonly grant: Grant;
 	/** What it says about itself, separate so a client can label it declared. */
 	readonly declared: DeclaredValues;
+	/**
+	 * What this workspace computed about it, or `undefined` for a principal it did not admit.
+	 *
+	 * **A separate field rather than three more strings on `principal`**, because 12 has to render one
+	 * under a heading that says derived and the other under one that says declared, and a merged bag of
+	 * strings is exactly what the prototype's "Verified identity" heading was.
+	 */
+	readonly derived?: DerivedIdentity;
+}
+
+/**
+ * What a purge would remove, and what a purge did remove.
+ *
+ * The second number is the one 14:14 is about: **the reader's own entries on demo boards** — the overlap
+ * between "the workspace seeded this" and "the reader worked here". They go with the board they belong
+ * to, so the confirmation names the count before the act rather than leaving a surprise afterwards.
+ */
+export interface PurgeImpact {
+	readonly boards: number;
+	readonly threads: number;
+	readonly entries: number;
+	readonly resources: number;
+	/** Entries authored by the reader that sit on demo boards, and will go with them. */
+	readonly ownEntriesOnDemoBoards: number;
 }
 
 /** A thread and its contents, in canonical order. */
@@ -335,6 +377,24 @@ export interface RelayboardClient {
 	addResource(input: AddResourceInput): Promise<Resource>;
 	setConnection(input: SetConnectionInput): Promise<StreamState>;
 	simulateIncoming(threadId: ThreadId): Promise<Entry>;
+	/**
+	 * What a purge would remove. **A read**, so the confirmation can name the overlap before the act.
+	 *
+	 * 14:10: the operation is gated by the **workspace `create:board` grant** — the existing permission
+	 * that already means "may change the shape of this workspace" — and no `purge:*` verb is added,
+	 * because 07a's vocabulary test asserts the fifteen names literally and a new one would have to change
+	 * the spec, PRODUCT.md and that test together.
+	 */
+	purgeImpact(): Promise<PurgeImpact>;
+	/**
+	 * Remove every demo-origin record. Nothing the reader made outside demo content, and no identity.
+	 *
+	 * `confirmed` is required and literal: the surface names the consequence, and this records that the
+	 * reader saw it.
+	 */
+	purgeDemoContent(input: { readonly confirmed: true }): Promise<PurgeImpact>;
+	/** Put the demo content back, without duplicating what survived. */
+	restoreDemoContent(): Promise<{ readonly restored: number }>;
 
 	// --- reading the objects that now have entries of their own ---
 	/** A thread as a chronology: the record and its entries, not just its messages. */
@@ -395,6 +455,9 @@ export const clientOperations = [
 	"addResource",
 	"setConnection",
 	"simulateIncoming",
+	"purgeDemoContent",
+	"purgeImpact",
+	"restoreDemoContent",
 	"readThread",
 	"listResources",
 	"attachResource",
@@ -444,6 +507,22 @@ export type PermissionRequirement =
  * The third kind needs a reason rather than a bare `true`, so a reviewer can disagree with the
  * judgement instead of having to reconstruct it.
  *
+ * ## The shaped forms are for **board** questions, and this has now been got wrong twice
+ *
+ * `{ atLeastOneBoard: name }` asks "is this permission held on some board?". That is the right question
+ * for `setConnection` and `subscribe`, which need a board to read but no particular one — and it is the
+ * wrong question for a **workspace-scoped** permission, because a workspace grant is not held on any
+ * board, so the lookup refuses the very principal the permission was granted to.
+ *
+ * It has happened twice, both times caught by a real principal being refused rather than by review:
+ *
+ * 1. 09: the gate's bound read a board-scoped list and disabled `create:board` for the superadmin.
+ * 2. 14: this table used `{ atLeastOneBoard: "create:board" }` for the purge, which would have refused
+ *    the only principal who may purge.
+ *
+ * So the rule: **a workspace permission is named plainly** (a bare string, resolved with no board scope);
+ * a shaped form is only for a permission that is genuinely held per board.
+ *
  * The table is exhaustive by type over `ClientOperation`, so an operation added to the interface
  * without a line here does not compile. "Every operation declares what it requires" is therefore
  * a fact the compiler keeps rather than a review step.
@@ -458,6 +537,21 @@ export const operationPermissions = {
 	addResource: "add:resource",
 	setConnection: { atLeastOneBoard: "read:board" },
 	simulateIncoming: "post:message",
+	/**
+	 * **The workspace-scoped grant, as a plain requirement resolved with no board scope.**
+	 *
+	 * There is no `purge:*` verb and none is being added: the only principal who may remove
+	 * workspace-scoped demo content is the principal who may create workspace-scoped content, and that is
+	 * `create:board`. 14:10 makes it two criteria in one — the gate, and the vocabulary staying closed.
+	 *
+	 * `atLeastOneBoard` would be **the wrong shape here, and the difference matters**: it asks whether the
+	 * permission is held on some *board*, and `create:board` is a workspace grant, so a board-scoped lookup
+	 * would refuse the very principal 07a seeds for this. A plain name with an empty scope asks
+	 * `store.permits(id, "create:board")`, which is the workspace question.
+	 */
+	purgeImpact: "create:board",
+	purgeDemoContent: "create:board",
+	restoreDemoContent: "create:board",
 	readThread: "read:board",
 	listResources: "read:resource",
 	attachResource: "add:artifact",

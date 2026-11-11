@@ -20,6 +20,7 @@ export {
 } from "./entries";
 export type { ErrorMessages } from "./errors";
 export { errorMessageList, errorMessages } from "./errors";
+export { BOARD_MEMBER_PERMISSIONS } from "./grants";
 export type { Grant, PermissionName } from "./permissions";
 export type {
 	AcknowledgementEntry,

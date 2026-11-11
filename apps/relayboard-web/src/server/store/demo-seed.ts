@@ -10,6 +10,7 @@ import type {
 	Thread,
 	ThreadId,
 } from "#/domain";
+import { BOARD_MEMBER_PERMISSIONS } from "#/domain";
 import type {
 	SeededGrant,
 	SeedWatermarks,
@@ -635,18 +636,14 @@ export const demoBoardMembers: Readonly<Record<string, readonly string[]>> = {
  * Transcribing the permutation rather than inventing a broader one is the point: a principal that
  * could act in the prototype can act in the app, and one that could not still cannot.
  */
-const MEMBER_GRANT: readonly PermissionName[] = [
-	"read:board",
-	"create:thread",
-	"add:resource",
-	"read:member",
-	// `read:thread` and `read:resource` are implied by `read:board` (spec L425) and are therefore
-	// NOT listed: a grant that spelled them out would be a second place the implication lives.
-	"post:message",
-	"move:status",
-	"add:artifact",
-	"acknowledge:thread",
-];
+/**
+ * The seed's member grant is the **domain's** member set, not a copy of it.
+ *
+ * It was a local list until 09's created-board defect was fixed: a board made through the app granted its
+ * creator nothing, and the fix needed the same eight names. Two declarations of "what a member holds"
+ * would be two answers, and the seed's would have drifted from the app's silently.
+ */
+const MEMBER_GRANT: readonly PermissionName[] = BOARD_MEMBER_PERMISSIONS;
 
 /**
  * The workspace-wide grant the superadmin holds (spec L429, stories 81-85).

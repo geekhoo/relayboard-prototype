@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import type {
 	BoardId,
 	HeldPermissions,
@@ -14,6 +15,7 @@ import {
 } from "#/components/-thread-queries";
 import { CreateAction, type CreateInput } from "#/components/CreateDialog";
 import { Gatekeeper } from "#/components/Gatekeeper";
+import { ParticipantPanel } from "#/components/ParticipantPanel";
 import { ThreadList } from "#/components/ThreadList";
 import { BOARD_VIEWS, type BoardView } from "#/routes/-board-search";
 import { emptyStateFor, filterThreads } from "#/routes/-thread-list";
@@ -152,7 +154,7 @@ export function BoardPane({
 			) : view === "resources" ? (
 				<ResourcesView boardId={boardId} />
 			) : (
-				<PeopleView boardId={boardId} />
+				<PeopleView boardId={boardId} threadId={thread} />
 			)}
 		</div>
 	);
@@ -318,10 +320,33 @@ function ResourcesView({ boardId }: { readonly boardId: BoardId }) {
  * label, and being an agent grants nothing (AGENTS.md), so the word is here so a reader knows who
  * is speaking rather than to mark authority.
  */
-function PeopleView({ boardId }: { readonly boardId: BoardId }) {
+function PeopleView({
+	boardId,
+	threadId,
+}: {
+	readonly boardId: BoardId;
+	readonly threadId: string;
+}) {
 	const client = useRelayboardClient();
 	const members = useQuery(peopleQuery(client, boardId));
 	const people: readonly PrincipalSummary[] = members.data ?? [];
+	/**
+	 * **Which participant is open**, held here rather than in the panel so the row can be the control.
+	 *
+	 * 12 owns the panel and the drawer 05 renders into; this is the list that opens it. It closes with
+	 * Escape as well as the button, because a panel that traps a keyboard reader is the failure 13b will
+	 * look for.
+	 */
+	const [openId, setOpenId] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (openId === null) return;
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setOpenId(null);
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [openId]);
 
 	// **Three states, not two, because only one of them means "there are no participants".** A
 	// refused read and a read still in flight both leave `data` undefined, and rendering an empty
@@ -354,15 +379,33 @@ function PeopleView({ boardId }: { readonly boardId: BoardId }) {
 	}
 
 	return (
-		<ul aria-label="Participants" className="board-pane__list">
-			{people.map((person) => (
-				<li className="person-row" key={person.id}>
-					<span className="person-row__name">{person.name}</span>
-					{person.kind === "agent" ? (
-						<span className="person-row__kind">Agent</span>
-					) : null}
-				</li>
-			))}
-		</ul>
+		<>
+			<ul aria-label="Participants" className="board-pane__list">
+				{people.map((person) => (
+					<li key={person.id}>
+						<button
+							aria-expanded={openId === person.id}
+							className="person-row"
+							data-participant-open={person.id}
+							type="button"
+							onClick={() => setOpenId(person.id)}
+						>
+							<span className="person-row__name">{person.name}</span>
+							{person.kind === "agent" ? (
+								<span className="person-row__kind">Agent</span>
+							) : null}
+						</button>
+					</li>
+				))}
+			</ul>
+			{openId === null ? null : (
+				<ParticipantPanel
+					boardId={boardId}
+					onClose={() => setOpenId(null)}
+					principalId={openId}
+					threadId={threadId === "" ? undefined : threadId}
+				/>
+			)}
+		</>
 	);
 }

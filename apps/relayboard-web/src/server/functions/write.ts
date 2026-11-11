@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type {
 	BoardSummary,
 	Entry,
+	PurgeImpact,
 	Resource,
 	StreamState,
 	Thread,
@@ -15,6 +16,7 @@ import {
 	createBoardInput,
 	createThreadInput,
 	moveStatusInput,
+	purgeInput,
 	setConnectionInput,
 	simulateIncomingInput,
 } from "#/server/functions/inputs";
@@ -164,10 +166,12 @@ export const createThread = createServerFn({ method: "POST" })
 export const createBoard = createServerFn({ method: "POST" })
 	.validator(createBoardInput)
 	.handler(async ({ data }): Promise<BoardSummary> => {
-		authorizeAs("createBoard");
+		const actor = authorizeAs("createBoard");
 		const board = store().createBoard({
 			name: data.name,
 			description: data.description,
+			// The creator, who then holds the board's member grant — see `createBoard`'s comment.
+			creatorId: actor.id,
 		});
 		return { ...board, memberCount: store().listMembers(board.id).length };
 	});
@@ -197,6 +201,47 @@ export const addResource = createServerFn({ method: "POST" })
  * the ticket that gives simulation a real home is 11c, and duplicating its behaviour here would give
  * two implementations to keep in step.
  */
+/**
+ * **What a purge would remove.** A read, so the confirmation can name the overlap before the act —
+ * and gated, so a principal who may not purge cannot learn the shape of the workspace's demo content
+ * either.
+ */
+export const purgeImpact = createServerFn({ method: "POST" }).handler(
+	(): PurgeImpact => {
+		// No board scope: the requirement is workspace-scoped, and passing a board would ask the wrong
+		// question (see the table's comment).
+		authorizeAs("purgeImpact");
+		return store().purgeImpact();
+	},
+);
+
+/**
+ * **Remove the demo content.** The confirmation is a literal on the wire, so the surface that names the
+ * consequence is the one that records that the reader saw it.
+ */
+export const purgeDemoContent = createServerFn({ method: "POST" })
+	.validator(purgeInput)
+	.handler((): PurgeImpact => {
+		authorizeAs("purgeDemoContent");
+		const impact = store().purgeDemoContent();
+		// **Subscribers are told, rather than inferring a failure from silence** (14:17). Every open
+		// stream replays from its cursor, so what it holds is now wrong: the announcement is a
+		// `connection-changed` with `pending: 0`, which makes each subscriber re-read its chronology.
+		// Reusing the connection event rather than inventing a ninth wire name is 11c's decision, applied
+		// again — and it is honest, because the connection genuinely did change what it can deliver.
+		store().announceWorkspaceChange();
+		return impact;
+	});
+
+/** Put the demo content back, without duplicating what survived (14:16). */
+export const restoreDemoContent = createServerFn({ method: "POST" }).handler(
+	(): { readonly restored: number } => {
+		authorizeAs("restoreDemoContent");
+		const result = store().restoreDemoContent();
+		store().announceWorkspaceChange();
+		return result;
+	},
+);
 export const simulateIncoming = createServerFn({ method: "POST" })
 	.validator(simulateIncomingInput)
 	.handler(async ({ data }): Promise<Entry> => {

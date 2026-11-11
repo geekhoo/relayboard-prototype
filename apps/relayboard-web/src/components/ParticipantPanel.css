@@ -1,0 +1,162 @@
+/* The participant panel. Tokens only; no colour literal, no clipped frame. */
+
+.participant {
+	position: fixed;
+	inset-block: 0;
+	inset-inline-end: 0;
+	width: min(400px, calc(100vw - 24px));
+	display: flex;
+	flex-direction: column;
+	background-color: var(--color-surface);
+	border-inline-start: 1px solid var(--color-line);
+	box-shadow: -8px 0 24px var(--color-surface-tint);
+	z-index: 2;
+}
+
+.participant__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+	border-block-end: 1px solid var(--color-line-soft);
+}
+
+.participant__title {
+	margin: 0;
+	font-size: var(--text-headline);
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.participant__close {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+.participant__body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-lg);
+}
+
+.participant__kind {
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: var(--color-ink-muted);
+}
+
+.participant__section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+}
+
+/* The two headings are the whole separation: **Derived** and **Declared** are different words at the
+   same weight, and neither is tinted. A caption under each says what the word means, because a reader
+   meeting this for the first time has no reason to know (DESIGN.md §260, §293). */
+.participant__heading {
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: var(--color-ink-body);
+}
+
+.participant__caption {
+	margin: 0;
+	font-size: var(--text-label);
+	line-height: 1.45;
+	color: var(--color-ink-muted);
+}
+
+.participant__facts,
+.participant__progress {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: var(--spacing-hair) var(--spacing-sm);
+	margin: var(--spacing-hair) 0 0;
+	font-size: var(--text-body);
+}
+
+.participant__facts dt,
+.participant__progress dt {
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+}
+
+.participant__facts dd,
+.participant__progress dd {
+	margin: 0;
+	color: var(--color-ink-body);
+	/* The fingerprint is an identifier, so its characters are compared by eye: a monospace face and
+	   tabular figures are what make that possible. */
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+.participant__permissions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs);
+	margin: var(--spacing-hair) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.participant__permissions li {
+	padding: 0 var(--spacing-xs);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface-panel);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+}
+
+.participant__note {
+	margin: 0;
+	font-size: var(--text-label);
+	line-height: 1.45;
+	color: var(--color-ink-muted);
+}
+
+/* The authorship sentence, set apart because it is the one claim the panel exists to make. */
+.participant__note--authorship {
+	padding-block-start: var(--spacing-sm);
+	border-block-start: 1px solid var(--color-line-soft);
+	color: var(--color-ink-body);
+}
+
+.participant__empty {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-lg) 0;
+}
+
+.participant__empty-title {
+	margin: 0;
+	font-size: var(--text-body);
+	font-weight: 600;
+	color: var(--color-ink-body);
+}
+
+.participant__empty-detail {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-muted);
+}

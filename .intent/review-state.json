@@ -57,33 +57,23 @@
       ]
     },
     "planning:packages/relayboard-skills/skills/_artifacts": {
-      "fingerprint": "220da3069f0d6a4a320ad2f19fc4fe1f06e7b14675f475bdcf8438c879ac4f71",
+      "fingerprint": "514e7141878a853f50bfdcc7313dd27f5f1a0a38e598a25af8e89eaaa40250a9",
       "snapshot": {
         "packages/relayboard-skills/docs/identity-provenance.md": "ab8a6734775b7acc43ebbc445121a3921b6272525ec0699ccf450472c70ac93a",
         "packages/relayboard-skills/docs/mock-api.md": "d48d088a90af2f24249bba561dedf1d6abe31058b549b097b4b11fdd2ee33b70",
         "packages/relayboard-skills/docs/thread-sequencing.md": "dd3e935ab8dafbc9dc9e68f63ce81b6435aaa903df9a9adad46688ad2709a029",
         "packages/relayboard-skills/skills/_artifacts/domain_map.yaml": "e88a0a3bafe318efe3e5f686d9ae0f2175c2d818b87bb774e96f07c01aaee16d",
         "packages/relayboard-skills/skills/_artifacts/skill_spec.md": "7e74aa12989a5ee775e532952d139a825cc3b3cecc7134e20ff6f835eba0e9fa",
-        "packages/relayboard-skills/skills/_artifacts/skill_tree.yaml": "e62e6eb7f466263412e21f74dc7e7726e2695146a7af0189faac9fdec82feae8",
+        "packages/relayboard-skills/skills/_artifacts/skill_tree.yaml": "8b2e35c5a70046826645ba7693b34532c20b869780ddd82f84c5c0d40f8cc0a8",
         "packages/relayboard-skills/skills/relayboard-identity/SKILL.md": "eb0ab6c64aa69062ca0448b2ea0f8859d5a72464700eb1c4a0948a602c01595b",
         "packages/relayboard-skills/skills/relayboard-mock-api/SKILL.md": "3ad77dea6fdff4ff03cf68c0360c3088facf359f104d3b91e5b1915987d34be7",
         "packages/relayboard-skills/skills/relayboard-thread-sequencing/SKILL.md": "cdf147830216a1dca47383be561676c15f1fb423cb6ff783e0cbd817e5e44f3d"
       },
-      "head": "fd21fa42c9e1dbfe67940a1400dc03d1c92f4fed",
-      "outcome": "updated",
-      "reason": "Review plumbing only: the package's own maintainer record now ignores the two classes of repository-owned path that turned the gate red on unrelated edits. First, the local-markdown issue tracker's planning records: tracking .scratch/relayboard-app/issues/01-scaffold-to-relayboard-shell.md surfaced as an unmapped change; .scratch/ holds the port spec, 30 tickets and two shaping reviews — tracked markdown describing intended future behaviour, cited by no SKILL.md sources list, and owned by the repository's planning process rather than by this package. Second, the repository's CI callers: the first app guardrail added .github/workflows/app-check.yml, which surfaced the same way; Intent's default list already ignores the check-skills.yml it generates (at the root only), every other workflow is the same class of repository plumbing, and app workflows are expected to grow with the port (tickets 02a and 04c add a Vitest suite and a Playwright route seam), so a per-file record would be re-paid on every new workflow and every workflow edit. skill_tree.yaml review.ignore gained '.scratch/**' and '.github/workflows/**', each with a comment saying why, next to the existing apps/**, DESIGN.md, scripts/** and manifest entries that exist for the same reason. skill_spec.md records both decisions, the date, and the fact that review.ignore is now the single source of truth for tracked-path scope. No SKILL.md, docs/ file, source list or guidance text changed, so no skill needs re-authoring and no sync is required (0 files to sync).",
+      "head": "eb33a74e561b955b788180e3d7b88fe66cd27801",
+      "outcome": "no-change",
+      "reason": "Added .gitignore to the review ignore list so repository ignore rules stop surfacing as unmapped changes; the entry documents where untracked scratch may live and changes no skill guidance, no source list, and no domain map entry.",
       "evidence": [
-        "npm run skills:check before the first change, exit 1: 'Review unmapped change .scratch/relayboard-app/issues/01-scaffold-to-relayboard-shell.md: changed ...' with 3 skill files validated, 0 authoring issues",
-        "npm run skills:check after the .scratch glob, exit 1: 'Review unmapped change .github/workflows/app-check.yml: changed ...' — the .scratch item was gone, an unrelated new app CI caller took its place",
-        "packages/relayboard-skills/skills/_artifacts/skill_tree.yaml:27-37 — '.scratch/**' and '.github/workflows/**' added to review.ignore, each with a comment that they are planning records / repository plumbing rather than skill source",
-        "packages/relayboard-skills/skills/_artifacts/skill_spec.md:102-126 — the two ignore widenings and the note that review.ignore is the single source of truth for tracked-path scope, so scripts/annotate-intent-review.mjs path rules are only a fallback",
-        "node_modules/@tanstack/intent/dist/review-CEi4n4ir.mjs:428-431 — createReview() skips a changed path when covered.has(path) || isIgnored(path); reviewIgnorePatterns() reads review.ignore only from skill_tree.yaml (:214-219), and defaultReviewIgnore (:25-41) covers AGENTS.md, .intent/**, .github/workflows/check-skills.yml and lockfiles but no app workflow and no .scratch entry",
-        "node_modules/@tanstack/intent/dist/maintainer-DXmixQ6W.mjs:189-190 — maintainer check reads the same review.ignore list from skill_tree.yaml",
-        "git ls-files --cached --others --exclude-standard -- ':(top,glob).scratch/**' — 58 of 58 paths under .scratch/ match, including 5-deep .scratch/relayboard-app/reviews/proposed-splits/*.md; all 58 differ from the recorded baseline 5d9643ac",
-        "git ls-files --cached --others --exclude-standard -- ':(top,glob).github/workflows/**' — 2 of 2 paths match (.github/workflows/app-check.yml, .github/workflows/check-skills.yml)",
-        "untracked-file case proven in a throwaway git repo in %TEMP%: a brand-new .scratch ticket was matched by the glob while a new src/ file was not (repo deleted afterwards); createReview() builds its ignore set from both list() and diff(), so added and modified files are both skipped",
-        "grep 'sources' over packages/relayboard-skills/skills/*/SKILL.md lists only docs/{identity-provenance,mock-api,thread-sequencing}.md — nothing under .scratch/ or .github/workflows/",
-        "npx intent validate packages/relayboard-skills/skills: 3 skill files, all passed; npm run skills:sync: 'Nothing to synchronize.'"
+        "Changed: packages/relayboard-skills/skills/_artifacts/skill_tree.yaml at eb33a74e561b955b788180e3d7b88fe66cd27801"
       ]
     },
     "source:.gitignore": {

@@ -34,6 +34,11 @@ node_modules/
 .dsh/skills/impeccable/scripts/bin/
 **/.impeccable/hook.local.json
 
+# Harness-created plugin scratch. The agent runtime writes per-session directories here
+# when a plugin is created or probed; nothing in it is repository content, and a stray
+# probe script must not be able to reach a commit by being untracked.
+.dsh-created-plugins/
+
 # The transient Intent review report. `npm run skills:review` writes it, the
 # annotate script fills it in, and `intent maintainer review --record` consumes
 # it; the durable outcome lives in .intent/review-state.json, which IS tracked.

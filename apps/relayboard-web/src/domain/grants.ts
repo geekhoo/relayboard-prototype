@@ -166,3 +166,34 @@ export const isWellFormedGrant = (grant: ScopedGrant): boolean => {
 	if (grant.scope === "workspace" && grant.boardId !== undefined) return false;
 	return grant.permissions.every((name) => permissionNames.includes(name));
 };
+
+/**
+ * The permissions a **board member** holds on the board they are a member of.
+ *
+ * 09's create path and 03's demo seed both need this list, and until the created-board defect was fixed
+ * only the seed had it — so a board made through the app had members who held nothing, and the reader
+ * who made it could not post in it. One declaration, because two would be two answers to "what is a
+ * member".
+ *
+ * **Eight names, and the four it omits are as deliberate as the eight it has:**
+ *
+ * - `read:thread` and `read:resource` are **implied** by `read:board` (spec L425), so spelling them out
+ *   would be a second place the implication lives.
+ * - `update:board`, `grant:permission`, `admit:agent` and `revoke:agent` are not a member's. Changing a
+ *   board's shape and deciding who may join are the acts the gate and the grant rule exist to keep
+ *   distinct from ordinary participation.
+ *
+ * The set is the prototype's `board.members` behaviour expressed as grants: `app.js`'s `createBoard`
+ * (L116) makes its creator a member, which is the rule {@link BOARD_MEMBER_PERMISSIONS} now encodes for
+ * a board made through this app.
+ */
+export const BOARD_MEMBER_PERMISSIONS = [
+	"read:board",
+	"create:thread",
+	"add:resource",
+	"read:member",
+	"post:message",
+	"move:status",
+	"add:artifact",
+	"acknowledge:thread",
+] as const satisfies readonly PermissionName[];

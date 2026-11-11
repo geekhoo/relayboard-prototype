@@ -1,0 +1,137 @@
+/* The purge confirmation. Tokens only; no colour literal, no clipped frame. */
+
+.purge-control {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+.purge-control[aria-disabled="true"] {
+	background-color: var(--color-surface-tint);
+	color: var(--color-ink-faint);
+	cursor: not-allowed;
+}
+
+.purge-control__reason {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+}
+
+/* The one surface allowed to be heavier than its surroundings (DESIGN.md 259): a standard dialog, 460px. */
+.purge-dialog {
+	width: min(460px, calc(100vw - 32px));
+	padding: 0;
+	border: 1px solid var(--color-line);
+	border-radius: 14px;
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+}
+
+.purge-dialog::backdrop {
+	background-color: var(--color-rail);
+	opacity: 0.32;
+}
+
+.purge-dialog__head {
+	padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+	border-block-end: 1px solid var(--color-line-soft);
+}
+
+.purge-dialog__title {
+	margin: 0;
+	font-size: var(--text-title);
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.purge-dialog__body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+}
+
+.purge-dialog__line {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-body);
+}
+
+/* The overlap: the only line that takes a warning tone when it is non-zero, and it is never red.
+   Amber says "read this"; red says "danger", and this action is reversible by restore. */
+.purge-dialog__overlap {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-muted);
+}
+
+.purge-dialog__overlap--warned {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-paused-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-paused-surface);
+	color: var(--color-paused);
+	font-weight: 600;
+}
+
+.purge-dialog__note {
+	margin: 0;
+	font-size: var(--text-label);
+	line-height: 1.45;
+	color: var(--color-ink-muted);
+}
+
+.purge-dialog__problem {
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	color: var(--color-ink-body);
+}
+
+/* **Cancel first**, and it is the primary-looking control until the overlap has been read. */
+.purge-dialog__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--spacing-sm);
+	padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.purge-dialog__cancel {
+	padding: var(--spacing-xs) var(--spacing-md);
+	border: 1px solid var(--color-accent-chip-bg);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-accent-chip-bg);
+	color: var(--color-accent-chip);
+	font-size: var(--text-body);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.purge-dialog__confirm {
+	padding: var(--spacing-xs) var(--spacing-md);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-body);
+	cursor: pointer;
+}
+
+.purge-done {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.purge-done__line {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+}

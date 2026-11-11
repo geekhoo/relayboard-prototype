@@ -67,3 +67,22 @@ guard creates two boards from one click.
 
 **The new operation moved four deliberate assertions** — the operation list, the permission table, and the
 two requirement shapes — which is the behaviour those assertions exist for rather than an inconvenience.
+
+**A defect this ticket shipped, found by 14 and fixed with it.** A created board granted its creator
+nothing, so the reader made a room they could not speak in: `createBoard` appended the board and no
+grant, and a grant *is* the membership, so `appendMessage` asked `post:message` against a board
+nobody held it on. Criterion 14's "opens immediately with an empty state that says what to do next" was
+true about the empty state and false about being able to do anything next. The purge ticket's test wrote
+the sequence — create a board, create a thread, post — and could not run it, which is how it surfaced.
+
+The fix is in this ticket's path: `createBoard` grants its creator the board's member set in the same
+act that appends the board, from the acting principal rather than from any field a caller can set. The
+evidence is `app.js` L116, where the prototype's `createBoard` makes the creator a member; the
+departure is that the prototype also adds `alex`, `maya`, `orion` and `beacon`, which is a
+one-browser demo where everybody is in every room, and a real workspace must not silently add
+participants to a board somebody else made. A test asserts the creator is the ONLY member, and deleting
+the grant fails both that and the create-then-post sequence.
+
+The member set itself moved into `src/domain/grants.ts` as `BOARD_MEMBER_PERMISSIONS`, with the seed's
+local copy aliased to it rather than left as a second declaration — two statements of "what a member
+holds" would have drifted, and the seed's would have been the copy nobody updated.

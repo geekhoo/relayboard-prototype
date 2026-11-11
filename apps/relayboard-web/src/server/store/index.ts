@@ -15,7 +15,11 @@ import type {
 	ThreadStatus,
 	Watermarks,
 } from "#/domain";
-import { errorMessages, isThreadStatus } from "#/domain";
+import {
+	BOARD_MEMBER_PERMISSIONS,
+	errorMessages,
+	isThreadStatus,
+} from "#/domain";
 import { isWellFormedGrant, satisfies } from "#/domain/grants";
 import { checkGrant, unknownPermission } from "#/server/grants";
 
@@ -27,6 +31,23 @@ import { checkGrant, unknownPermission } from "#/server/grants";
  * requires the refusal to distinguish them so an operator can tell a policy decision from a bug.
  */
 export type AccessEndCause = "revoked" | "expired";
+
+/**
+ * What a purge would remove.
+ *
+ * The second number is the one 14:14 is about: **the reader's own entries on demo boards**. They are the
+ * overlap — records the reader made in content the workspace seeded — and they go with the board they
+ * belong to. Naming them before the act is what makes the confirmation honest rather than a surprise,
+ * and it is also why the count is reported even when it is zero.
+ */
+export interface PurgeImpact {
+	readonly boards: number;
+	readonly threads: number;
+	readonly entries: number;
+	readonly resources: number;
+	/** Entries authored by the reader that sit on demo boards, and will go with them. */
+	readonly ownEntriesOnDemoBoards: number;
+}
 
 /** What an ending announces to whoever is watching a connection. */
 export type AccessEndListener = (event: {
@@ -168,6 +189,14 @@ export interface SeededGrant {
 export interface CreateBoardInput {
 	readonly name: string;
 	readonly description?: string;
+	/**
+	 * Who is making it, **required**: the creator holds the board's member grant, so a create that named
+	 * no creator would produce a board nobody can speak in — the defect 09 shipped and 14's test found.
+	 *
+	 * Required rather than optional-with-a-default because a default would have to invent a principal,
+	 * and inventing one is how the board got a silent owner in the first place.
+	 */
+	readonly creatorId: PrincipalId;
 }
 
 /** What a caller supplies to create a thread in a board. */
@@ -309,6 +338,52 @@ export interface Store {
 	accessEndedFor(principalId: PrincipalId): AccessEndCause | undefined;
 
 	/**
+	 * **What a purge would remove**, without removing it.
+	 *
+	 * 14:14 requires the confirmation to report *how many of the reader's own entries sit on demo
+	 * boards and will be removed with them* — so the overlap is computed before anything runs, from the
+	 * same predicate the purge uses. Two functions computing it would be two answers to one question.
+	 */
+	purgeImpact(): PurgeImpact;
+
+	/**
+	 * Remove every **demo-origin** record, and nothing else.
+	 *
+	 * 14:11 and 14:12: boards, threads, entries and resources carrying `origin: "demo"` go; the reader's
+	 * own survive, as do every principal, every grant and every session. **Origin is a provenance label,
+	 * never a permission input** — the permission is checked at the boundary, and this function does not
+	 * consult `origin` for anything but removal.
+	 */
+	purgeDemoContent(): PurgeImpact;
+
+	/**
+	 * Put the demo content back, **without duplicating what survived**.
+	 *
+	 * 14:16. Restore re-seeds the demo records by id: one that survived a purge under the same id is left
+	 * alone, so a second restore cannot produce two copies of the same demo board.
+	 */
+	restoreDemoContent(): { readonly restored: number };
+
+	/**
+	 * What this workspace **derived** about a principal, or `undefined` if it did not admit it.
+	 *
+	 * Registered by the admission surface for the same reason the expiry check is: the store is the
+	 * workspace and the admission module is the authority on what it issued, so the direction of the
+	 * dependency is admissions → store and never the reverse. 12 reads it from here — through the one
+	 * board-scoped principal read — rather than importing the admission surface into a route.
+	 */
+	derivedIdentityFor(
+		principalId: PrincipalId,
+	): { readonly issuer: string; readonly fingerprint: string } | undefined;
+
+	/** Register the derivation, so the store can answer for a principal it admitted. */
+	registerDerivedIdentity(
+		derive: (
+			principalId: PrincipalId,
+		) => { readonly issuer: string; readonly fingerprint: string } | undefined,
+	): void;
+
+	/**
 	 * Register the check that answers "has this principal's access ended" for a cause nothing announces.
 	 *
 	 * Expiry is a clock: no commit, no grant, no event. So the admission surface registers a predicate
@@ -326,6 +401,21 @@ export interface Store {
 	 * with different payloads, and one set carrying both would make every listener branch on a shape.
 	 */
 	onAccessEnded(listener: AccessEndListener): Unsubscribe;
+
+	/**
+	 * Tell every open connection that the workspace's content changed wholesale.
+	 *
+	 * 14:17: "principals holding a subscription are told that a purge happened, rather than inferring a
+	 * failure from silence". A purge removes records a subscriber's cursor and cached chronology describe,
+	 * so each open stream must re-read — and reusing the **connection** event rather than inventing a
+	 * ninth wire name is 11c's decision applied again, because what changed *is* what the connection can
+	 * still deliver.
+	 */
+	announceWorkspaceChange(): void;
+
+	/** Be told when the workspace's content changed wholesale, so a connection can re-read. */
+	onWorkspaceChange(listener: () => void): Unsubscribe;
+
 	onCommit(listener: CommitListener): Unsubscribe;
 
 	/** Press `seq` numbering without writing an entry, so a subscriber does not renumber. Never reuses a value. */
@@ -482,6 +572,14 @@ export const createStore = (
 	seed: StoreSeed = EMPTY_SEED,
 	options: StoreOptions = NO_GRANTS,
 ): Store => {
+	/**
+	 * The seed this workspace was built from, kept so a restore can re-apply it (14:16).
+	 *
+	 * A copy rather than the argument: the store freezes its own collections, and re-reading the caller's
+	 * object would let a caller mutate what a restore produces.
+	 */
+	const seedSnapshot = seed;
+
 	let principals = collection(seed.principals);
 
 	/**
@@ -622,12 +720,79 @@ export const createStore = (
 	let accessCheck:
 		| ((principalId: PrincipalId) => AccessEndCause | undefined)
 		| undefined;
+	/** Whoever asked to be told that the workspace's content changed wholesale. */
+	const workspaceListeners = new Set<() => void>();
 	/** Whoever asked to be told about an ending. Separate from commits: they are different facts. */
 	const accessListeners = new Set<AccessEndListener>();
+	/**
+	 * The derivation the admission surface registers.
+	 *
+	 * `undefined` until something admits a principal, which is why `derivedIdentityFor` answers
+	 * `undefined` rather than throwing: a workspace with no admissions has derived nothing about anyone,
+	 * and that is a fact rather than an error.
+	 */
+	let deriveIdentity:
+		| ((
+				principalId: PrincipalId,
+		  ) =>
+				| { readonly issuer: string; readonly fingerprint: string }
+				| undefined)
+		| undefined;
 
 	// Whoever asked to be told about commits. A set rather than a single callback,
 	// because two subscribers on one store are two readers with their own cursors.
 	const listeners = new Set<CommitListener>();
+
+	/**
+	 * **What a purge would remove**, from the predicate the purge itself uses.
+	 *
+	 * One function rather than two: the confirmation asks what would go, and the purge removes exactly
+	 * that. Two implementations of "which records are demo" would be two answers, and the confirmation
+	 * would drift from the act it describes.
+	 */
+	const purgeImpact = (): PurgeImpact => {
+		const demoBoards = boards.filter((board) => board.origin === "demo");
+		const demoBoardIds = new Set(demoBoards.map((board) => board.id));
+		const demoThreads = threads.filter((thread) =>
+			demoBoardIds.has(thread.boardId),
+		);
+		const demoThreadIds = new Set(demoThreads.map((thread) => thread.id));
+		const demoEntries = [...entriesByThread.entries()].filter(([threadId]) =>
+			demoThreadIds.has(threadId),
+		);
+		// **The overlap, and the predicate is narrower than it looks.** An entry counts as the reader's
+		// when it was made **through the app** (`origin: "owner"`) by a principal a browser can act as.
+		// The seeded entries are authored by those same principals — the seed's alex and maya wrote them —
+		// so authorship alone would count the workspace's own demo conversation as the reader's, which is
+		// the opposite of what the count is for. Measured: the first version reported 14 on an untouched
+		// workspace.
+		const ownEntriesOnDemoBoards = demoEntries.reduce(
+			(total, [, entries]) =>
+				total +
+				entries.filter(
+					(entry) =>
+						entry.origin === "owner" &&
+						principals.some(
+							(principal) =>
+								principal.id === entry.authorId &&
+								principal.browserSelectable === true,
+						),
+				).length,
+			0,
+		);
+		return {
+			boards: demoBoards.length,
+			threads: demoThreads.length,
+			entries: demoEntries.reduce(
+				(total, [, entries]) => total + entries.length,
+				0,
+			),
+			resources: resources.filter((resource) =>
+				demoBoardIds.has(resource.boardId),
+			).length,
+			ownEntriesOnDemoBoards,
+		};
+	};
 
 	/**
 	 * **The one entry-writing path.** Every kind of entry takes its `seq` here.
@@ -748,8 +913,126 @@ export const createStore = (
 		accessEndedFor: (principalId) =>
 			ended.get(principalId) ?? accessCheck?.(principalId),
 
+		announceWorkspaceChange: () => {
+			for (const listener of workspaceListeners) {
+				listener();
+			}
+		},
+
 		registerAccessCheck: (check) => {
 			accessCheck = check;
+		},
+
+		/**
+		 * What a purge would remove, computed from the same predicate the purge uses.
+		 *
+		 * **One predicate, two callers.** The confirmation asks what *would* go; the purge removes exactly
+		 * that. Two implementations of "which records are demo" would be two answers, and the confirmation
+		 * would drift from the act it describes.
+		 *
+		 * The second number is the honest one: the demo records are the workspace's, and the reader's own
+		 * entries on those boards are the reader's. 14:14 requires naming that overlap before it happens.
+		 */
+		purgeImpact: () => purgeImpact(),
+
+		/**
+		 * Remove every demo-origin record, and nothing else.
+		 *
+		 * **Origin is provenance, never permission.** The caller was authorized at the boundary; this
+		 * function decides what to remove from `origin` alone, and that is the only place `origin` decides
+		 * anything in the product — which is why AGENTS.md's rule and 14:11 say the same thing.
+		 *
+		 * Principals, grants, watermarks and sessions are **untouched** (14:13, 14:19): a purge that logged
+		 * the reader out or stripped access would make demo content feel load-bearing for identity.
+		 */
+		purgeDemoContent: () => {
+			const impact = purgeImpact();
+			const demoBoardIds = new Set(
+				boards
+					.filter((board) => board.origin === "demo")
+					.map((board) => board.id),
+			);
+			const demoThreadIds = new Set(
+				threads
+					.filter((thread) => demoBoardIds.has(thread.boardId))
+					.map((thread) => thread.id),
+			);
+			boards = Object.freeze(boards.filter((board) => board.origin !== "demo"));
+			threads = Object.freeze(
+				threads.filter((thread) => !demoBoardIds.has(thread.boardId)),
+			);
+			for (const threadId of demoThreadIds) {
+				entriesByThread.delete(threadId);
+			}
+			resources = Object.freeze(
+				resources.filter((resource) => !demoBoardIds.has(resource.boardId)),
+			);
+			return impact;
+		},
+
+		/**
+		 * Put the demo content back, **without duplicating what survived**.
+		 *
+		 * 14:16. Restore re-seeds by id: a demo record that survived a purge under the same id is left
+		 * alone, so restore cannot produce two copies of the same demo board. What restore cannot do is
+		 * bring back a demo thread the reader had *added activity to* and then purged — that activity was
+		 * the reader's and the thread was demo, so both went. Restore returns the seeded thread, and the
+		 * reader's own entries do not come back with it, because they are not the demo's to restore.
+		 */
+		restoreDemoContent: () => {
+			const demoBoards = seedSnapshot.boards;
+			const demoThreadList = seedSnapshot.threads;
+			const demoResources = seedSnapshot.resources;
+			let restored = 0;
+
+			const missingBoards = demoBoards.filter(
+				(seed) => !boards.some((board) => board.id === seed.id),
+			);
+			if (missingBoards.length > 0) {
+				boards = Object.freeze([...boards, ...missingBoards]);
+				restored += missingBoards.length;
+			}
+
+			const missingThreads = demoThreadList.filter(
+				(seed) => !threads.some((thread) => thread.id === seed.id),
+			);
+			if (missingThreads.length > 0) {
+				threads = Object.freeze([...threads, ...missingThreads]);
+				restored += missingThreads.length;
+			}
+
+			const missingResources = demoResources.filter(
+				(seed) => !resources.some((resource) => resource.id === seed.id),
+			);
+			if (missingResources.length > 0) {
+				resources = Object.freeze([...resources, ...missingResources]);
+				restored += missingResources.length;
+			}
+
+			// The seed's entries, for every thread whose chronology is now empty. A thread that survived has
+			// its entries; a thread that was purged has none, and the seed's are what a restore puts back.
+			const seededEntries = seedSnapshot.entries;
+			for (const [threadId, entries] of Object.entries(seededEntries)) {
+				if (!threads.some((thread) => thread.id === threadId)) continue;
+				if ((entriesByThread.get(threadId) ?? []).length > 0) continue;
+				entriesByThread.set(threadId, Object.freeze([...entries]));
+				restored += entries.length;
+			}
+
+			return { restored };
+		},
+
+		derivedIdentityFor: (principalId) => deriveIdentity?.(principalId),
+
+		registerDerivedIdentity: (derive) => {
+			deriveIdentity = derive;
+		},
+
+		onWorkspaceChange: (listener) => {
+			workspaceListeners.add(listener);
+			return () => {
+				workspaceListeners.delete(listener);
+			};
 		},
 
 		onAccessEnded: (listener) => {
@@ -779,6 +1062,29 @@ export const createStore = (
 				origin: "owner" as const,
 			});
 			boards = Object.freeze([...boards, board]);
+			// **The creator holds the member grant on the board it just made**, in the same act.
+			//
+			// Without this the reader creates a room they cannot speak in: a grant *is* the membership, so
+			// `appendMessage` asks `post:message` against the new board and nobody holds it. The prototype
+			// does the equivalent at `app.js` L116 — `members: ['alex', 'maya', 'orion', 'beacon']` — and
+			// this is that rule expressed as a grant.
+			//
+			// **Only the creator**, and the difference from the prototype is deliberate: the prototype is a
+			// one-browser demo where everybody is in every room, and a real workspace should not silently
+			// add participants to a board somebody else made.
+			//
+			// Found by 14's purge test, which created a board, created a thread on it, and could not post —
+			// the sequence 09:14 promises and this line is what makes true.
+			grants = Object.freeze([
+				...grants,
+				{
+					granterId: input.creatorId,
+					principalId: input.creatorId,
+					scope: "board" as const,
+					boardId: board.id,
+					permissions: BOARD_MEMBER_PERMISSIONS,
+				},
+			]);
 			return board;
 		},
 

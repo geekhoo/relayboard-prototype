@@ -327,6 +327,20 @@ export const createAdmissions = (
 	 * surface knows which records have expired, the store knows who is connected, and neither imports
 	 * the other's machinery.
 	 */
+	// **The derivation, registered the same way.** 12 renders the fingerprint on a participant panel,
+	// and it must be the value 08c derived from the credential this workspace issued — so the panel asks
+	// the store, the store asks here, and there is one derivation rather than two.
+	store.registerDerivedIdentity((principalId) => {
+		const record = [...knockRecords.values()].find(
+			(candidate) => candidate.principalId === principalId,
+		);
+		if (!record?.decidedBy) return undefined;
+		return {
+			issuer: record.decidedBy,
+			fingerprint: deriveFingerprint(principalId, secret),
+		};
+	});
+
 	store.registerAccessCheck((principalId) => {
 		const record = [...knockRecords.values()].find(
 			(candidate) => candidate.principalId === principalId,

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { BoardSummary, ParticipantRead, PrincipalSummary } from "#/client";
+import { createAdmissions } from "#/server/admissions";
 import {
 	boardNotFound,
 	resetRefused,
@@ -174,6 +175,11 @@ export const readPrincipal = createServerFn({ method: "GET" })
 				permissions: store().grantsFor(data.principalId, data.boardId),
 			},
 			declared: { description: principal.description },
+			// **Derived, and read from the same call as everything else** (12:21: "no second read and no
+			// field read off a board payload"). The admissions surface is the authority on what it issued, so
+			// this asks it rather than reconstructing an HMAC here — a second derivation would be a second
+			// place for the fingerprint to disagree with the one 08c stored.
+			derived: createAdmissions(store()).derivedFor(data.principalId),
 		};
 	});
 

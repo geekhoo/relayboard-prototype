@@ -118,6 +118,16 @@ export const acknowledgeInput = z.object({
 	upTo: z.number().int().nonnegative(),
 });
 
+/**
+ * A purge carries its own confirmation, and nothing else.
+ *
+ * **The confirmation is a boolean on the wire rather than a server-side prompt**, because the surface
+ * that names the consequence has to show it *before* the act (14:14) — so the reader confirms what they
+ * were shown, and the server records that they did. A server that prompted would be a second
+ * confirmation nobody could see.
+ */
+export const purgeInput = z.object({ confirmed: z.literal(true) });
+
 export const simulateIncomingInput = z.object({ threadId: z.string().min(1) });
 
 export const setConnectionInput = z.object({

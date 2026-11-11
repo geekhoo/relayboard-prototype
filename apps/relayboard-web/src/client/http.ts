@@ -11,6 +11,7 @@ import type {
 	ParticipantRead,
 	PrincipalPosition,
 	PrincipalSummary,
+	PurgeImpact,
 	RelayboardClient,
 	Resource,
 	SetConnectionInput,
@@ -48,6 +49,9 @@ import {
 	createBoard,
 	createThread,
 	moveStatus,
+	purgeDemoContent,
+	purgeImpact,
+	restoreDemoContent,
 	setConnection as setConnectionFn,
 	simulateIncoming,
 } from "#/server/functions/write";
@@ -314,6 +318,25 @@ export const createHttpClient = (): RelayboardClient => ({
 				},
 			}),
 		)) as Resource,
+
+	/** What a purge would remove — a read, so the confirmation can name the overlap first. */
+	purgeImpact: async (): Promise<PurgeImpact> =>
+		(await call(() => purgeImpact())) as PurgeImpact,
+
+	/**
+	 * Remove the demo content.
+	 *
+	 * `confirmed: true` is sent literally: the surface showed the consequence, and this records that the
+	 * reader saw it. The server validates the literal, so a caller that omitted it is refused at the
+	 * boundary rather than acting on an unconfirmed purge.
+	 */
+	purgeDemoContent: async (): Promise<PurgeImpact> =>
+		(await call(() =>
+			purgeDemoContent({ data: { confirmed: true } }),
+		)) as PurgeImpact,
+
+	restoreDemoContent: async (): Promise<{ readonly restored: number }> =>
+		(await call(() => restoreDemoContent())) as { readonly restored: number },
 
 	simulateIncoming: async (threadId: ThreadId): Promise<Entry> =>
 		(await call(() => simulateIncoming({ data: { threadId } }))) as Entry,

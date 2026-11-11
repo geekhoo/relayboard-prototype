@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BoardRail } from "#/components/BoardRail";
+import { PurgeDialog } from "#/components/PurgeDialog";
 import { SessionNote } from "#/components/SessionNote";
 import { StoreLifetimeNote } from "#/components/StoreLifetimeNote";
 import "./WorkspaceFrame.css";
@@ -38,7 +39,8 @@ export function WorkspaceFrame({
 					Board contents
 				</h2>
 				<StoreLifetimeNote />
-				<SessionNote principalId={actingPrincipalId} />
+				<PurgeDialog />
+				<SessionNote boardId={activeBoardId} principalId={actingPrincipalId} />
 				{pane ?? (
 					<p className="workspace-frame__placeholder">
 						The thread list lands here next.

@@ -389,6 +389,7 @@ describe("the domain module", () => {
 		// `kind` scan still requires `src/domain/grants.ts` to contain no comparison — the rule lives at
 		// the boundary, not in the vocabulary.
 		expect(Object.keys(domain).sort()).toEqual([
+			"BOARD_MEMBER_PERMISSIONS",
 			"THREAD_STATUSES",
 			"entrySentence",
 			"entryText",

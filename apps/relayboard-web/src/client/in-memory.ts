@@ -240,6 +240,8 @@ export const createInMemoryClient = (
 			const board = store.createBoard({
 				name: input.name,
 				description: input.description,
+				// The acting principal, because the creator holds the board's member grant.
+				creatorId: actingAs,
 			});
 			emit({ type: "board-created", board });
 			return { ...board, memberCount: store.listMembers(board.id).length };
@@ -277,6 +279,30 @@ export const createInMemoryClient = (
 			const pending = pendingTotal();
 			store.setConnection(actingAs, input.connected);
 			return { connected: input.connected, pending };
+		},
+
+		/** What a purge would remove. The same predicate the purge uses, so the two cannot disagree. */
+		purgeImpact: async () => store.purgeImpact(),
+
+		/**
+		 * Remove the demo content.
+		 *
+		 * `confirmed` is checked here as it is on the wire: the in-memory transport is a transport, not a
+		 * different product, so an unconfirmed purge is refused rather than performed.
+		 */
+		purgeDemoContent: async (input) => {
+			if (input.confirmed !== true) {
+				throw new Error("A purge must be confirmed: nothing was removed");
+			}
+			const impact = store.purgeDemoContent();
+			store.announceWorkspaceChange();
+			return impact;
+		},
+
+		restoreDemoContent: async () => {
+			const result = store.restoreDemoContent();
+			store.announceWorkspaceChange();
+			return result;
 		},
 
 		simulateIncoming: async (threadId) => {
@@ -332,7 +358,13 @@ export const createInMemoryClient = (
 				// it as such, and the derived issuer and fingerprint arrive with 08c.
 				description: principal.description,
 			};
-			return { principal, grant: grantOn(principalId, boardId), declared };
+			return {
+				principal,
+				grant: grantOn(principalId, boardId),
+				declared,
+				// The same derivation the server function asks for, so the two transports answer one shape.
+				derived: store.derivedIdentityFor(principalId),
+			};
 		},
 
 		attachResource: async (input: AttachResourceInput): Promise<Entry> => {

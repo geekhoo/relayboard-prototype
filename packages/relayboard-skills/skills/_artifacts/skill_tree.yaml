@@ -41,6 +41,9 @@ review:
     - 'INTENT.md'
     - 'package.json'
     - 'package-lock.json'
+    # The repository's ignore rules. A path added here records where untracked
+    # scratch is allowed to live; it documents no behaviour any skill describes.
+    - '.gitignore'
     # Package code and build configuration are not skill source documentation;
     # the skills cite docs/** only.
     - 'packages/relayboard-skills/src/**'

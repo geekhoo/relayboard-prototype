@@ -5,6 +5,7 @@ import type {
 	CreateBoardInput,
 	CreateThreadInput,
 	DeclaredValues,
+	DerivedIdentity,
 	Entry,
 	Grant,
 	Origin,
@@ -112,12 +113,15 @@ export const describeOperationsConformance = (
 				"listResources",
 				"listThreads",
 				"moveStatus",
+				"purgeDemoContent",
+				"purgeImpact",
 				"readActingPrincipal",
 				"readHeldPermissions",
 				"readMessages",
 				"readPositions",
 				"readPrincipal",
 				"readThread",
+				"restoreDemoContent",
 				"setConnection",
 				"simulateIncoming",
 				"subscribe",
@@ -357,25 +361,20 @@ export const describeOperationsConformance = (
 			// taking only an id could not answer "what may this participant do here".
 			type Read = Awaited<ReturnType<RelayboardClient["readPrincipal"]>>;
 			expectTypeOf<Read>().toEqualTypeOf<ParticipantRead>();
-			// The three parts asserted as a shape: a transport that merged the declared
-			// strings into the principal record, or returned a grant without a principal,
-			// would fail here rather than at 12.
+			// **The four parts asserted as an exact shape**, and the fourth is 12's: `derived` carries the
+			// issuer and fingerprint this workspace computed. Merging them into `principal` — the
+			// prototype's "Verified identity" mistake — would fail here rather than at the panel.
 			expectTypeOf<ParticipantRead>().toEqualTypeOf<{
 				readonly principal: DomainPrincipal;
 				readonly grant: Grant;
 				readonly declared: DeclaredValues;
-			}>();
-			// The three parts, asserted as the shape rather than as a description: a
-			// transport that merged the declared strings into the principal record, or
-			// returned the grant without the principal, would fail here.
-			expectTypeOf<ParticipantRead>().toEqualTypeOf<{
-				readonly principal: DomainPrincipal;
-				readonly grant: Grant;
-				readonly declared: DeclaredValues;
+				readonly derived?: DerivedIdentity;
 			}>();
 			expect(read.principal.id).toBe(actor);
+			// The key list is compared, so a field added to the read without being considered here fails.
 			expect(Object.keys(read).sort()).toEqual([
 				"declared",
+				"derived",
 				"grant",
 				"principal",
 			]);

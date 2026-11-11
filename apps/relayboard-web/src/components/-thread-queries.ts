@@ -84,6 +84,31 @@ export const resourcesQuery = (
  * the pane, so the gatekeeper's controls are correct at first paint rather than offering the wrong
  * set a moment later.
  */
+/**
+ * A board id for a read whose answer does not depend on one.
+ *
+ * `readHeldPermissions` returns both halves from one call, so a workspace-only caller has to name some
+ * board. This is that name, and it is a constant so the fact is visible rather than smuggled in as an
+ * empty string.
+ */
+const PLACEHOLDER_BOARD = "workspace";
+
+/**
+ * What the reader may do in the workspace, with no board in scope.
+ *
+ * **The workspace question, not a board one**, because the purge is gated by `create:board` — a workspace
+ * permission — and asking it per board would refuse the superadmin 07a seeds for it. That distinction is
+ * 09's finding, applied here before it could repeat.
+ */
+export const heldPermissionsQuery = (client: RelayboardClientBound) => ({
+	queryKey: ["held-permissions", client.actingPrincipalId] as const,
+	// `readHeldPermissions` takes a board id because the *input schema* requires one, and the handler
+	// ignores it for the workspace half. Passing a placeholder is honest here only because the answer
+	// used is `workspace`; the board half is read per board by `heldGrantQuery`.
+	queryFn: () => client.readHeldPermissions(PLACEHOLDER_BOARD),
+	retry: false,
+});
+
 export const heldGrantQuery = (
 	client: RelayboardClientBound,
 	boardId: BoardId,
