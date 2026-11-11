@@ -252,7 +252,22 @@ function PeopleView({ boardId }: { readonly boardId: BoardId }) {
 	const members = useQuery(peopleQuery(client, boardId));
 	const people: readonly PrincipalSummary[] = members.data ?? [];
 
-	if (members.error) {
+	// **Three states, not two, because only one of them means "there are no participants".** A
+	// refused read and a read still in flight both leave `data` undefined, and rendering an empty
+	// list for either would be a claim that the board has nobody on it — which the test at the route
+	// seam catches, and which is exactly the "silent empty list" 04b recorded as unobservable.
+	if (members.isPending) {
+		return (
+			<div className="board-pane__empty">
+				<h3 className="board-pane__empty-title">Reading the participants</h3>
+				<p className="board-pane__empty-detail">
+					The people on this board are being read.
+				</p>
+			</div>
+		);
+	}
+
+	if (members.error || members.data === undefined) {
 		return (
 			<div className="board-pane__empty">
 				<h3 className="board-pane__empty-title">

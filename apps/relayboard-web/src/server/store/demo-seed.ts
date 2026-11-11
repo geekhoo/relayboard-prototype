@@ -3,6 +3,7 @@ import type {
 	Entry,
 	EntryReference,
 	EntryRelation,
+	PermissionName,
 	Principal,
 	PrincipalId,
 	Resource,
@@ -10,6 +11,7 @@ import type {
 	ThreadId,
 } from "#/domain";
 import type {
+	SeededGrant,
 	SeedWatermarks,
 	StoreOptions,
 	StoreSeed,
@@ -612,17 +614,61 @@ export const demoBoardMembers: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * The provisional membership predicate.
+ * The prototype's membership, as grants.
  *
- * The stand-in for a grant, exactly as the store documents it: 07a replaces this with
- * a lookup over real grants, and the permutation above is what it reproduces. Until
- * then it is the honest answer to "is this principal on this board", and it is the one
- * thing in the seed that is not demo content.
+ * **This is what replaced 02c's membership predicate.** The prototype encoded membership as a
+ * `board.members` array; a principal is on a board here because it holds a grant there, so the
+ * permutation above is reproduced as one board-scoped grant per member, carrying the permissions the
+ * prototype let a member exercise (`app.js` L140-160 reads, L178 posts) expressed as the spec's
+ * names.
+ *
+ * Transcribing the permutation rather than inventing a broader one is the point: a principal that
+ * could act in the prototype can act in the app, and one that could not still cannot.
  */
-export const demoMembership = {
-	isBoardMember: (principalId: PrincipalId, boardId: string): boolean =>
-		(demoBoardMembers[boardId] ?? []).includes(principalId),
-};
+const MEMBER_GRANT: readonly PermissionName[] = [
+	"read:board",
+	"create:thread",
+	"add:resource",
+	"read:member",
+	// `read:thread` and `read:resource` are implied by `read:board` (spec L425) and are therefore
+	// NOT listed: a grant that spelled them out would be a second place the implication lives.
+	"post:message",
+	"move:status",
+	"add:artifact",
+	"acknowledge:thread",
+];
+
+/**
+ * The workspace-wide grant the superadmin holds (spec L429, stories 81-85).
+ *
+ * Deliberately not "every permission": the workspace row is the five names spec L420 lists, and a
+ * superadmin that could *post* to a board it holds no board grant on would be the inference
+ * "administrator implies participant" that the spec's own criterion forbids. `read:board` at
+ * workspace scope is the one name that reaches into boards, and it reaches only as far as reading.
+ */
+const SUPERADMIN_GRANT: readonly PermissionName[] = [
+	"read:board",
+	"create:board",
+	"admit:agent",
+	"revoke:agent",
+	"grant:permission",
+];
+
+export const demoGrants: readonly SeededGrant[] = Object.freeze([
+	{
+		principalId: "nadia",
+		scope: "workspace" as const,
+		permissions: SUPERADMIN_GRANT,
+	},
+	...Object.entries(demoBoardMembers).flatMap(([boardId, members]) =>
+		members.map((principalId) => ({
+			principalId,
+			scope: "board" as const,
+			boardId,
+			permissions: MEMBER_GRANT,
+		})),
+	),
+]);
 
 /**
  * The watermarks the prototype shows, per principal.
@@ -701,7 +747,7 @@ export const demoWatermarks: StoreWatermarks = {
  * exist to prevent.
  */
 export const demoOptions = (): StoreOptions => ({
-	isBoardMember: demoMembership.isBoardMember,
+	grants: demoGrants,
 	watermarks: demoWatermarks,
 });
 

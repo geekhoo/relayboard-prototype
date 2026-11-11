@@ -18,67 +18,81 @@ import {
 	setConnectionInput,
 	simulateIncomingInput,
 } from "#/server/functions/inputs";
+import { authorize } from "#/server/permissions";
 import * as session from "#/server/session";
 import { getStore } from "#/server/store/instance";
 
 /**
  * The write half of the transport: one POST server function per mutation.
  *
+ * ## The order inside every handler, and why it is this order
+ *
+ * 1. **Resolve the record the request names**, so a malformed id is an unknown object rather than a
+ *    permission question about a board that does not exist. A refusal that said "you lack
+ *    `post:message`" about a thread that is not here would be a worse answer than "no such thread".
+ * 2. **Authorize** — one call, reading the requirement from the declared table rather than from a
+ *    branch, at the board the record actually belongs to. Never at a board the request names: a
+ *    caller must not be able to present a board it holds a grant on and write into another.
+ * 3. **Answer from the store.**
+ *
  * ## The author is never the caller's to name
  *
- * Every handler resolves the acting principal from the session and passes **that** id to the store.
- * There is no `authorId` in any schema, and because the schemas are `z.object` without
- * `passthrough`, a body carrying one has it stripped before the handler runs (spec L376). That is
- * deliberate over refusing it: a caller cannot tell whether the forged field would have worked, so
- * there is nothing to probe.
+ * Every handler passes the resolved principal's id to the store. No schema declares an `authorId`,
+ * and because the schemas are closed `z.object`s, a body carrying one has it **stripped** before the
+ * handler runs (spec L376) — a forged author is unnoticed rather than refused, so a caller cannot
+ * even learn whether it would have worked.
  *
- * `simulateIncoming` is the subtler case (spec L377). The **author** is chosen here, from the
- * board's agent members, so the caller cannot make an agent say something in particular. The
- * **permission** checked is the caller's `post:message` — the simulated author's own grants are
- * never consulted, which is what keeps "an agent posted it" from becoming "the caller may do what an
- * agent may do".
+ * `simulateIncoming` is the subtler case (spec L377). The **author** is chosen here, from the board's
+ * agent members, so a caller cannot put words in a particular agent's mouth. The **permission**
+ * checked is the caller's `post:message` — the simulated author's own grants are never consulted,
+ * which is what keeps "an agent posted it" from becoming "the caller may do what an agent may do".
  *
- * ## Permission checking is not here yet, and that is 07a's
+ * ## What is still absent
  *
- * The grant check is 07a's boundary work, and 06b recorded why there is no copy of it in the client.
- * What this file does is preserve the *shape* the check needs — one call to `actingPrincipal()` at
- * the top of every handler, before anything else — so 07a adds a line rather than a restructure.
- *
- * The one place it already bites is `simulateIncoming`: 06c's criterion says a caller without
- * `post:message` cannot trigger a simulation, and until 07a there is no grant to test. What exists
- * instead is the *membership* refusal the store already makes — a principal not on the board cannot
- * post there, simulated or not — and the route seam asserts that a refused write surfaces as a
- * refusal rather than as an empty success.
+ * The three acts throw `notYetOnTheWire` naming 10a — but only **after** their permission check, so a
+ * caller who may not perform them learns that first. An absent capability and an unauthorized
+ * caller are different refusals, and the one a caller can act on comes first.
  */
 
 const store = () => getStore();
-const actingPrincipal = () => session.actingPrincipal();
+
+const authorizeAs = (
+	operation: Parameters<typeof authorize>[0],
+	scope: Parameters<typeof authorize>[2] = {},
+) => authorize(operation, session.actingPrincipal(), scope);
 
 /**
  * The three acts that are on the interface but not writable yet.
  *
- * They throw `notYetOnTheWire` naming ticket 10a, exactly as the in-memory client throws its own
- * `NotYetImplementedError`: an absent capability must fail loudly over the wire too, because a
- * server function that returned `undefined` would read as a pass to the conformance suite.
+ * Each resolves its thread first, authorizes at that thread's board, and only then refuses. The
+ * refusal names 10a exactly as the in-memory client's `NotYetImplementedError` does: an absent
+ * capability must fail loudly over the wire too, because a server function returning `undefined`
+ * would read as a pass to the conformance suite.
  */
 export const attachResource = createServerFn({ method: "POST" })
 	.validator(attachResourceInput)
-	.handler(async (): Promise<Entry> => {
-		actingPrincipal();
+	.handler(async ({ data }): Promise<Entry> => {
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		authorizeAs("attachResource", { boardId: thread.boardId });
 		throw notYetOnTheWire("attachResource", "ticket 10a");
 	});
 
 export const moveStatus = createServerFn({ method: "POST" })
 	.validator(moveStatusInput)
-	.handler(async (): Promise<Entry> => {
-		actingPrincipal();
+	.handler(async ({ data }): Promise<Entry> => {
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		authorizeAs("moveStatus", { boardId: thread.boardId });
 		throw notYetOnTheWire("moveStatus", "ticket 10a");
 	});
 
 export const acknowledge = createServerFn({ method: "POST" })
 	.validator(acknowledgeInput)
-	.handler(async (): Promise<Entry> => {
-		actingPrincipal();
+	.handler(async ({ data }): Promise<Entry> => {
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		authorizeAs("acknowledge", { boardId: thread.boardId });
 		throw notYetOnTheWire("acknowledge", "ticket 10a");
 	});
 
@@ -93,10 +107,11 @@ export const acknowledge = createServerFn({ method: "POST" })
 export const appendMessage = createServerFn({ method: "POST" })
 	.validator(appendMessageInput)
 	.handler(async ({ data }): Promise<Entry> => {
-		const actor = actingPrincipal();
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		const actor = authorizeAs("appendMessage", { boardId: thread.boardId });
 		return store().appendMessage({
 			threadId: data.threadId,
-			// The resolved principal, never a field of the payload.
 			authorId: actor.id,
 			text: data.text,
 			references: data.references,
@@ -108,7 +123,10 @@ export const appendMessage = createServerFn({ method: "POST" })
 export const createThread = createServerFn({ method: "POST" })
 	.validator(createThreadInput)
 	.handler(async ({ data }): Promise<Thread> => {
-		const actor = actingPrincipal();
+		if (!store().readBoard(data.boardId)) {
+			throw unknownObject("board", data.boardId);
+		}
+		const actor = authorizeAs("createThread", { boardId: data.boardId });
 		return store().createThread({
 			boardId: data.boardId,
 			title: data.title,
@@ -117,10 +135,16 @@ export const createThread = createServerFn({ method: "POST" })
 		});
 	});
 
+/**
+ * A new board.
+ *
+ * `create:board` is a **workspace-scoped** permission (spec L420), so this is the one mutation asked
+ * at workspace scope. A principal holding it only on a board has `read:board` there and not this.
+ */
 export const createBoard = createServerFn({ method: "POST" })
 	.validator(createBoardInput)
 	.handler(async ({ data }): Promise<BoardSummary> => {
-		actingPrincipal();
+		authorizeAs("createBoard");
 		const board = store().createBoard({
 			name: data.name,
 			description: data.description,
@@ -131,13 +155,14 @@ export const createBoard = createServerFn({ method: "POST" })
 export const addResource = createServerFn({ method: "POST" })
 	.validator(addResourceInput)
 	.handler(async ({ data }): Promise<Resource> => {
-		actingPrincipal();
+		if (!store().readBoard(data.boardId)) {
+			throw unknownObject("board", data.boardId);
+		}
+		authorizeAs("addResource", { boardId: data.boardId });
 		return store().addResource({
 			boardId: data.boardId,
 			name: data.name,
 			url: data.url,
-			// The prototype's default on `addResource` (app.js L117); 09 closes the set at the
-			// boundary rather than letting a free string through.
 			type: data.type ?? "Link",
 			description: data.description,
 		});
@@ -146,8 +171,8 @@ export const addResource = createServerFn({ method: "POST" })
 /**
  * An entry from an agent on the board, authored by the agent the **server** picks.
  *
- * The line and the agent are chosen here for the same reason: a client that could name either could
- * put words in a particular agent's mouth. The rotation is the in-memory client's own — one line per
+ * The line and the agent are both chosen here for the same reason: a client that could name either
+ * could put words in a particular agent's mouth. The rotation is the prototype's — one line per
  * simulation, numbered so a repeated click is a new entry rather than an idempotent replay — because
  * the ticket that gives simulation a real home is 11c, and duplicating its behaviour here would give
  * two implementations to keep in step.
@@ -155,40 +180,34 @@ export const addResource = createServerFn({ method: "POST" })
 export const simulateIncoming = createServerFn({ method: "POST" })
 	.validator(simulateIncomingInput)
 	.handler(async ({ data }): Promise<Entry> => {
-		// The caller's own permission to post here — not the agent's grants (spec L340).
-		actingPrincipal();
 		const thread = store().readThread(data.threadId);
 		if (!thread) throw unknownObject("thread", data.threadId);
+		// The CALLER's `post:message`, never the agent's grants (spec L340, L377).
+		authorizeAs("simulateIncoming", { boardId: thread.boardId });
 		const agent = store()
 			.listMembers(thread.boardId)
 			.find((principal) => principal.kind === "agent");
-		if (!agent) {
-			throw unknownObject("agent", thread.boardId);
-		}
+		if (!agent) throw unknownObject("agent", thread.boardId);
 		const simulation = nextSimulation();
-		store().appendMessage({
+		return store().appendMessage({
 			threadId: data.threadId,
 			authorId: agent.id,
 			text: simulatedLine(simulation),
 			idempotencyKey: `sim-${simulation}`,
 		});
-		const entries = store().readEntries(data.threadId);
-		const last = entries[entries.length - 1];
-		if (!last) throw unknownObject("entry", data.threadId);
-		return last;
 	});
 
 /**
  * The reader's own connection state.
  *
  * A no-op over the wire in this build: the stream is 11a's, and the *reader's* pause is the client's
- * own state (11b:17) rather than a server fact. It returns the derived state rather than throwing so
- * the conformance suite's shape assertion holds over both transports.
+ * own state rather than a server fact. It returns derived state rather than throwing so the
+ * conformance suite's shape assertion holds over both transports.
  */
 export const setConnection = createServerFn({ method: "POST" })
 	.validator(setConnectionInput)
 	.handler(async (): Promise<StreamState> => {
-		const actor = actingPrincipal();
+		const actor = authorizeAs("setConnection");
 		const pending = store()
 			.listBoards()
 			.flatMap((board) => store().listThreads(board.id))
@@ -208,9 +227,9 @@ export const setConnection = createServerFn({ method: "POST" })
 /**
  * The simulation counter, on the process.
  *
- * Numbered so the idempotency key and the line describe the same simulation — the same rule the
- * in-memory client follows. It is process state rather than store state because a restart clearing
- * it is correct: the store is in memory too, and a fresh workspace should start at the first line.
+ * Numbered so the idempotency key and the line describe the same simulation, as the in-memory client
+ * does. Process state rather than store state because a restart clearing it is correct: the store is
+ * in memory too, and a fresh workspace should start at the first line.
  */
 let simulations = 0;
 const nextSimulation = (): number => {

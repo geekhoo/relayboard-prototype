@@ -24,7 +24,6 @@ import { NotYetImplementedError } from "#/client";
 import type {
 	BoardId,
 	Entry,
-	PermissionName,
 	Principal,
 	PrincipalId,
 	ThreadId,
@@ -108,23 +107,16 @@ export const createInMemoryClient = (
 	}
 
 	/**
-	 * The grant this principal holds on one board, as the store can answer today.
+	 * The grant this principal holds on one board — **the real one, since 07a.**
 	 *
-	 * Until 07a lands real grants, membership is the stand-in: a principal on a board holds
-	 * `read:board`, `read:thread`, `read:resource`, `read:member`, `post:message`,
-	 * `create:thread`, `add:resource` and `add:artifact` there — everything the prototype
-	 * let a member do — and `create:board` nowhere, because only the superadmin's
-	 * workspace grant holds that.
+	 * `MEMBER_PERMISSIONS` is gone. It was the stand-in that derived a grant from membership, and a
+	 * stand-in that survives its ticket is how a placeholder becomes a design: this now asks the
+	 * store, which holds grant records, so "on the board" and "may do this here" are one mechanism.
 	 */
-	const grantOn = (principalId: PrincipalId, boardId: BoardId): Grant => {
-		const member = store
-			.listMembers(boardId)
-			.some((principal) => principal.id === principalId);
-		return {
-			scope: "board",
-			permissions: member ? MEMBER_PERMISSIONS : [],
-		};
-	};
+	const grantOn = (principalId: PrincipalId, boardId: BoardId): Grant => ({
+		scope: "board",
+		permissions: store.grantsFor(principalId, boardId),
+	});
 
 	// The prototype cycles its four example lines (app.js L119-124) and numbers each
 	// simulation, so a repeated click is a new entry rather than an idempotent replay.
@@ -328,25 +320,6 @@ export const createInMemoryClient = (
 		},
 	};
 };
-
-/**
- * What a member of a board may do there, until 07a's grants.
- *
- * Everything the prototype let a member do on its board (`app.js` L140-160 reads and
- * L178 posts), expressed as the spec's named permissions. It is the honest stand-in:
- * broad enough that the demo workspace behaves as it looks, and scoped to a board so
- * nothing here can become a workspace-wide capability.
- */
-const MEMBER_PERMISSIONS: readonly PermissionName[] = [
-	"read:board",
-	"read:thread",
-	"read:resource",
-	"read:member",
-	"post:message",
-	"create:thread",
-	"add:resource",
-	"add:artifact",
-];
 
 /** The prototype's four simulated lines (app.js L120-123), in its order. */
 const SIMULATED_LINES: readonly string[] = [

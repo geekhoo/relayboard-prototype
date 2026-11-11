@@ -3,7 +3,7 @@ import type { Principal } from "#/domain";
 import { createStore } from "#/server/store";
 import {
 	demoBoardMembers,
-	demoMembership,
+	demoGrants,
 	demoOptions,
 	demoSeed,
 	demoWatermarks,
@@ -257,8 +257,8 @@ describe("the demo seed as input", () => {
 
 	it("gives two stores built from it no state to share", () => {
 		const seed = demoSeed();
-		const one = createStore(seed, demoMembership);
-		const two = createStore(seed, demoMembership);
+		const one = createStore(seed, demoOptions());
+		const two = createStore(seed, demoOptions());
 
 		one.appendMessage({
 			threadId: "delivery",
@@ -268,6 +268,42 @@ describe("the demo seed as input", () => {
 
 		expect(one.readEntries("delivery")).toHaveLength(10);
 		expect(two.readEntries("delivery")).toHaveLength(9);
+	});
+
+	it("reproduces the prototype's board.members permutation as grants", () => {
+		// 07a's criterion: a principal that could act in the prototype can act here, and one that
+		// could not still cannot. Asserted from the GRANTS rather than from a member list, because the
+		// member list is gone — which is the point of the ticket.
+		for (const [boardId, members] of Object.entries(demoBoardMembers)) {
+			const onBoard = demoGrants
+				.filter((grant) => grant.scope === "board" && grant.boardId === boardId)
+				.map((grant) => grant.principalId);
+			expect(onBoard.sort()).toEqual([...members].sort());
+		}
+		// Nobody holds a board grant on a board the prototype did not put them on.
+		const boards = Object.keys(demoBoardMembers);
+		for (const grant of demoGrants) {
+			if (grant.scope !== "board") continue;
+			expect(boards).toContain(grant.boardId);
+			expect(demoBoardMembers[grant.boardId as string]).toContain(
+				grant.principalId,
+			);
+		}
+	});
+
+	it("gives the superadmin the workspace row and nothing more", () => {
+		// Spec L429 and stories 81-85: the workspace row is five names, and a superadmin that could
+		// POST to a board it holds no board grant on would be the inference the spec forbids.
+		const workspace = demoGrants.filter((grant) => grant.scope === "workspace");
+		expect(workspace).toHaveLength(1);
+		expect(workspace[0]?.principalId).toBe("nadia");
+		expect([...(workspace[0]?.permissions ?? [])].sort()).toEqual([
+			"admit:agent",
+			"create:board",
+			"grant:permission",
+			"read:board",
+			"revoke:agent",
+		]);
 	});
 
 	it("puts origin: demo on every board, thread, entry and resource", () => {

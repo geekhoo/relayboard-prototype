@@ -400,6 +400,13 @@ describe("the domain module", () => {
 			// The create path's own failure (spec L516), documented beside the others so
 			// there is still one place a user-visible string can come from.
 			boardNotFound: "Board not found",
+			// 07a's two: the permission refusal, and the malformed grant. Both are user-visible and
+			// both are distinct from the three above — a missing grant is not a validation failure and
+			// not an unauthenticated result (07a:18).
+			permissionDenied:
+				"This participant does not hold the permission that action requires",
+			grantMalformed:
+				"A grant needs a scope it can act on, and permissions that exist",
 		});
 	});
 

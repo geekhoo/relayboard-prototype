@@ -4,6 +4,7 @@ import type {
 	Entry,
 	EntryReference,
 	EntryRelation,
+	PermissionName,
 	Principal,
 	PrincipalId,
 	Resource,
@@ -12,6 +13,7 @@ import type {
 	Watermarks,
 } from "#/domain";
 import { errorMessages } from "#/domain";
+import { isWellFormedGrant, satisfies } from "#/domain/grants";
 
 /**
  * The store: the workspace's state, and the operations over it.
@@ -89,7 +91,7 @@ export interface StoreOptions {
 	/**
 	 * The seed's watermarks, keyed by principal and then by thread.
 	 *
-	 * This is the seeding path's second input, beside membership: the demo seed's
+	 * This is the seeding path's second input, beside the grants: the demo seed's
 	 * `seen` map and stream `cursors` (`app.js` L83) become entries here, and a
 	 * principal with no entry starts at the baseline — everything seeded is delivered,
 	 * nothing is read.
@@ -97,15 +99,31 @@ export interface StoreOptions {
 	readonly watermarks?: StoreWatermarks;
 
 	/**
-	 * Whether this principal is on this board today.
+	 * The grants the workspace starts with.
 	 *
-	 * The provisional stand-in for a grant. The prototype encoded membership as a
-	 * `board.members` array; in this model a principal is on a board because it holds
-	 * a grant there, and grants arrive in 07a. Until then the store is handed a
-	 * predicate rather than inventing a member list it would have to delete later.
-	 * One function, named as the stand-in, is the whole of the debt.
+	 * **This replaces 02c's provisional membership predicate**, which is exactly what 07a was for.
+	 * A principal is on a board because it holds a grant there, and the predicate that stood in for
+	 * that — one function, named as the debt — is gone: the store now asks a lookup over real grant
+	 * records, so "on the board" and "may do this there" are the same mechanism rather than two that
+	 * can disagree.
 	 */
-	isBoardMember(principalId: PrincipalId, boardId: BoardId): boolean;
+	readonly grants?: readonly SeededGrant[];
+}
+
+/**
+ * One grant, as a seed states it.
+ *
+ * A board-scoped grant names its board; a workspace-scoped one does not. Kept as a flat record
+ * rather than the nested `principal → board → permissions` shape a lookup wants, because the seed is
+ * written by hand and a flat list is what a person can read and check against `app.js`'s
+ * `board.members` arrays.
+ */
+export interface SeededGrant {
+	readonly principalId: PrincipalId;
+	readonly scope: "workspace" | "board";
+	/** Present exactly when `scope` is `"board"`. */
+	readonly boardId?: BoardId;
+	readonly permissions: readonly PermissionName[];
 }
 
 /**
@@ -251,6 +269,39 @@ export interface Store {
 
 	/** A new canonical resource on a board. Its url is validated at the boundary (06c, 09), never here. */
 	addResource(input: AddResourceInput): Resource;
+
+	/**
+	 * What one principal holds at one scope.
+	 *
+	 * The read every enforcement point uses: a server function asks it before its handler body, and
+	 * the in-memory client asks it to answer `readPrincipal`. One lookup, so no two callers can
+	 * disagree about what a grant means.
+	 */
+	grantsFor(
+		principalId: PrincipalId,
+		boardId?: BoardId,
+	): readonly PermissionName[];
+
+	/** Whether a principal holds one permission at one scope. The question, rather than the list. */
+	permits(
+		principalId: PrincipalId,
+		permission: PermissionName,
+		boardId?: BoardId,
+	): boolean;
+
+	/**
+	 * Record a grant.
+	 *
+	 * **Permissive by design in this ticket, and 07b is what constrains it.** 07a's criteria stop at
+	 * "the store has a `grant` operation"; the rules about who may grant what, to whom, and within
+	 * which bounds are 07b's, and writing them here would put them in the wrong ticket and in the
+	 * wrong layer.
+	 *
+	 * What it does enforce is that the record is **well formed**: a scope it can act on, a board when
+	 * it is board-scoped, and permissions that exist. A grant that omitted its scope is a validation
+	 * failure rather than a grant that quietly grants nothing (07a:14).
+	 */
+	grant(input: SeededGrant): readonly SeededGrant[];
 }
 
 const EMPTY_ENTRIES: readonly Entry[] = Object.freeze([]);
@@ -263,8 +314,8 @@ const EMPTY_SEED: StoreSeed = {
 	resources: [],
 };
 
-/** Nobody is on any board, which is the honest state of a workspace with no grants. */
-const NO_MEMBERS: StoreOptions = { isBoardMember: () => false };
+/** Nobody holds anything, which is the honest state of a workspace with no grants. */
+const NO_GRANTS: StoreOptions = { grants: [] };
 
 /** Deep-freezes an entry, so a `seq` handed to a caller cannot be reassigned by one. */
 const frozen = (entry: Entry): Entry => {
@@ -301,9 +352,79 @@ const ordered = (entries: readonly Entry[]): readonly Entry[] =>
  */
 export const createStore = (
 	seed: StoreSeed = EMPTY_SEED,
-	options: StoreOptions = NO_MEMBERS,
+	options: StoreOptions = NO_GRANTS,
 ): Store => {
 	const principals = collection(seed.principals);
+
+	/**
+	 * Every grant this workspace holds, in the order they were seeded and then granted.
+	 *
+	 * One list rather than a map per principal, because the questions asked of it are all
+	 * "does this principal hold X at Y" and the list is short; and because the `grant` operation
+	 * below is 07b's to constrain, so it appends rather than replaces.
+	 */
+	let grants = Object.freeze([
+		...(options.grants ?? []),
+	]) as readonly SeededGrant[];
+
+	/**
+	 * The permissions one principal holds **on one board**, from board-scoped grants only.
+	 *
+	 * Board-scoped only, deliberately: this is what `grantsFor(principal, board)` returns, and the
+	 * caller labels it `scope: "board"` — so folding a workspace grant in here would return
+	 * workspace permissions under a board label, which is a grant claiming a scope it was not given.
+	 * The workspace fallback belongs to {@link holds}, which is answering a yes/no question rather
+	 * than handing a record over.
+	 */
+	const grantOn = (
+		principalId: PrincipalId,
+		boardId: BoardId,
+	): readonly PermissionName[] =>
+		grants
+			.filter(
+				(grant) =>
+					grant.principalId === principalId &&
+					grant.scope === "board" &&
+					grant.boardId === boardId,
+			)
+			.flatMap((grant) => grant.permissions);
+
+	/** The permissions one principal holds workspace-wide, which no board scopes. */
+	const grantOnWorkspace = (
+		principalId: PrincipalId,
+	): readonly PermissionName[] =>
+		grants
+			.filter(
+				(grant) =>
+					grant.principalId === principalId && grant.scope === "workspace",
+			)
+			.flatMap((grant) => grant.permissions);
+
+	/**
+	 * Whether a principal may do something at one scope.
+	 *
+	 * The single question every enforcement point asks, and it is asked of the **same** function:
+	 * 07a's criterion is that the check is data-driven rather than branched, so a server function and
+	 * the in-memory client that both call this cannot disagree about what a grant means.
+	 *
+	 * A workspace grant satisfies a board-scoped question — the superadmin may read every board's
+	 * threads on `read:board` alone — and that is the one direction the implication runs.
+	 */
+	const holds = (
+		principalId: PrincipalId,
+		permission: PermissionName,
+		boardId?: BoardId,
+	): boolean => {
+		if (boardId !== undefined) {
+			if (satisfies(grantOn(principalId, boardId), permission)) return true;
+			// A workspace `read:board` reaches into every board (impliedBy: container → contents).
+			if (satisfies(grantOnWorkspace(principalId), "read:board")) {
+				return satisfies(["read:board"], permission);
+			}
+			return false;
+		}
+		return satisfies(grantOnWorkspace(principalId), permission);
+	};
 	// Boards, threads and resources grow through the create operations, so these are the
 	// store's own mutable lists, copied from the seed's rather than aliasing them.
 	let boards: readonly Board[] = collection(seed.boards);
@@ -384,8 +505,10 @@ export const createStore = (
 			principals.find((principal) => principal.id === principalId),
 
 		listMembers: (boardId) =>
-			principals.filter((principal) =>
-				options.isBoardMember(principal.id, boardId),
+			// A principal is on a board when it holds **any** grant there — which is what replaces the
+			// predicate: membership is no longer a separate fact that could disagree with the grants.
+			principals.filter(
+				(principal) => grantOn(principal.id, boardId).length > 0,
 			),
 
 		lastSeq: lastSeqOf,
@@ -472,6 +595,24 @@ export const createStore = (
 			return thread;
 		},
 
+		grantsFor: (principalId, boardId) =>
+			boardId === undefined
+				? grantOnWorkspace(principalId)
+				: grantOn(principalId, boardId),
+
+		permits: (principalId, permission, boardId) =>
+			holds(principalId, permission, boardId),
+
+		grant: (input) => {
+			// Well-formedness first: a record that omits its scope, or names permissions that do not
+			// exist, is refused here rather than becoming a grant that silently grants nothing.
+			if (!isWellFormedGrant(input)) {
+				throw new Error(errorMessages.grantMalformed);
+			}
+			grants = Object.freeze([...grants, Object.freeze({ ...input })]);
+			return grants;
+		},
+
 		addResource: (input) => {
 			if (!boards.some((board) => board.id === input.boardId)) {
 				throw new Error(errorMessages.boardNotFound);
@@ -501,7 +642,7 @@ export const createStore = (
 			// The documented order: thread, then membership, then text.
 			const thread = threadOf(input.threadId);
 			if (!thread) throw new Error(errorMessages.threadNotFound);
-			if (!options.isBoardMember(input.authorId, thread.boardId)) {
+			if (!holds(input.authorId, "post:message", thread.boardId)) {
 				throw new Error(errorMessages.notABoardMember);
 			}
 			const text = input.text.trim();

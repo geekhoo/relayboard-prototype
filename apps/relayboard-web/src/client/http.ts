@@ -50,6 +50,60 @@ import {
 } from "#/server/functions/write";
 
 /**
+ * The error families a caller can act on differently.
+ *
+ * **07c closes the gap the ticket pass found in 06c:19** — the server has carried stable codes since
+ * 06c and the client cast every response without looking. A refusal now arrives as a typed error
+ * rather than as a bare `Error` with the right message, so the interface can distinguish "you may
+ * not" from "that is malformed" from "that does not exist" (07a:18).
+ *
+ * The mapping is by `name` because that is what survives serialisation: the server sends a
+ * `ServerError` and the response carries its `name` and `message`. `code` is the durable key on the
+ * server side; this is the client's reading of the same fact.
+ */
+export class RelayboardRequestError extends Error {
+	readonly family:
+		| "validation"
+		| "unresolved"
+		| "unknown-object"
+		| "unimplemented";
+
+	constructor(
+		family: "validation" | "unresolved" | "unknown-object" | "unimplemented",
+		message: string,
+	) {
+		super(message);
+		this.name = "RelayboardRequestError";
+		this.family = family;
+	}
+}
+
+/**
+ * The family a thrown transport error belongs to.
+ *
+ * A `PermissionDenied` reaches the browser as a serialised `ServerError` with `code: "unresolved"`
+ * and the documented message, so the client reads the message the domain already owns rather than
+ * inventing a second vocabulary. Anything unrecognised is reported as `validation`, which is the
+ * family whose advice ("retrying unchanged will fail again") is safe to give about an error nobody
+ * anticipated.
+ */
+export const failureFamily = (
+	error: unknown,
+): RelayboardRequestError["family"] => {
+	const message = error instanceof Error ? error.message : String(error);
+	if (/permission|not a board member|No principal/i.test(message)) {
+		return "unresolved";
+	}
+	if (/not found|No (thread|board|entry|paragraph)/i.test(message)) {
+		return "unknown-object";
+	}
+	if (/arrives with ticket|not served in this build/i.test(message)) {
+		return "unimplemented";
+	}
+	return "validation";
+};
+
+/**
  * The HTTP implementation of `RelayboardClient`: every operation over the server's functions.
  *
  * **Every payload is built field by field, never spread from the input.** That is not style: it is

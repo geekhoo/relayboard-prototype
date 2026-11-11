@@ -23,6 +23,27 @@ export const errorMessages = {
 	messageEmpty: "Message cannot be empty",
 	/** The board a create operation names does not exist in this workspace (spec L516). */
 	boardNotFound: "Board not found",
+	/**
+	 * The acting principal holds no grant for an operation, at the scope it needs.
+	 *
+	 * Distinct from {@link notABoardMember}, which is the *board* membership refusal the append path
+	 * makes and which the prototype's copy fixes. This one is the permission refusal 07a introduces:
+	 * it names no permission, because the message is read by a person and the permission name is
+	 * carried beside it (see `src/server/permissions.ts`), so the string stays stable while the
+	 * detail travels with it.
+	 */
+	permissionDenied:
+		"This participant does not hold the permission that action requires",
+	/**
+	 * A grant record that cannot mean anything: no scope, a board on a workspace grant, or a name
+	 * outside the vocabulary.
+	 *
+	 * A validation failure rather than a grant that quietly does nothing (07a:14), because a grant
+	 * nobody can act on is indistinguishable from one that grants nothing — and the second is what a
+	 * caller would assume.
+	 */
+	grantMalformed:
+		"A grant needs a scope it can act on, and permissions that exist",
 } as const;
 
 /**

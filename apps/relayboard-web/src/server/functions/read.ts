@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import type { BoardSummary, ParticipantRead, PrincipalSummary } from "#/client";
 import {
 	boardNotFound,
-	invalidInput,
 	resetRefused,
+	unknownObject,
 	unknownPrincipal,
 } from "#/server/functions/errors";
 import {
@@ -12,59 +12,71 @@ import {
 	readPrincipalInput,
 	threadInput,
 } from "#/server/functions/inputs";
+import { authorize } from "#/server/permissions";
 import * as session from "#/server/session";
 import { getStore, resetAllowed, resetStore } from "#/server/store/instance";
 
 /**
  * The read half of the transport: one server function per read.
  *
- * Every function here follows the same three steps, in this order, and the order is the
- * contract:
+ * Every handler follows the same four steps, in this order, and the order is the contract:
  *
- * 1. **Validate the input.** The validator is a Zod schema, so a malformed request is
- *    refused at the boundary with an identifiable error rather than reaching the store. The
- *    schemas also strip unknown keys, so a caller cannot smuggle a field past the validator
- *    into a handler.
- * 2. **Resolve the acting principal.** This ticket has no session yet (06b), so the store's
- *    seeded first browser-selectable principal stands in — the same one 04a's router context
- *    acts as. The resolution is a single function call behind a named seam, so 06b replaces
- *    its body and every handler here is unchanged.
- * 3. **Answer from the store.**
+ * 1. **Validate the input.** The validator is a Zod schema, so a malformed request is refused at the
+ *    boundary rather than reaching the store. The schemas strip unknown keys, so a caller cannot
+ *    smuggle a field past the validator into a handler.
+ * 2. **Resolve the acting principal** from the session cookie, issuing one when the request has none.
+ * 3. **Authorize the operation.** Since 07a this is one call, `authorize(op, actor, scope)`, which
+ *    reads the requirement from the **declared table** in `src/client` rather than from a branch —
+ *    so an operation cannot declare one permission and check another, and cannot gain a handler that
+ *    forgets to check at all.
+ * 4. **Answer from the store.**
  *
- * **They are not unit-tested by calling them.** `createServerFn` resolves through a
- * request-scoped Start context that a bare `vitest run` does not have, so an in-process call
- * throws "No Start context found in AsyncLocalStorage" — a test of a fabricated context would
- * prove nothing about the deployed path. The assertions live on the store seam (the reads
- * delegate to operations that are tested) and on the route seam (each endpoint answers over
- * HTTP with the right shape). 06c and 04c carry the second; this file's own `npm test`
- * coverage is the error vocabulary and the principal-resolution seam.
+ * `readActingPrincipal` is the one exception, and deliberately: its requirement is `none`, because a
+ * caller with no session has to be able to ask who it is acting as (spec L341). Requiring a grant
+ * there would make the question unanswerable exactly when the answer is "nobody".
+ *
+ * **These are not unit-tested by calling them.** `createServerFn` resolves through a request-scoped
+ * Start context that a bare `vitest run` does not have, so an in-process call throws "No Start
+ * context found in AsyncLocalStorage" — measured four ways in 06c. The behaviour is asserted at the
+ * store seam (the operations these delegate to), at the matrix seam (`tests/permissions.test.ts`,
+ * which is where the requirements are checked), and over HTTP at the route seam (`e2e/**`).
  */
 
 /** How a handler reaches the workspace. */
 const store = () => getStore();
 
 /**
- * Every read below starts here, and this is the line that makes the server's answer depend on
- * the caller rather than on the request body.
+ * Resolve the actor and authorize one operation, in one call.
  *
- * `actingPrincipal()` reads the session cookie, resolves it to a seeded principal, and issues a
- * session on the response when the request had none — so a browser's first page load leaves with
- * a cookie naming a real participant, and every subsequent operation acts as that principal.
- * The reads do not yet differ per principal (grants are 07a's), which is why the call is made
- * and its result discarded in most handlers: the seam exists, it is exercised on every request,
- * and 07a makes it load-bearing without touching a handler.
+ * A handler writes `const actor = authorizeAs("appendMessage", { boardId })` and gets an actor it
+ * cannot proceed without. That shape is the point: an operation cannot be written that resolves the
+ * principal first and checks the grant "later", because there is nothing to write in between.
  */
-const actingPrincipal = () => session.actingPrincipal();
+const authorizeAs = (
+	operation: Parameters<typeof authorize>[0],
+	scope: Parameters<typeof authorize>[2] = {},
+) => authorize(operation, session.actingPrincipal(), scope);
 
 /** Every board the reader may see, with the count of people on it and never the list. */
 export const listBoards = createServerFn({ method: "GET" }).handler(
 	async (): Promise<readonly BoardSummary[]> => {
-		// The acting principal is resolved even for a read every participant may make: this is
-		// where a browser's first request is issued its session, and a read that skipped it would
-		// leave the reader anonymous until they happened to post.
-		actingPrincipal();
-		const boards = store().listBoards();
-		return boards.map((board) => ({
+		// **`read:board` is asked per board, and the answer is the boards it holds it on.** Spec L327
+		// says `listBoards` requires `read:board` "on that board" — one per board — so this is a filter
+		// rather than a single check. Asking it at workspace scope would be wrong in both directions: a
+		// member holding it on one board would be refused entirely, and a superadmin's workspace
+		// grant would be indistinguishable from a board grant.
+		//
+		// The actor is resolved first regardless, because this is where a browser's first request is
+		// issued its session — a read that skipped it would leave the reader anonymous until they posted.
+		const actor = session.actingPrincipal();
+		const visible = store()
+			.listBoards()
+			.filter((board) => store().permits(actor.id, "read:board", board.id));
+		// **A refusal, not an empty list.** A caller holding `read:board` nowhere has nothing to read,
+		// and answering "zero boards" would be a claim about the workspace rather than about the
+		// caller. The refusal names the permission so it can be acted on (07a:18).
+		if (visible.length === 0) authorizeAs("listBoards");
+		return visible.map((board) => ({
 			...board,
 			memberCount: store().listMembers(board.id).length,
 		}));
@@ -76,6 +88,7 @@ export const listThreads = createServerFn({ method: "GET" })
 	.validator(boardInput)
 	.handler(({ data }) => {
 		if (!store().readBoard(data.boardId)) throw boardNotFound(data.boardId);
+		authorizeAs("listThreads", { boardId: data.boardId });
 		return store().listThreads(data.boardId);
 	});
 
@@ -84,38 +97,50 @@ export const readThread = createServerFn({ method: "GET" })
 	.validator(threadInput)
 	.handler(({ data }) => {
 		const thread = store().readThread(data.threadId);
-		if (!thread)
-			throw invalidInput(`No thread ${data.threadId} in this workspace`);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		// The board comes from the **thread**, not from the request: a caller cannot name a board it
+		// holds a grant on and read a thread in one it does not.
+		authorizeAs("readThread", { boardId: thread.boardId });
 		return { thread, entries: store().readEntries(data.threadId) };
 	});
 
 /** A thread's entries after a position. The whole thread when no position is given. */
 export const readMessages = createServerFn({ method: "GET" })
 	.validator(readMessagesInput)
-	.handler(({ data }) =>
-		store()
+	.handler(({ data }) => {
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		authorizeAs("readMessages", { boardId: thread.boardId });
+		return store()
 			.readEntries(data.threadId)
-			.filter((entry) => entry.seq > (data.after ?? 0)),
-	);
+			.filter((entry) => entry.seq > (data.after ?? 0));
+	});
 
 /** A board's canonical resources. */
 export const listResources = createServerFn({ method: "GET" })
 	.validator(boardInput)
 	.handler(({ data }) => {
 		if (!store().readBoard(data.boardId)) throw boardNotFound(data.boardId);
+		authorizeAs("listResources", { boardId: data.boardId });
 		return store().listResources(data.boardId);
 	});
 
 /** How far every principal has got in one thread. */
 export const readPositions = createServerFn({ method: "GET" })
 	.validator(threadInput)
-	.handler(({ data }) => store().readPositions(data.threadId));
+	.handler(({ data }) => {
+		const thread = store().readThread(data.threadId);
+		if (!thread) throw unknownObject("thread", data.threadId);
+		authorizeAs("readPositions", { boardId: thread.boardId });
+		return store().readPositions(data.threadId);
+	});
 
-/** Who is on a board. Gated by `read:member` in 07a; the gate is not this ticket's. */
+/** Who is on a board. Refused for a caller without `read:member` there, rather than answered empty. */
 export const listMembers = createServerFn({ method: "GET" })
 	.validator(boardInput)
 	.handler(({ data }): readonly PrincipalSummary[] => {
 		if (!store().readBoard(data.boardId)) throw boardNotFound(data.boardId);
+		authorizeAs("listMembers", { boardId: data.boardId });
 		return store()
 			.listMembers(data.boardId)
 			.map((principal) => ({
@@ -128,9 +153,12 @@ export const listMembers = createServerFn({ method: "GET" })
 /**
  * One participant, with the grant it holds on one board.
  *
- * Both ids are required, because a grant is per board: a read that took only a principal
- * would be unable to answer "what may this participant do here", and 12 has nothing to
- * render without it. The grant returned is the store's membership stand-in until 07a.
+ * Both ids are required, because a grant is per board: a read that took only a principal could not
+ * answer "what may this participant do here", and 12 has nothing to render without it.
+ *
+ * **The grant is now the real one.** 07a replaced the membership stand-in with a lookup, so what this
+ * returns is what the store holds — and the board in the input is the board the grant was checked
+ * against, which is why the read takes one.
  */
 export const readPrincipal = createServerFn({ method: "GET" })
 	.validator(readPrincipalInput)
@@ -138,58 +166,39 @@ export const readPrincipal = createServerFn({ method: "GET" })
 		if (!store().readBoard(data.boardId)) throw boardNotFound(data.boardId);
 		const principal = store().readPrincipal(data.principalId);
 		if (!principal) throw unknownPrincipal(data.principalId);
-		const member = store()
-			.listMembers(data.boardId)
-			.some((candidate) => candidate.id === principal.id);
+		authorizeAs("readPrincipal", { boardId: data.boardId });
 		return {
 			principal,
 			grant: {
 				scope: "board",
-				permissions: member ? MEMBER_PERMISSIONS : [],
+				permissions: store().grantsFor(data.principalId, data.boardId),
 			},
 			declared: { description: principal.description },
 		};
 	});
 
 /**
- * What a member of a board may do there, until 07a's grants.
- *
- * The same stand-in the in-memory client uses, stated once so the two transports cannot
- * disagree about the demo workspace: everything the prototype let a member do on its board,
- * scoped to that board, and `create:board` nowhere — that is the superadmin's workspace grant.
- */
-const MEMBER_PERMISSIONS = [
-	"read:board",
-	"read:thread",
-	"read:resource",
-	"read:member",
-	"post:message",
-	"create:thread",
-	"add:resource",
-	"add:artifact",
-] as const;
-
-/**
  * The principal this request acts as.
  *
- * The one read that exists *for* the session rather than for the workspace, and the one a test
- * uses to ask which participant it got instead of assuming an order (06c:22). It returns the
- * principal and never the cookie — the cookie stays `HttpOnly` and unread from JavaScript, so
- * this is the only way a caller can learn what it is acting as.
+ * The one read that exists *for* the session rather than for the workspace, and the only operation
+ * whose requirement is `none` — a caller with no session must be able to ask who it is, which is how
+ * a client learns it has none (spec L341). It returns the principal and never the cookie: the cookie
+ * stays `HttpOnly` and unreadable from JavaScript, so this is the only way to learn what it is
+ * acting as.
  */
 export const readActingPrincipal = createServerFn({ method: "GET" }).handler(
-	() => actingPrincipal(),
+	() => authorizeAs("readActingPrincipal"),
 );
 
 /**
  * The test/dev-only reset.
  *
- * Refused outside a test or dev process, so the product cannot expose a way to wipe a
- * workspace that skipped the purge's confirmation and its permission check (14). It is not on
- * `RelayboardClient` and never will be: this is the harness's hook, not a participant's.
+ * Not a participant operation: it is absent from `RelayboardClient`, and it refuses outside a test
+ * or development process. `resetAllowed()` is the decision, made in one place so a route cannot make
+ * it differently.
  */
 export const resetTestStore = createServerFn({ method: "POST" }).handler(() => {
 	if (!resetAllowed()) throw resetRefused();
 	resetStore();
-	return { reset: true as const };
+	return { reset: true };
 });

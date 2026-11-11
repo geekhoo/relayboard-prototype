@@ -66,7 +66,15 @@ export const primeConversation = async (
 ): Promise<{ thread: Thread; entries: readonly Entry[] }> => {
 	const [contents] = await Promise.all([
 		queryClient.ensureQueryData(conversationQuery(client, threadId)),
-		queryClient.ensureQueryData(conversationRosterQuery(client, boardId)),
+		// **The roster can be refused, and a refusal must not fail the navigation.** It is gated by
+		// `read:member`, which a principal with workspace grants but no board grant does not hold —
+		// and such a principal can still read the thread. Measured: with the seeded superadmin's
+		// session the whole page rendered "Something went wrong" because this prime escaped the
+		// loader. A settled refusal is a state the conversation renders (names fall back to ids), not
+		// a page-level error.
+		queryClient
+			.ensureQueryData(conversationRosterQuery(client, boardId))
+			.catch(() => undefined),
 	]);
 	return contents;
 };

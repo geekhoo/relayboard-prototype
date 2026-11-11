@@ -76,13 +76,26 @@ export const resourcesQuery = (
 	queryFn: () => client.listResources(boardId),
 });
 
-/** The principals on a board, as its people view renders them. */
+/**
+ * The principals on a board, as its people view renders them.
+ *
+ * **`retry: false`, and that is a product decision rather than a test convenience.** Since 07a this
+ * read can be refused — a principal without `read:member` on the board is not entitled to the list —
+ * and a refusal is not a transient failure: retrying it three times with exponential backoff would
+ * show a reader a loading state for several seconds before finally telling them something that was
+ * already true. Measured: without this, the view sat on "Reading the participants" for the whole
+ * backoff window.
+ *
+ * The refusal is still rendered as a stated state (the view handles it), so nothing is swallowed;
+ * what changes is that the answer arrives immediately rather than after three attempts.
+ */
 export const peopleQuery = (
 	client: RelayboardClientBound,
 	boardId: BoardId,
 ) => ({
 	queryKey: ["people", boardId] as const,
 	queryFn: () => client.listMembers(boardId),
+	retry: false,
 });
 
 /**
@@ -98,9 +111,20 @@ export const primePane = async (
 	client: RelayboardClientBound,
 	boardId: BoardId,
 ): Promise<void> => {
+	// **A refused view must not take the page with it.** Since 07a the people view can be refused for
+	// a principal without `read:member` on the board, and that refusal is a *stated state in one
+	// column* (04b built the branch for it) — not a page-level error. Priming all three views
+	// opportunistically is what makes the other two arrive at first paint; a refusal settles that
+	// query into its error state, which is exactly what the view renders.
+	//
+	// Found by measuring: with `nadia`'s session the whole page rendered "Something went wrong",
+	// because the refusal escaped the loader. A view whose absence is designed for must not be able
+	// to fail the navigation that shows it.
 	await Promise.all([
 		queryClient.ensureQueryData(threadRowsQuery(client, boardId)),
 		queryClient.ensureQueryData(resourcesQuery(client, boardId)),
-		queryClient.ensureQueryData(peopleQuery(client, boardId)),
+		queryClient
+			.ensureQueryData(peopleQuery(client, boardId))
+			.catch(() => undefined),
 	]);
 };

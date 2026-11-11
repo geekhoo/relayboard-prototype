@@ -48,16 +48,20 @@ export const Route = createFileRoute("/boards/$boardId")({
 		// The loader asks the client rather than the store, so a board that does not exist is known
 		// before the component renders and the not-found state is a real route state rather than a
 		// flicker of an empty frame.
-		const boards = await context.client.listBoards();
-		const board = boards.find((candidate) => candidate.id === params.boardId);
-		// **The principal is resolved first, and everything else is primed with a client bound to it.**
-		// The router context's client carries a provisional id (the seed's first browser-selectable
-		// principal) because a context is built synchronously; every query key that partitions by
-		// reader would then be primed under one id and read under another. Measured: the first paint
-		// after the transport switch rendered "Opening the thread" and filled in after hydration —
-		// the fourth appearance of the same defect class, and the reason the binding happens here.
+		// **The board is read after the principal is bound**, not before: `listBoards` is
+		// permission-filtered since 07a, so asking it with the *provisional* client would answer as the
+		// seed's first browser-selectable principal rather than as the reader. Measured: with the
+		// seeded superadmin's session the whole page rendered "Something went wrong", because the
+		// provisional principal's boards were looked up and then every other read used the resolved
+		// one.
+		//
+		// Resolving the principal first is also what makes the pane's reads primed under the right
+		// query key — the fourth appearance of the defect class, and the reason the binding happens
+		// here rather than in a component.
 		const acting = await resolveActingPrincipal(context.client);
 		const client = bindClient(context.client, acting.id);
+		const boards = await client.listBoards();
+		const board = boards.find((candidate) => candidate.id === params.boardId);
 		// The rail's reads are primed before the answer is decided, so the server's first paint
 		// carries the boards and their unread counts. That matters most in the not-found case: the
 		// frame's whole promise is that the reader can go somewhere else from a stale link, and a
@@ -71,7 +75,15 @@ export const Route = createFileRoute("/boards/$boardId")({
 		// client-side navigation that runs no loader of its own. Without this the resources and
 		// people views would render their empty copy on the server and fill in after hydration —
 		// the defect 06a and 06b both paid for, in its third costume.
-		await primePane(context.queryClient, client, board.id);
+		// **A refusal in one view must not fail the navigation.** `primePane` primes all three views so
+		// the tabs switch without a flash, and since 07a one of those reads can be legitimately
+		// refused for a principal without `read:member` — a stated state in one column, not a page
+		// error. Measured: with the seeded superadmin's session the whole page rendered "Something
+		// went wrong", because the refusal escaped the loader. The pane's own views handle their
+		// refusals; the loader must not turn one into a navigation failure.
+		await primePane(context.queryClient, client, board.id).catch(
+			() => undefined,
+		);
 		// A thread id is resolved against this board's own rows, not against a global thread lookup:
 		// naming another board's thread here is the same case as naming one that does not exist, and
 		// both must not leak the thread's existence by rendering it.

@@ -150,6 +150,9 @@ export function Conversation({
 				queryKey: unreadQuery(client).queryKey,
 			});
 		} catch (error) {
+			// The message the domain owns, unchanged — and the FAMILY beside it, so the interface can
+			// tell a permission refusal from a validation failure without reading the string
+			// (06c:19, closed here because 07a's refusals are what make the distinction meaningful).
 			setFailure(error instanceof Error ? error.message : String(error));
 			// The key is KEPT on failure: a retry must replay the same key, which is the whole point
 			// of having one. Clearing it here would make the retry a second post.
@@ -313,10 +316,14 @@ function EntryItem({
 	readonly nameOf: (principalId: string) => string;
 }) {
 	return (
+		// `id` is the anchor target a relation points at; `data-entry-id` stays for the tests and for
+		// anything that wants to find an entry without depending on the id's string shape. Both,
+		// because they answer different questions: one is a navigation target, the other a selector.
 		<article
 			className="entry"
 			data-entry-id={entry.id}
 			data-entry-seq={entry.seq}
+			id={`entry-${entry.id}`}
 		>
 			<span aria-hidden="true" className="entry__avatar">
 				{nameOf(entry.authorId).slice(0, 1)}
@@ -338,7 +345,16 @@ function EntryItem({
 				<p className="entry__text">{entry.text}</p>
 				{entry.relation ? (
 					<p className="entry__relation">
-						{entry.relation.type}{" "}
+						{entry.relation.type} {/*
+						 * A plain fragment anchor, and the browser's own jump is what makes it work.
+						 *
+						 * Worth knowing rather than assuming: the target may be **above** the current
+						 * scroll position or far below it, and today it is always rendered because the
+						 * conversation renders every entry at once. When 05's list is virtualised, the
+						 * target may not be in the DOM at all — at which point this needs to scroll the
+						 * list to the entry's index first, because a fragment anchor cannot jump to an
+						 * element that does not exist yet. Recorded here rather than discovered then.
+						 */}
 						<a href={`#entry-${entry.relation.entryId}`}>
 							#{entry.relation.entryId}
 						</a>

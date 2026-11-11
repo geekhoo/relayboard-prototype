@@ -53,10 +53,20 @@ export const SESSION_COOKIE = "relayboard_session";
 /** How long a session lasts. Long, because a returning reader is the product's whole premise. */
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
-/** One principal's session, as the cookie carries it. */
+/**
+ * One principal's session, as the cookie carries it.
+ *
+ * **`permissions` was declared here in 06b and never populated** — the ticket pass caught it, and
+ * 07a is the change that fills it. It stays on the resolution rather than being looked up again by
+ * every caller because the answer belongs to the session: one resolution per request, one set of
+ * permissions, and an enforcement path that cannot ask twice and get two answers.
+ *
+ * It is the **workspace-scope** set. A board-scoped question is asked of the store, because a
+ * resolution does not know which board a request will touch.
+ */
 export interface ResolvedPrincipal {
 	readonly principal: Principal;
-	/** What it may do. Membership until 07a's grants; the shape is what matters here. */
+	/** What it may do workspace-wide, read from the grants at resolution time. */
 	readonly permissions: readonly string[];
 }
 
@@ -137,6 +147,8 @@ const rotation = { next: 0 };
 
 export interface Resolution {
 	readonly principal: Principal;
+	/** What the principal may do workspace-wide. Filled since 07a; see {@link ResolvedPrincipal}. */
+	readonly permissions: readonly string[];
 	/** True when this resolution minted a session that must be set on the response. */
 	readonly issued: boolean;
 }
@@ -151,7 +163,11 @@ export const resolveSession = (cookieValue: string | undefined): Resolution => {
 					`This session names principal "${principalId}", which this workspace does not hold. It may have been removed by a purge or a reseed; ask for a new session rather than retrying this request.`,
 				);
 			}
-			return { principal, issued: false };
+			return {
+				principal,
+				permissions: getStore().grantsFor(principal.id),
+				issued: false,
+			};
 		}
 		// A cookie that fails its signature is treated as no cookie at all: the browser is
 		// issued a fresh session rather than being refused for a token this workspace never
@@ -173,7 +189,11 @@ export const resolveSession = (cookieValue: string | undefined): Resolution => {
 			`The seed's selectable principal "${principalId}" is not in this workspace.`,
 		);
 	}
-	return { principal, issued: true };
+	return {
+		principal,
+		permissions: getStore().grantsFor(principal.id),
+		issued: true,
+	};
 };
 
 /** The `Set-Cookie` value for a freshly issued session. */

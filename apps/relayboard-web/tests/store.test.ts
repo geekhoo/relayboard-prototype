@@ -157,8 +157,8 @@ const notes: Resource = {
 /**
  * The prototype's `board.members` arrays have no home in the new model (a principal
  * is on a board because it holds a grant there), so the store is handed a predicate
- * until 07a's grant lookup replaces it. This fixture's permutation is not the demo
- * one; 02c supplies the real one from `app.js` L30-32.
+ * expressed as grants since 07a. This fixture's permutation is not the demo one; 02c
+ * supplies the real one from `app.js` L30-32.
  */
 const MEMBERSHIP: Readonly<Record<string, readonly string[]>> = {
 	platform: ["alex", "maya", "orion"],
@@ -166,8 +166,17 @@ const MEMBERSHIP: Readonly<Record<string, readonly string[]>> = {
 };
 
 const options = (): StoreOptions => ({
-	isBoardMember: (principalId, boardId) =>
-		(MEMBERSHIP[boardId] ?? []).includes(principalId),
+	// The fixture's membership, as grants. The permutation is the one above; the permissions are what
+	// the store's own append path asks for, so a test that posts keeps working for the same reason a
+	// real principal does rather than because the store was told to allow it.
+	grants: Object.entries(MEMBERSHIP).flatMap(([boardId, members]) =>
+		members.map((principalId) => ({
+			principalId,
+			scope: "board" as const,
+			boardId,
+			permissions: ["read:board", "post:message", "create:thread"] as const,
+		})),
+	),
 });
 
 /** A fresh fixture each time, so one test cannot hand its mutations to the next. */

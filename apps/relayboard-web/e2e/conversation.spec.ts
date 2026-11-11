@@ -130,16 +130,54 @@ test.describe("reading a thread", () => {
 		expect(dividers).toBe(expected);
 	});
 
-	test("a referencing entry links to the entry it responds to", async ({
+	test("a referencing entry's link moves the reader to the entry it responds to", async ({
 		page,
 	}) => {
+		// **This test used to assert the href's shape, and that is what let a real defect through:**
+		// the anchor pointed at `#entry-<id>` while entries carried only `data-entry-id`, so the link
+		// moved nobody anywhere and the shape assertion passed. What is asserted now is the thing that
+		// was broken — where the reader ends up.
 		await page.goto(
 			`/boards/platform?view=threads&thread=${THREAD_WITH_A_RELATION}`,
 		);
 
 		const relation = page.locator(".entry__relation a").first();
 		await expect(relation).toBeVisible();
-		await expect(relation).toHaveAttribute("href", /#entry-/);
+		const target =
+			(await relation.getAttribute("href"))?.replace(/^#/, "") ?? "";
+		expect(target).not.toBe("");
+
+		// The target exists at all — the half that was missing.
+		await expect(page.locator(`#${target}`)).toHaveCount(1);
+
+		await relation.click();
+
+		// And after the click the target is inside the conversation's visible box. Measured rather
+		// than asserted from a scroll position: the anchor may be above or below the reader, and the
+		// browser's native jump is what closes the distance.
+		const placement = await page.evaluate((id) => {
+			const element = document.querySelector(`#${id}`);
+			const column = document.querySelector(".workspace-frame__conversation");
+			if (!element || !column) return null;
+			const targetRect = element.getBoundingClientRect();
+			const box = column.getBoundingClientRect();
+			return {
+				targetTop: targetRect.top,
+				targetBottom: targetRect.bottom,
+				boxTop: box.top,
+				boxBottom: box.bottom,
+				visible:
+					targetRect.bottom > box.top &&
+					targetRect.top < box.bottom &&
+					targetRect.height > 0,
+			};
+		}, target);
+
+		expect(placement).not.toBeNull();
+		expect(
+			placement?.visible,
+			`after following the relation the target entry is at ${placement?.targetTop}-${placement?.targetBottom} and the conversation spans ${placement?.boxTop}-${placement?.boxBottom}, so it is not in view: the anchor does not land.`,
+		).toBe(true);
 	});
 
 	test("shows the thread's details, and closes from the keyboard", async ({
