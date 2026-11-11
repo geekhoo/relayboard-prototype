@@ -1104,14 +1104,23 @@ references rot easily — it is that a line-number citation into a living docume
 the next insert, so any change above L300 in `spec.md` owes the same re-point in the same commit. This
 paragraph is here so the next person to insert a paragraph into `spec.md` knows the bill.
 
-**The bill is not confined to `.scratch`.** The same insert left **50 stale `spec L` citations under
-`apps/relayboard-web`** — 35 in source comments, 15 in tests — because the app cites the spec from its
-comments the way the tickets do. Each one's correct new number was computed and verified the same way
-(old line's text at the new number, byte-identical in 50 of 50 cases), and the re-point is **Track A's
-to apply**, since `apps/` is that track's write scope and this one did not edit it. Two further app
-citations, `src/client/index.ts` L323 and `src/domain/errors.ts` L494, were already pointing at blank
-lines before this change and are unrelated to it. Recorded here so the debt is dated rather than
-discovered later.
+**The bill is not confined to `.scratch`.** The same insert moved the `spec L` citations inside
+`apps/relayboard-web` too, because the app cites the spec from its comments the way the tickets do.
+Measured at `691868d`, the app carried **roughly fifty of them across about thirty files** — the count is
+a snapshot of a directory that is still being written, not a total to trust, and the files are the thing
+to re-scan rather than the number to trust. **The rule is the durable fact, and it is mechanical:** for
+every citation `spec L n`, the line is `n` if `n <= 316`, `n + 1` if `317 <= n <= 339`, and `n + 2` if
+`n >= 340` — because the insert added one line inside the interface block at L317 and one inside the
+permission table at L342. That rule was verified against file contents rather than trusted: applied to
+the whole file it maps **648 of 650** original lines to identical text, and the two that differ are the
+two this change **deliberately rewrote** — the sentence above the table and the one below it, both of
+which claimed every operation requires a grant.
+
+The re-point is **Track A's to apply**, since `apps/` is that track's write scope and this one did not
+edit it. Two further app citations, `src/client/index.ts` L323 and `src/domain/errors.ts` L494, were
+already pointing at blank lines before this change and are unrelated to it. Recorded here so the debt is
+dated rather than discovered later, and so the next insert into `spec.md` can be paid mechanically
+instead of reconstructed from a diff.
 
 ---
 
