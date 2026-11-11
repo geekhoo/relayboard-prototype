@@ -5,8 +5,8 @@
 # only validates the Intent skills package. Nothing ran apps/relayboard-web's own
 # gates, so a broken app could merge green. This workflow runs the app's own gates —
 # `npm run check` (biome), `npm run check:styles`, `npm run typecheck` (`tsc --noEmit`),
-# `npm test` (Vitest in Node) and `npm run build` (vite → Nitro) — on every pull request
-# and on demand.
+# `npm test` (Vitest in Node), `npm run build` (vite → Nitro), `npm run check:boot` and
+# `npm run e2e` (Playwright against the built server) — on every pull request and on demand.
 #
 # Hand notes worth keeping:
 #
@@ -100,6 +100,43 @@ jobs:
       # name, its guard, or a Node built-in appears in them.
       - name: Assert no server-only code reached the client bundle
         run: npm run check:bundle
+
+      # The route seam. Two steps because the browser download is the slow, cacheable half and the
+      # run is the fast, failing half — a failure then names which one it was.
+      #
+      # `--with-deps` is what makes this work on a bare runner: Playwright's Chromium needs system
+      # libraries ubuntu-latest does not ship, and installing the browser without them produces a
+      # launch failure that reads like an app bug.
+      - name: Install the browser for the route seam
+        run: npx playwright install --with-deps chromium
+
+      # `RELAYBOARD_E2E_REUSE_BUILD` is the whole reason this step sits AFTER the build: the
+      # artefacts the steps above produced are the artefacts under test, and a harness that built
+      # again would be testing something the preset assertion never saw. The config fails loudly if
+      # reuse is requested and .output is missing, rather than quietly building.
+      #
+      # SESSION_SECRET is supplied here rather than inherited, for the same reason check:boot
+      # supplies its own: the server refuses to serve without one, and a gate should not depend on
+      # a value that happens to be in the runner's environment. RELAYBOARD_TEST_MODE unlocks the
+      # reset hook, which every test uses to start from the seed.
+      - name: Assert the route seam in a real browser
+        env:
+          RELAYBOARD_E2E_REUSE_BUILD: "1"
+          SESSION_SECRET: e2e-session-secret-0123456789abcdef
+        run: npm run e2e
+
+      # A trace is only useful if a developer can open it, and a failed CI run cannot be re-run
+      # interactively. Uploaded on failure only: a green run's traces are noise in the artefact
+      # list, and this file keeps none of them in the repository.
+      - name: Keep the route seam's failure evidence
+        if: failure()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: route-seam-report
+          path: |
+            apps/relayboard-web/test-results
+            apps/relayboard-web/playwright-report
+          retention-days: 7
 
       - name: Assert the build stayed a long-running Node server
         run: |

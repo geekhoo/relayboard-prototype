@@ -30,6 +30,27 @@ If you prefer not to use Tailwind CSS:
 3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
 4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
 
+## The gates, and which one to run when
+
+```bash
+npm test        # the Node suite: store, domain, contract, client. No DOM, no network, no build.
+npm run e2e     # the route seam: Playwright driving the BUILT app in a real browser.
+```
+
+They are deliberately separate commands and neither calls the other. `npm test` is the fast,
+hermetic suite that runs on every save; `npm run e2e` downloads a browser, builds and starts a
+server, so it belongs in CI and in a developer's deliberate check rather than in every iteration.
+The root `npm run app:check` is the fast gate for the same reason and does **not** run e2e.
+
+`npm run e2e` builds first so it works from a clean checkout. In CI the build has already
+happened and has already been asserted, so the workflow sets `RELAYBOARD_E2E_REUSE_BUILD=1` and
+the harness runs the existing build — failing loudly if there is none, rather than quietly
+building a second one nobody asserted.
+
+A failed run leaves `test-results/` and `playwright-report/` (both gitignored) with a trace,
+a screenshot and a DOM snapshot; `npx playwright show-trace test-results/<case>/trace.zip`
+opens the failing case step by step. CI uploads those files as an artefact instead.
+
 ## Linting & Formatting
 
 This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:

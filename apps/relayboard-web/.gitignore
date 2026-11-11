@@ -12,3 +12,7 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+# The route seam's artefacts. A trace or a screenshot belongs to the run that produced it and is
+# uploaded by CI, not committed: a binary in the repository is a binary nobody can review.
+test-results
+playwright-report
