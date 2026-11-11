@@ -11,11 +11,11 @@
 **Status:** ready-for-agent
 
 - [ ] A human holding `admit:agent` on a board sees that board's pending requests. A principal without the permission sees the surface disabled with a stated reason (`DESIGN.md` §221), not an empty list.
-- [ ] A principal holding `admit:agent` at **workspace** scope sees every board's pending requests grouped by board, so a board whose gate holders are absent is still joinable (spec L397). A board-scoped holder sees only that board. The rule is stated, because the parent ticket does not say which it means.
+- [ ] A principal holding `admit:agent` at **workspace** scope sees every board's pending requests grouped by board, so a board whose gate holders are absent is still joinable (spec L399). A board-scoped holder sees only that board. The rule is stated, because the parent ticket does not say which it means.
 - [ ] Each pending row shows the declared name, the declared operator and the stated reason, plus when it knocked. The design follows `DESIGN.md` §256: a *declared* label above the block at 11px in Ink-muted, never green, and **no declared value is tinted with the accent and none carries a checkmark**.
 - [ ] Derived values (issuer, fingerprint) are visually separated from the declared block wherever both appear. Before admission there are none, and the surface says so rather than showing a placeholder that looks derived.
 - [ ] Admitting requires choosing the permission set and the expiry in the same act: neither is defaulted silently, and the set offered is bounded to what the acting human itself holds (07b's rule, surfaced here as the list of choices rather than as a refusal after the fact).
-- [ ] A bounded expiry is the default offered (spec L391); "never" is available and visibly exceptional rather than the default.
+- [ ] A bounded expiry is the default offered (spec L393); "never" is available and visibly exceptional rather than the default.
 - [ ] Denying requires a reason, and the request then reads as denied with that reason rather than disappearing.
 - [ ] An empty state states plainly that there are no pending requests, rather than showing an empty list frame (`DESIGN.md` §263).
 - [ ] The polling secret is nowhere on this surface, and a test asserts the rendered page never contains a credential or a secret for any pending request.

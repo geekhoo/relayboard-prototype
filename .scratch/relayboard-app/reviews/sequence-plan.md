@@ -1095,6 +1095,24 @@ them is the same +8. Where a claim had no correct line to cite — `13a`'s trunc
 criterion now cites the story (`story 123`, spec L184) or states the decision itself, rather than inventing
 a line to point at.
 
+*And it happened again, which is the point.* Adding `readActingPrincipal` to the spec's interface block
+and permission table inserted two lines at L317 and L342, and **70 ticket citations at or above that
+point moved again** — every `spec L` reference in 19 of the 30 tickets. They were re-pointed in the same
+change, and the mapping was verified by comparing each old line's text at the new number rather than by
+trusting the arithmetic: **70 of 70 resolve to byte-identical content**. The lesson is not that the
+references rot easily — it is that a line-number citation into a living document is only correct until
+the next insert, so any change above L300 in `spec.md` owes the same re-point in the same commit. This
+paragraph is here so the next person to insert a paragraph into `spec.md` knows the bill.
+
+**The bill is not confined to `.scratch`.** The same insert left **50 stale `spec L` citations under
+`apps/relayboard-web`** — 35 in source comments, 15 in tests — because the app cites the spec from its
+comments the way the tickets do. Each one's correct new number was computed and verified the same way
+(old line's text at the new number, byte-identical in 50 of 50 cases), and the re-point is **Track A's
+to apply**, since `apps/` is that track's write scope and this one did not edit it. Two further app
+citations, `src/client/index.ts` L323 and `src/domain/errors.ts` L494, were already pointing at blank
+lines before this change and are unrelated to it. Recorded here so the debt is dated rather than
+discovered later.
+
 ---
 
 ## 6. The first three days

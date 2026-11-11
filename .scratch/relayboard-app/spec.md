@@ -314,12 +314,13 @@ interface RelayboardClient {
   readPositions(threadId: ThreadId): Promise<PrincipalPosition[]>
   listMembers(boardId: BoardId): Promise<PrincipalSummary[]>   // who is on this board
   readPrincipal(input: { principalId: PrincipalId; boardId: BoardId }): Promise<{ principal: Principal; grant: Grant; declared: Declared }> // one participant: the board is in the input because a grant is per board; `principal` carries the issuer and fingerprint this workspace derived, `declared` the operator and reason it merely asserted — never merged, so a client can label the declared strings as declared
+  readActingPrincipal(): Promise<Principal>                    // who this caller is acting as; requires no grant, because learning you have no session must not need one
 
   subscribe(handlers: StreamHandlers): Unsubscribe
 }
 ```
 
-Each operation maps to exactly one permission, checked at the boundary:
+Each operation maps to at most one permission, checked at the boundary. Exactly one, except the one operation whose answer must be available before the caller has any grant at all:
 
 | Operation | Requires |
 | --- | --- |
@@ -337,13 +338,14 @@ Each operation maps to exactly one permission, checked at the boundary:
 | `acknowledge` | `acknowledge:thread` |
 | `setConnection`, `subscribe` | `read:board` on at least one board |
 | `simulateIncoming` | `post:message`, and only ever on behalf of an agent member |
+| `readActingPrincipal` | none — a caller with no session must be able to ask who it is acting as, which is how a client learns it has none |
 
 Two operations are deliberately **not** members of this interface:
 
 - **Admission** (`knock`, `pollAdmission`, `listPending`, `admit`, `deny`, `revoke`) is the surface a caller reaches before it is a participant. Putting it here would force every implementation to model a pre-participant state or make the interface's contract conditional on the caller. It lives as its own small surface beside this one.
 - **Permission administration** (`grant`, `editGrant`) is either the same admission call at admission time, or the superadmin path afterwards. It is likewise its own surface, because it is the one thing that must never be reachable by an ordinary participant's client.
 
-That split is what keeps `RelayboardClient` honest as "what a participant can do": every member requires a grant, and no member can change a grant.
+That split is what keeps `RelayboardClient` honest as "what a participant can do": every member requires a grant except `readActingPrincipal`, which requires none because a caller that has not yet been admitted still has to be able to ask who it is — and no member can change a grant.
 
 `subscribe` is the shape that is genuinely new. The in-memory implementation drives it from the store; the HTTP implementation drives it from SSE. Both must deliver the same events in the same situations, which is what makes the route seam's behaviour reproducible without a network.
 
