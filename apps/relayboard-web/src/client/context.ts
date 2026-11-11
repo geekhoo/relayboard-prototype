@@ -36,6 +36,33 @@ interface ClientContext {
 }
 
 /**
+ * The client, re-bound to the principal the transport actually resolved.
+ *
+ * ## Why this exists, and the defect it fixes
+ *
+ * The router context's client is created with a **provisional** id (the seed's first
+ * browser-selectable principal), because a context is built synchronously and resolving a principal
+ * is a read. Every query key that partitions by reader used that provisional id, so a second browser
+ * — issued `maya` — cached its rows under `alex`. Measured: the session note said maya and the
+ * composer's placeholder said alex, in the same window, from one page load.
+ *
+ * The fix is one shape rather than two: whoever needs "who am I" reads it **through
+ * `readActingPrincipal`**, which the loader primes, and the client they then use carries that id.
+ * Components ask `useActingClient()` and get a client whose `actingPrincipalId` is the resolved one,
+ * so a query key and a rendered name cannot disagree.
+ */
+export const useActingClient = (): RelayboardClientBound => {
+	const client = useRelayboardClient();
+	const resolved = useQuery(actingPrincipalQuery(client));
+	const principalId = resolved.data?.id ?? client.actingPrincipalId;
+	// Re-bound only when the id actually differs, so an unchanged answer does not produce a new
+	// object on every render (and therefore a new query key identity).
+	return principalId === client.actingPrincipalId
+		? client
+		: bindClient(client, principalId);
+};
+
+/**
  * The client plus the principal it acts as, both from the router context.
  *
  * principalId is primed by the route's loader through readActingPrincipal, so by the time a

@@ -18,7 +18,6 @@ import type {
 	ThreadContents,
 	Unsubscribe,
 } from "#/client";
-import { NotYetImplementedError } from "#/client";
 import type {
 	BoardId,
 	Principal,
@@ -38,20 +37,31 @@ import {
 	readPrincipal,
 	readThread,
 } from "#/server/functions/read";
+import {
+	acknowledge,
+	addResource,
+	appendMessage,
+	attachResource,
+	createBoard,
+	createThread,
+	moveStatus,
+	setConnection as setConnectionFn,
+	simulateIncoming,
+} from "#/server/functions/write";
 
 /**
- * The HTTP implementation of `RelayboardClient`: the reads, over the server's functions.
+ * The HTTP implementation of `RelayboardClient`: every operation over the server's functions.
  *
- * **This build serves the reads and nothing else.** Every mutation and `subscribe` throws a
- * `NotYetImplementedError` naming the ticket that lands it, because the rule this repo keeps
- * applying to absent capabilities is that they must fail loudly: a stub returning `undefined`
- * or an empty array would read as a pass to a conformance suite and to a reader alike.
+ * **Every payload is built field by field, never spread from the input.** That is not style: it is
+ * the second line of the rule that no operation accepts an author from the caller. The interface has
+ * no `authorId` field, so a well-typed caller cannot supply one — but a caller who casts can, and a
+ * spread would put it on the wire for the server to strip. Building the body explicitly means the
+ * forged field never leaves the browser, so there is nothing to strip and nothing to probe.
  *
- * Why the reads can be honest here and the writes cannot: 06a's server functions are the
- * read half of the transport, and the writes need the acting principal resolved from a
- * session (06b) before they can take an author from anything but the caller. Implementing
- * `appendMessage` here now would mean either accepting an `authorId` from the browser —
- * which the whole design forbids — or pretending a session exists.
+ * `subscribe` is the one operation that does not live here as an RPC, and it throws naming 11a: the
+ * stream is a server route rather than a server function (spec L357), so it is 11a's, and an empty
+ * subscription would be indistinguishable from a thread with no entries — the failure spec L518
+ * forbids.
  *
  * The functions are imported rather than fetched by hand: `createServerFn` returns a callable
  * whose client half performs the RPC, so this file is a thin adapter and the transport stays
@@ -113,35 +123,80 @@ export const createHttpClient = (): RelayboardClient => ({
 			data: { principalId, boardId },
 		})) as ParticipantRead,
 
-	// --- the writes, which 06c lands ---
-	appendMessage: async (_input: AppendMessageInput): Promise<Entry> => {
-		throw new NotYetImplementedError("appendMessage", "ticket 06c");
-	},
-	createThread: async (_input: CreateThreadInput): Promise<Thread> => {
-		throw new NotYetImplementedError("createThread", "ticket 06c");
-	},
-	createBoard: async (_input: CreateBoardInput): Promise<BoardSummary> => {
-		throw new NotYetImplementedError("createBoard", "ticket 06c");
-	},
-	addResource: async (_input: AddResourceInput): Promise<Resource> => {
-		throw new NotYetImplementedError("addResource", "ticket 06c");
-	},
-	simulateIncoming: async (_threadId: ThreadId): Promise<Entry> => {
-		throw new NotYetImplementedError("simulateIncoming", "ticket 06c");
-	},
-	attachResource: async (_input: AttachResourceInput): Promise<Entry> => {
-		throw new NotYetImplementedError("attachResource", "ticket 10a");
-	},
-	moveStatus: async (_input: {
+	// --- the writes ---
+
+	/**
+	 * Post a message.
+	 *
+	 * **No author is sent, because there is nowhere to send one.** The input the interface accepts has
+	 * no `authorId` field, and the payload below is constructed field by field rather than spread, so
+	 * even a caller who casts their input cannot get an author onto the wire: the body is built from
+	 * the fields this cast names, and an extra property is simply not among them.
+	 */
+	appendMessage: async (input: AppendMessageInput): Promise<Entry> =>
+		(await appendMessage({
+			data: {
+				threadId: input.threadId,
+				text: input.text,
+				// Copied out of the readonly interface type into the array shape the wire schema takes.
+				// A spread here rather than the value itself, because readonly and mutable differ and
+				// the schema is the boundary: what leaves the browser is a plain array.
+				references: input.references
+					? input.references.map((reference) => ({
+							resourceId: reference.resourceId,
+						}))
+					: undefined,
+				relation: input.relation,
+				idempotencyKey: input.idempotencyKey,
+			},
+		})) as Entry,
+
+	createThread: async (input: CreateThreadInput): Promise<Thread> =>
+		(await createThread({
+			data: {
+				boardId: input.boardId,
+				title: input.title,
+				description: input.description,
+			},
+		})) as Thread,
+
+	createBoard: async (input: CreateBoardInput): Promise<BoardSummary> =>
+		(await createBoard({
+			data: { name: input.name, description: input.description },
+		})) as BoardSummary,
+
+	addResource: async (input: AddResourceInput): Promise<Resource> =>
+		(await addResource({
+			data: {
+				boardId: input.boardId,
+				name: input.name,
+				url: input.url,
+				type: input.type,
+				description: input.description,
+			},
+		})) as Resource,
+
+	simulateIncoming: async (threadId: ThreadId): Promise<Entry> =>
+		(await simulateIncoming({ data: { threadId } })) as Entry,
+
+	attachResource: async (input: AttachResourceInput): Promise<Entry> =>
+		(await attachResource({
+			data: { threadId: input.threadId, resourceId: input.resourceId },
+		})) as Entry,
+
+	moveStatus: async (input: {
 		threadId: ThreadId;
 		from: string;
 		to: string;
-	}): Promise<Entry> => {
-		throw new NotYetImplementedError("moveStatus", "ticket 10a");
-	},
-	acknowledge: async (_input: AcknowledgeInput): Promise<Entry> => {
-		throw new NotYetImplementedError("acknowledge", "ticket 10a");
-	},
+	}): Promise<Entry> =>
+		(await moveStatus({
+			data: { threadId: input.threadId, from: input.from, to: input.to },
+		})) as Entry,
+
+	acknowledge: async (input: AcknowledgeInput): Promise<Entry> =>
+		(await acknowledge({
+			data: { threadId: input.threadId, upTo: input.upTo },
+		})) as Entry,
 
 	/**
 	 * The transport's connection state.
@@ -151,10 +206,10 @@ export const createHttpClient = (): RelayboardClient => ({
 	 * stream yet. `pending` is `0` here rather than derived, because with no subscription
 	 * there is nothing outstanding to report — and it says so instead of guessing.
 	 */
-	setConnection: async (_input: SetConnectionInput): Promise<StreamState> => ({
-		connected: false,
-		pending: 0,
-	}),
+	setConnection: async (input: SetConnectionInput): Promise<StreamState> =>
+		(await setConnectionFn({
+			data: { connected: input.connected },
+		})) as StreamState,
 
 	/**
 	 * The stream, which is a server route rather than a function (spec L357) and arrives in 11a.

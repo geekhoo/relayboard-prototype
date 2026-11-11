@@ -85,6 +85,21 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
  * - 06c should flip this to the HTTP transport in the same change that makes the writes available,
  *   and at that point a durability assertion becomes both possible and necessary.
  */
+/**
+ * Which client the build under test carries, so a spec can say what it is measuring.
+ *
+ * The suite asserts the HTTP transport, because that is what ships. `VITE_RELAYBOARD_TRANSPORT=memory`
+ * still builds and still runs, and six specs — the ones about one shared workspace — are then
+ * **skipped with a stated reason** rather than failing: with the in-memory client every page load
+ * gets its own store (04a), so "a message survives a reload" is false by construction and a red
+ * suite would be reporting the transport the harness deliberately asked for.
+ *
+ * This is a conditional skip tied to a value the harness controls, not the kind that rots: the
+ * default build has no such value and every one of those tests runs.
+ */
+const TRANSPORT =
+	process.env.VITE_RELAYBOARD_TRANSPORT === "memory" ? "memory" : "http";
+
 const SERVER_ENV: Record<string, string> = {
 	SESSION_SECRET: "e2e-session-secret-0123456789abcdef",
 	RELAYBOARD_TEST_MODE: "1",
@@ -101,6 +116,8 @@ export default defineConfig({
 	workers: 1,
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	// Exposed to the specs through the fixtures, so a spec can name the transport it measured.
+	metadata: { transport: TRANSPORT },
 	reporter: process.env.CI
 		? [["github"], ["html", { open: "never" }]]
 		: [["list"]],

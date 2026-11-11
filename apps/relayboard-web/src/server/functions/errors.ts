@@ -46,6 +46,16 @@ export const invalidInput = (detail: string): ServerError =>
 export const boardNotFound = (boardId: string): ServerError =>
 	new ServerError("unknown-object", "Board not found", boardId);
 
+/**
+ * A well-formed request naming something this workspace does not hold.
+ *
+ * Deliberately separate from {@link boardNotFound}, which carries the domain's documented string:
+ * the ones with a documented string keep it (spec L520 forbids the transport rewording them), and
+ * anything without one gets a message that names what was asked for rather than a generic refusal.
+ */
+export const unknownObject = (kind: string, id: string): ServerError =>
+	new ServerError("unknown-object", `No ${kind} ${id} in this workspace`, id);
+
 /** A principal that this workspace does not hold. */
 export const unknownPrincipal = (principalId: string): ServerError =>
 	new ServerError(

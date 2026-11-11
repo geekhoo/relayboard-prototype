@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BoardId, Entry, PrincipalSummary, ThreadId } from "#/client";
-import { useRelayboardClient } from "#/client/context";
+import { useActingClient } from "#/client/context";
 import {
 	conversationQuery,
 	conversationRosterQuery,
@@ -52,7 +52,12 @@ export function Conversation({
 	readonly boardId: BoardId;
 	readonly threadId: ThreadId;
 }) {
-	const client = useRelayboardClient();
+	// `useActingClient`, not `useRelayboardClient`: the router context's client carries a
+	// PROVISIONAL principal id (the seed's first browser-selectable one), because a context is built
+	// before anything can be resolved. Every query key below partitions by reader, so using the
+	// provisional id cached this reader's rows under somebody else's key — measured: a second browser
+	// saw the session note say `maya` and this composer's placeholder say `alex`.
+	const client = useActingClient();
 	const conversation = useQuery(conversationQuery(client, threadId));
 	const roster = useQuery(conversationRosterQuery(client, boardId));
 	const principalId = client.actingPrincipalId;
@@ -62,14 +67,22 @@ export function Conversation({
 	const [sending, setSending] = useState(false);
 	const [failure, setFailure] = useState<string | null>(null);
 	/**
-	 * The key for the draft in the composer.
+	 * The key for the draft in the composer, and the guard that makes a second activation safe.
 	 *
-	 * One key per **draft**, minted when the draft first becomes sendable and kept until the message
-	 * commits. That is what makes a second click while the first is in flight send the same key and
-	 * append one entry (05's criterion) rather than two — the guard lives in the store, and this is
-	 * the caller honouring it.
+	 * **A ref, not state, and that distinction is the whole guard.** React state updates are
+	 * asynchronous, so two activations in the same tick (Ctrl+Enter then a click — exactly what a
+	 * nervous hand does) both read `sending === false` from the closure they were created in and both
+	 * proceed. Measured: with a state-based guard the browser sent **two POSTs** for one draft.
+	 *
+	 * Two things are needed, and they are different:
+	 *
+	 * - `active` stops the second activation from sending at all, which is what a reader expects from
+	 *   a button that has already been pressed.
+	 * - `key` is kept until the draft **commits**, so a retry after a failure replays the same key and
+	 *   the store's idempotency makes it safe. Clearing the key on failure would turn a retry into a
+	 *   second post — which is the defect the key exists to prevent.
 	 */
-	const [draftKey, setDraftKey] = useState<string | null>(null);
+	const inFlight = useRef<{ key: string; active: boolean } | null>(null);
 
 	const thread = conversation.data?.thread;
 	const entries = conversation.data?.entries ?? [];
@@ -116,10 +129,14 @@ export function Conversation({
 
 	const send = async () => {
 		const text = draftToSend(draft);
-		if (text === null || sending) return;
-		// One key per draft: reused by a second click, replaced once the draft commits.
-		const key = draftKey ?? `${threadId}-${Date.now()}-${Math.random()}`;
-		setDraftKey(key);
+		if (text === null) return;
+		// A send is already in flight: this activation does nothing. It must NOT mint a second key —
+		// that would be a second post — and it must not surface an error either.
+		if (inFlight.current?.active) return;
+		// One key per draft, minted synchronously so a retry replays it rather than replacing it.
+		const key =
+			inFlight.current?.key ?? `${threadId}-${Date.now()}-${Math.random()}`;
+		inFlight.current = { key, active: true };
 		setSending(true);
 		setFailure(null);
 		try {
@@ -127,14 +144,19 @@ export function Conversation({
 			// The draft clears only on success: a failed send leaves it in place with the reason,
 			// because losing what somebody typed is worse than any error message.
 			setDraft("");
-			setDraftKey(null);
+			inFlight.current = null;
 			await conversation.refetch();
 			await queryClient.invalidateQueries({
 				queryKey: unreadQuery(client).queryKey,
 			});
 		} catch (error) {
 			setFailure(error instanceof Error ? error.message : String(error));
+			// The key is KEPT on failure: a retry must replay the same key, which is the whole point
+			// of having one. Clearing it here would make the retry a second post.
 		} finally {
+			// The send is no longer in flight. The KEY survives unless the draft committed, so a retry
+			// after a refusal is a replay rather than a second post.
+			if (inFlight.current) inFlight.current.active = false;
 			setSending(false);
 		}
 	};

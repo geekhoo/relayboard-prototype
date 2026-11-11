@@ -30,4 +30,17 @@ export const test = base.extend<{ resetBeforeEach: string }>({
 	],
 });
 
+/**
+ * Whether this run is testing the transport that shares one workspace.
+ *
+ * True for every real build, false for `VITE_RELAYBOARD_TRANSPORT=memory`, and the six specs about
+ * one shared workspace skip with this reason rather than failing. A skip is only honest when the
+ * condition is one the harness sets and can unset; this one is, and the default build never sees it.
+ */
+export const SHARED_WORKSPACE =
+	process.env.VITE_RELAYBOARD_TRANSPORT !== "memory";
+
+export const MEMORY_ONLY_REASON =
+	"Built with VITE_RELAYBOARD_TRANSPORT=memory: the in-memory client builds its store per router, so every page load gets its own workspace and a shared-workspace claim is false by construction. Re-run without that variable to assert it.";
+
 export { expect } from "@playwright/test";

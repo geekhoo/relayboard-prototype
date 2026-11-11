@@ -64,9 +64,21 @@ const demoPrincipalId = (): string => {
 	return first.id;
 };
 
-/** Which implementation the UI renders from. In-memory unless a build says otherwise. */
+/**
+ * Which implementation the UI renders from. **HTTP, since 06c.**
+ *
+ * The switch is the whole point of this ticket: before 06c the writes were absent, so a
+ * screen backed by HTTP could read but not post, and the in-memory client was what a reader
+ * actually got. Now every operation is served, so the UI renders from the transport that shares
+ * one workspace — which is what makes "two participants, one workspace" true rather than described.
+ *
+ * The in-memory client stays in the tree and stays selectable, because the conformance suite and
+ * several Node tests drive it directly, and because a second implementation is what proves the
+ * interface is swappable rather than merely abstract. `VITE_RELAYBOARD_TRANSPORT=memory` builds the
+ * old behaviour; nothing sets it in production.
+ */
 const transport = (): "memory" | "http" =>
-	import.meta.env.VITE_RELAYBOARD_TRANSPORT === "http" ? "http" : "memory";
+	import.meta.env.VITE_RELAYBOARD_TRANSPORT === "memory" ? "memory" : "http";
 
 export function getContext(): RouterContext {
 	const queryClient = new QueryClient();

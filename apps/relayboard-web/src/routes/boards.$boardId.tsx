@@ -1,5 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useActingPrincipalId } from "#/client/context";
+import {
+	bindClient,
+	resolveActingPrincipal,
+	useActingPrincipalId,
+} from "#/client/context";
 import { primeConversation } from "#/components/-conversation-queries";
 import { primeRail } from "#/components/-rail-queries";
 import { primePane, threadRowsQuery } from "#/components/-thread-queries";
@@ -46,11 +50,19 @@ export const Route = createFileRoute("/boards/$boardId")({
 		// flicker of an empty frame.
 		const boards = await context.client.listBoards();
 		const board = boards.find((candidate) => candidate.id === params.boardId);
+		// **The principal is resolved first, and everything else is primed with a client bound to it.**
+		// The router context's client carries a provisional id (the seed's first browser-selectable
+		// principal) because a context is built synchronously; every query key that partitions by
+		// reader would then be primed under one id and read under another. Measured: the first paint
+		// after the transport switch rendered "Opening the thread" and filled in after hydration —
+		// the fourth appearance of the same defect class, and the reason the binding happens here.
+		const acting = await resolveActingPrincipal(context.client);
+		const client = bindClient(context.client, acting.id);
 		// The rail's reads are primed before the answer is decided, so the server's first paint
 		// carries the boards and their unread counts. That matters most in the not-found case: the
 		// frame's whole promise is that the reader can go somewhere else from a stale link, and a
 		// rail that arrived a moment later would leave them looking at a dead end.
-		await primeRail(context.queryClient, context.client);
+		await primeRail(context.queryClient, client);
 		if (!board) {
 			throw notFound();
 		}
@@ -59,12 +71,12 @@ export const Route = createFileRoute("/boards/$boardId")({
 		// client-side navigation that runs no loader of its own. Without this the resources and
 		// people views would render their empty copy on the server and fill in after hydration —
 		// the defect 06a and 06b both paid for, in its third costume.
-		await primePane(context.queryClient, context.client, board.id);
+		await primePane(context.queryClient, client, board.id);
 		// A thread id is resolved against this board's own rows, not against a global thread lookup:
 		// naming another board's thread here is the same case as naming one that does not exist, and
 		// both must not leak the thread's existence by rendering it.
 		const rows = await context.queryClient.ensureQueryData(
-			threadRowsQuery(context.client, board.id),
+			threadRowsQuery(client, board.id),
 		);
 		// The open thread arrives as a loader dep, so it is the router's own parsed value rather than
 		// a second reading of the query string: the loader and the component ask the same question
@@ -81,7 +93,7 @@ export const Route = createFileRoute("/boards/$boardId")({
 		if (threadExists && deps.thread !== "") {
 			await primeConversation(
 				context.queryClient,
-				context.client,
+				client,
 				board.id,
 				deps.thread,
 			);
