@@ -50,28 +50,48 @@ import {
 } from "#/server/functions/write";
 
 /**
- * The error families a caller can act on differently.
+ * The families a caller can act on differently.
  *
- * **07c closes the gap the ticket pass found in 06c:19** — the server has carried stable codes since
- * 06c and the client cast every response without looking. A refusal now arrives as a typed error
- * rather than as a bare `Error` with the right message, so the interface can distinguish "you may
- * not" from "that is malformed" from "that does not exist" (07a:18).
+ * **Five, and the split between the first two is the point.** 06c:19 and 06b:22 both ask for a
+ * refusal to be distinguishable from an unauthenticated result, and an earlier version of this file
+ * mapped them to the *same* value (`unresolved`): a permission refusal and "we do not know who you
+ * are" produced one answer, so a caller could not tell "you may not" from "log in". They are
+ * different instructions to a reader, so they are different families:
  *
- * The mapping is by `name` because that is what survives serialisation: the server sends a
- * `ServerError` and the response carries its `name` and `message`. `code` is the durable key on the
- * server side; this is the client's reading of the same fact.
+ * - **`denied`** — the caller is authenticated and is being told no. There is nothing to retry and
+ *   nothing to fix by identifying again; the answer is a capability the caller does not have.
+ * - **`unauthenticated`** — there is no principal to act as. The one case a client must not retry
+ *   silently (spec L517), because the request will fail identically until a session exists.
  */
-export class RelayboardRequestError extends Error {
-	readonly family:
-		| "validation"
-		| "unresolved"
-		| "unknown-object"
-		| "unimplemented";
+export type FailureFamily =
+	| "denied"
+	| "unauthenticated"
+	| "validation"
+	| "unknown-object"
+	| "unimplemented";
 
-	constructor(
-		family: "validation" | "unresolved" | "unknown-object" | "unimplemented",
-		message: string,
-	) {
+/**
+ * The message a UI can show per family.
+ *
+ * Exported so a component says the same thing in the same words rather than inventing a sentence per
+ * call site — and so the wording is one place to change when 12 adds the participant drawels. The
+ * server's own message is still carried on the error: these are the *fallbacks* for a surface that
+ * wants to speak in its own voice about the family rather than repeat a server string.
+ */
+export const failureMessage: Readonly<Record<FailureFamily, string>> = {
+	denied: "This participant does not hold the permission that action requires",
+	unauthenticated:
+		"There is no session to act as — start a session and try again",
+	validation: "That request could not be understood",
+	"unknown-object": "That does not exist in this workspace",
+	unimplemented: "This build does not serve that operation yet",
+};
+
+/** A transport failure, carrying the family so a caller branches on it rather than on a string. */
+export class RelayboardRequestError extends Error {
+	readonly family: FailureFamily;
+
+	constructor(family: FailureFamily, message: string) {
 		super(message);
 		this.name = "RelayboardRequestError";
 		this.family = family;
@@ -81,26 +101,67 @@ export class RelayboardRequestError extends Error {
 /**
  * The family a thrown transport error belongs to.
  *
- * A `PermissionDenied` reaches the browser as a serialised `ServerError` with `code: "unresolved"`
- * and the documented message, so the client reads the message the domain already owns rather than
- * inventing a second vocabulary. Anything unrecognised is reported as `validation`, which is the
- * family whose advice ("retrying unchanged will fail again") is safe to give about an error nobody
- * anticipated.
+ * Read from the **message the domain already owns** rather than from a second vocabulary: the server
+ * sends a `ServerError`, and after serialisation the message is what reaches the browser.
+ *
+ * The order of the tests matters. `not a board member` and `permission` are refusals of a *known*
+ * caller; `No principal` and the admission-token message are the absence of one. Testing the
+ * absence first would classify a board-membership refusal as unauthenticated if a message ever named
+ * both — so the specific refusal patterns are tested before the general absence pattern.
  */
-export const failureFamily = (
-	error: unknown,
-): RelayboardRequestError["family"] => {
+export const failureFamily = (error: unknown): FailureFamily => {
 	const message = error instanceof Error ? error.message : String(error);
-	if (/permission|not a board member|No principal/i.test(message)) {
-		return "unresolved";
+	// A refusal of an authenticated caller: a capability is missing, nothing is wrong with the session.
+	if (
+		/permission|not a board member|cannot exceed|do not hold it yourself|only be granted to a human/i.test(
+			message,
+		)
+	) {
+		return "denied";
 	}
-	if (/not found|No (thread|board|entry|paragraph)/i.test(message)) {
+	// No principal to act as. The absence, tested after the refusals so a message naming both lands on
+	// the refusal.
+	if (
+		/No principal|no session|does not match any issued admission|not a gate holder|requires admit:agent/i.test(
+			message,
+		)
+	) {
+		return "unauthenticated";
+	}
+	if (
+		/not found|No (thread|board|entry|paragraph|such participant)/i.test(
+			message,
+		)
+	) {
 		return "unknown-object";
 	}
 	if (/arrives with ticket|not served in this build/i.test(message)) {
 		return "unimplemented";
 	}
 	return "validation";
+};
+
+/**
+ * Run one server-function call, attaching the family to whatever it throws.
+ *
+ * **Every operation below goes through this**, which is what makes the classifier on the path rather
+ * than beside it: a component catches a `RelayboardRequestError` and branches on `.family` without
+ * parsing a message. An earlier version exported `failureFamily` and wrapped nothing, so the
+ * classification existed and was unreachable — the appearance of error handling.
+ *
+ * `RelayboardRequestError` is passed through unchanged, so a nested call does not rewrap and lose
+ * anything it carried.
+ */
+const call = async <T>(invoke: () => Promise<T>): Promise<T> => {
+	try {
+		return await invoke();
+	} catch (error) {
+		if (error instanceof RelayboardRequestError) throw error;
+		throw new RelayboardRequestError(
+			failureFamily(error),
+			error instanceof Error ? error.message : String(error),
+		);
+	}
 };
 
 /**
@@ -125,21 +186,21 @@ export const failureFamily = (
  */
 export const createHttpClient = (): RelayboardClient => ({
 	listBoards: async (): Promise<readonly BoardSummary[]> =>
-		(await listBoards()) as readonly BoardSummary[],
+		(await call(() => listBoards())) as readonly BoardSummary[],
 
 	listThreads: async (boardId: BoardId): Promise<readonly Thread[]> =>
-		(await listThreads({ data: { boardId } })) as readonly Thread[],
+		(await call(() => listThreads({ data: { boardId } }))) as readonly Thread[],
 
 	readThread: async (threadId: ThreadId): Promise<ThreadContents> =>
-		(await readThread({ data: { threadId } })) as ThreadContents,
+		(await call(() => readThread({ data: { threadId } }))) as ThreadContents,
 
 	readMessages: async (
 		threadId: ThreadId,
 		options?: { readonly after?: Seq },
 	): Promise<readonly Entry[]> =>
-		(await readMessages({
-			data: { threadId, after: options?.after },
-		})) as readonly Entry[],
+		(await call(() =>
+			readMessages({ data: { threadId, after: options?.after } }),
+		)) as readonly Entry[],
 
 	/**
 	 * Who this client acts as, as the **server** resolved it.
@@ -149,22 +210,24 @@ export const createHttpClient = (): RelayboardClient => ({
 	 * calls the resolver's own read, which returns the principal and never the cookie.
 	 */
 	readActingPrincipal: async (): Promise<Principal> =>
-		(await readActingPrincipal()) as Principal,
+		(await call(() => readActingPrincipal())) as Principal,
 
 	listResources: async (boardId: BoardId): Promise<readonly Resource[]> =>
-		(await listResources({ data: { boardId } })) as readonly Resource[],
+		(await call(() =>
+			listResources({ data: { boardId } }),
+		)) as readonly Resource[],
 
 	readPositions: async (
 		threadId: ThreadId,
 	): Promise<readonly PrincipalPosition[]> =>
-		(await readPositions({
-			data: { threadId },
-		})) as readonly PrincipalPosition[],
+		(await call(() =>
+			readPositions({ data: { threadId } }),
+		)) as readonly PrincipalPosition[],
 
 	listMembers: async (boardId: BoardId): Promise<readonly PrincipalSummary[]> =>
-		(await listMembers({
-			data: { boardId },
-		})) as readonly PrincipalSummary[],
+		(await call(() =>
+			listMembers({ data: { boardId } }),
+		)) as readonly PrincipalSummary[],
 
 	readPrincipal: async ({
 		principalId,
@@ -173,9 +236,9 @@ export const createHttpClient = (): RelayboardClient => ({
 		readonly principalId: PrincipalId;
 		readonly boardId: BoardId;
 	}): Promise<ParticipantRead> =>
-		(await readPrincipal({
-			data: { principalId, boardId },
-		})) as ParticipantRead,
+		(await call(() =>
+			readPrincipal({ data: { principalId, boardId } }),
+		)) as ParticipantRead,
 
 	// --- the writes ---
 
@@ -188,69 +251,83 @@ export const createHttpClient = (): RelayboardClient => ({
 	 * the fields this cast names, and an extra property is simply not among them.
 	 */
 	appendMessage: async (input: AppendMessageInput): Promise<Entry> =>
-		(await appendMessage({
-			data: {
-				threadId: input.threadId,
-				text: input.text,
-				// Copied out of the readonly interface type into the array shape the wire schema takes.
-				// A spread here rather than the value itself, because readonly and mutable differ and
-				// the schema is the boundary: what leaves the browser is a plain array.
-				references: input.references
-					? input.references.map((reference) => ({
-							resourceId: reference.resourceId,
-						}))
-					: undefined,
-				relation: input.relation,
-				idempotencyKey: input.idempotencyKey,
-			},
-		})) as Entry,
+		(await call(() =>
+			appendMessage({
+				data: {
+					threadId: input.threadId,
+					text: input.text,
+					// Copied out of the readonly interface type into the array shape the wire schema takes.
+					// A spread here rather than the value itself, because readonly and mutable differ and
+					// the schema is the boundary: what leaves the browser is a plain array.
+					references: input.references
+						? input.references.map((reference) => ({
+								resourceId: reference.resourceId,
+							}))
+						: undefined,
+					relation: input.relation,
+					idempotencyKey: input.idempotencyKey,
+				},
+			}),
+		)) as Entry,
 
 	createThread: async (input: CreateThreadInput): Promise<Thread> =>
-		(await createThread({
-			data: {
-				boardId: input.boardId,
-				title: input.title,
-				description: input.description,
-			},
-		})) as Thread,
+		(await call(() =>
+			createThread({
+				data: {
+					boardId: input.boardId,
+					title: input.title,
+					description: input.description,
+				},
+			}),
+		)) as Thread,
 
 	createBoard: async (input: CreateBoardInput): Promise<BoardSummary> =>
-		(await createBoard({
-			data: { name: input.name, description: input.description },
-		})) as BoardSummary,
+		(await call(() =>
+			createBoard({
+				data: { name: input.name, description: input.description },
+			}),
+		)) as BoardSummary,
 
 	addResource: async (input: AddResourceInput): Promise<Resource> =>
-		(await addResource({
-			data: {
-				boardId: input.boardId,
-				name: input.name,
-				url: input.url,
-				type: input.type,
-				description: input.description,
-			},
-		})) as Resource,
+		(await call(() =>
+			addResource({
+				data: {
+					boardId: input.boardId,
+					name: input.name,
+					url: input.url,
+					type: input.type,
+					description: input.description,
+				},
+			}),
+		)) as Resource,
 
 	simulateIncoming: async (threadId: ThreadId): Promise<Entry> =>
-		(await simulateIncoming({ data: { threadId } })) as Entry,
+		(await call(() => simulateIncoming({ data: { threadId } }))) as Entry,
 
 	attachResource: async (input: AttachResourceInput): Promise<Entry> =>
-		(await attachResource({
-			data: { threadId: input.threadId, resourceId: input.resourceId },
-		})) as Entry,
+		(await call(() =>
+			attachResource({
+				data: { threadId: input.threadId, resourceId: input.resourceId },
+			}),
+		)) as Entry,
 
 	moveStatus: async (input: {
 		threadId: ThreadId;
 		from: string;
 		to: string;
 	}): Promise<Entry> =>
-		(await moveStatus({
-			data: { threadId: input.threadId, from: input.from, to: input.to },
-		})) as Entry,
+		(await call(() =>
+			moveStatus({
+				data: { threadId: input.threadId, from: input.from, to: input.to },
+			}),
+		)) as Entry,
 
 	acknowledge: async (input: AcknowledgeInput): Promise<Entry> =>
-		(await acknowledge({
-			data: { threadId: input.threadId, upTo: input.upTo },
-		})) as Entry,
+		(await call(() =>
+			acknowledge({
+				data: { threadId: input.threadId, upTo: input.upTo },
+			}),
+		)) as Entry,
 
 	/**
 	 * The transport's connection state.
@@ -261,9 +338,11 @@ export const createHttpClient = (): RelayboardClient => ({
 	 * there is nothing outstanding to report — and it says so instead of guessing.
 	 */
 	setConnection: async (input: SetConnectionInput): Promise<StreamState> =>
-		(await setConnectionFn({
-			data: { connected: input.connected },
-		})) as StreamState,
+		(await call(() =>
+			setConnectionFn({
+				data: { connected: input.connected },
+			}),
+		)) as StreamState,
 
 	/**
 	 * The stream, which is a server route rather than a function (spec L357) and arrives in 11a.

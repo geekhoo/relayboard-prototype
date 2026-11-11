@@ -1,12 +1,18 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
 	bindClient,
 	resolveActingPrincipal,
+	useActingClient,
 	useActingPrincipalId,
 } from "#/client/context";
 import { primeConversation } from "#/components/-conversation-queries";
 import { primeRail } from "#/components/-rail-queries";
-import { primePane, threadRowsQuery } from "#/components/-thread-queries";
+import {
+	heldGrantQuery,
+	primePane,
+	threadRowsQuery,
+} from "#/components/-thread-queries";
 import { BoardPane } from "#/components/BoardPane";
 import { Conversation } from "#/components/Conversation";
 import { WorkspaceFrame } from "#/components/WorkspaceFrame";
@@ -120,6 +126,12 @@ function BoardRoute() {
 	const { board, threadExists } = Route.useLoaderData();
 	const search = Route.useSearch();
 	const actingPrincipalId = useActingPrincipalId();
+	// The reader's grant on this board, primed by the loader. It drives the gatekeeper's controls —
+	// the bound is shown as a shorter list of choices rather than as a refusal after the click — and
+	// `[]` while it is absent is the honest answer: no permissions offered beats permissions offered
+	// and then refused.
+	const heldGrant = useQuery(heldGrantQuery(useActingClient(), board.id));
+	const heldPermissions = heldGrant.data ?? [];
 
 	return (
 		<WorkspaceFrame
@@ -134,6 +146,7 @@ function BoardRoute() {
 					thread={search.thread}
 					unreadOnly={search.unread}
 					view={search.view}
+					heldPermissions={heldPermissions}
 				/>
 			}
 			conversation={

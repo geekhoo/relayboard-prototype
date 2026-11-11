@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { BoardId, Entry, PrincipalPosition } from "#/client";
 import type { RelayboardClientBound } from "#/client/context";
+import type { PermissionName } from "#/domain";
 import { orderThreads, type ThreadRow } from "#/routes/-thread-list";
 
 /**
@@ -77,6 +78,28 @@ export const resourcesQuery = (
 });
 
 /**
+ * What the acting principal may do on this board — the gate's bound and its affordance.
+ *
+ * Read through `readPrincipal` rather than from a client-side copy, because the grant is the store's
+ * answer and a second copy is a second place it can be wrong. Primed by the loader with the rest of
+ * the pane, so the gatekeeper's controls are correct at first paint rather than offering the wrong
+ * set a moment later.
+ */
+export const heldGrantQuery = (
+	client: RelayboardClientBound,
+	boardId: BoardId,
+) => ({
+	queryKey: ["held-grant", boardId, client.actingPrincipalId] as const,
+	queryFn: async (): Promise<readonly PermissionName[]> => {
+		const read = await client.readPrincipal({
+			principalId: client.actingPrincipalId,
+			boardId,
+		});
+		return read.grant.permissions;
+	},
+});
+
+/**
  * The principals on a board, as its people view renders them.
  *
  * **`retry: false`, and that is a product decision rather than a test convenience.** Since 07a this
@@ -125,6 +148,11 @@ export const primePane = async (
 		queryClient.ensureQueryData(resourcesQuery(client, boardId)),
 		queryClient
 			.ensureQueryData(peopleQuery(client, boardId))
+			.catch(() => undefined),
+		// The reader's own grant, primed for the same reason and refused the same way: a principal who
+		// may not read members may still hold the gate, and neither read may fail the navigation.
+		queryClient
+			.ensureQueryData(heldGrantQuery(client, boardId))
 			.catch(() => undefined),
 	]);
 };

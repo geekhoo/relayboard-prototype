@@ -37,6 +37,21 @@ import type { BoardId, PermissionName, Principal, PrincipalId } from "#/domain";
 import { registerAgentCredential } from "#/server/principal";
 import type { Store } from "#/server/store";
 
+/**
+ * How long an admission lasts.
+ *
+ * `"never"` is representable and **explicit** (08b:18): the surface offers a bounded window by default
+ * and "never" as a visibly exceptional choice, and the record carries which was chosen rather than
+ * inferring it from a missing expiry. A missing field would make "never" and "not set yet"
+ * indistinguishable, which is the merge 08c exists to prevent for the other pair of values.
+ */
+export type Expiry =
+	| { readonly kind: "bounded"; readonly hours: number }
+	| { readonly kind: "never" };
+
+/** The default window the surface offers, in hours. Seven days is the spec's example (spec L393). */
+export const DEFAULT_EXPIRY_HOURS = 24 * 7;
+
 /** What a knocker submits. All three strings are **declared**: asserted, never verified. */
 export interface KnockInput {
 	readonly boardId: BoardId;
@@ -65,6 +80,16 @@ export interface PendingRequest {
 		readonly reason: string;
 	};
 	readonly requestedAt: string;
+}
+
+/** A request that has been decided, as a gate holder can review it afterwards. */
+export interface DecidedRequest extends PendingRequest {
+	readonly outcome: "admitted" | "denied";
+	/** Present when denied: the reason the gate holder gave. */
+	readonly denialReason?: string;
+	/** Present when admitted: what was granted, and until when. */
+	readonly grantedPermissions?: readonly PermissionName[];
+	readonly expiresAt?: string;
 }
 
 /** What a poll answers. */
@@ -107,6 +132,12 @@ interface KnockRecord {
 	/** Set on admission. The credential's hash; the token itself is never stored. */
 	credentialHash?: string;
 	principalId?: PrincipalId;
+	/** Who decided it, so a board's decisions can be shown to the people who made them. */
+	decidedBy?: PrincipalId;
+	decidedAt?: string;
+	expiry?: Expiry;
+	expiresAt?: string;
+	grantedPermissions?: readonly PermissionName[];
 }
 
 /** How the surface reaches the workspace. */
@@ -139,6 +170,15 @@ export interface Admissions {
 	 */
 	pollAdmission(requestId: string, pollingSecret: string): PollResult;
 	/**
+	 * What a gate holder has already decided.
+	 *
+	 * **The criterion that stops the surface quietly emptying itself** (08b:19): a denial a denyer
+	 * cannot see afterwards is a decision made and forgotten, and the pending list would shrink with no
+	 * record of why. Same shape as {@link PendingRequest} plus the outcome and, for a denial, its
+	 * reason. Still no secrets and no credentials — a credential is never listed anywhere.
+	 */
+	decided(boardId: BoardId, readerId: PrincipalId): readonly DecidedRequest[];
+	/**
 	 * What a gate holder sees. No secrets, no credentials.
 	 *
 	 * Takes the reader because this is **the surface's own rule, not the participant table's**:
@@ -156,6 +196,8 @@ export interface Admissions {
 		readonly requestId: string;
 		readonly grantedBy: PrincipalId;
 		readonly permissions: readonly PermissionName[];
+		/** Chosen in the same act as the set, never defaulted silently (08b:17). */
+		readonly expiry: Expiry;
 	}): void;
 	/** A human holding `admit:agent` denies, with a reason the knocker will be told. */
 	deny(input: {
@@ -322,6 +364,35 @@ export const createAdmissions = (store: Store): Admissions => {
 			return { state: "pending" };
 		},
 
+		decided: (boardId, readerId) => {
+			if (!isGateHolder(readerId, boardId)) {
+				throw new AdmissionRefused(
+					"not-a-gate-holder",
+					"Reviewing decisions requires admit:agent on that board, or at workspace scope",
+				);
+			}
+			return [...knockRecords.values()]
+				.filter(
+					(record) =>
+						record.boardId === boardId &&
+						record.state !== "pending" &&
+						record.decidedBy === readerId,
+				)
+				.map((record) => ({
+					requestId: record.requestId,
+					boardId: record.boardId,
+					declared: { ...record.declared },
+					requestedAt: record.requestedAt,
+					outcome:
+						record.state === "denied"
+							? ("denied" as const)
+							: ("admitted" as const),
+					denialReason: record.denialReason,
+					grantedPermissions: record.grantedPermissions,
+					expiresAt: record.expiresAt,
+				}));
+		},
+
 		listPending: (boardId, readerId) => {
 			if (!isGateHolder(readerId, boardId)) {
 				throw new AdmissionRefused(
@@ -373,6 +444,18 @@ export const createAdmissions = (store: Store): Admissions => {
 			});
 			record.state = "admitted";
 			record.principalId = principalId;
+			// The choice, recorded rather than inferred: `never` is a value the decider stated, and a
+			// missing field could not distinguish it from "not set yet" (08b:18).
+			record.expiry = input.expiry;
+			record.expiresAt =
+				input.expiry.kind === "bounded"
+					? new Date(
+							Date.now() + input.expiry.hours * 60 * 60 * 1000,
+						).toISOString()
+					: undefined;
+			record.decidedBy = input.grantedBy;
+			record.decidedAt = new Date().toISOString();
+			record.grantedPermissions = input.permissions;
 		},
 
 		deny: (input) => {
@@ -392,6 +475,8 @@ export const createAdmissions = (store: Store): Admissions => {
 			// **Recorded, not dropped.** A denial a knocker cannot learn is a knocker polling forever.
 			record.state = "denied";
 			record.denialReason = input.reason;
+			record.decidedBy = input.deniedBy;
+			record.decidedAt = new Date().toISOString();
 		},
 
 		resolveCredential: (token) => {

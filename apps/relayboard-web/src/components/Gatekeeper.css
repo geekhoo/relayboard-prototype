@@ -1,0 +1,231 @@
+/* The gatekeeper surface's anatomy. Tokens only; no colour literal, no clipped frame. */
+
+.gatekeeper {
+	position: fixed;
+	inset-block: 0;
+	inset-inline-end: 0;
+	width: min(420px, calc(100vw - 24px));
+	display: flex;
+	flex-direction: column;
+	background-color: var(--color-surface);
+	border-inline-start: 1px solid var(--color-line);
+	box-shadow: -8px 0 24px var(--color-surface-tint);
+	z-index: 2;
+}
+
+.gatekeeper__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+	border-block-end: 1px solid var(--color-line-soft);
+}
+
+.gatekeeper__title {
+	margin: 0;
+	font-size: var(--text-headline);
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.gatekeeper__close {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-muted);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+.gatekeeper__body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+/* The row rhythm of the thread list: 9px radius, 13px vertical padding (DESIGN.md 256). */
+.knock-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	padding: 13px;
+	border: 1px solid var(--color-line-soft);
+	border-radius: 9px;
+	background-color: var(--color-surface-panel);
+}
+
+/* The declared label, at 11px in Ink-muted and never green. It says the lines below are what the
+   agent asserted, not what this workspace verified - the distinction the whole admission design
+   rests on, and the reason nothing in this block is tinted. */
+.knock-row__declared-label {
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: var(--color-ink-muted);
+}
+
+.knock-row__declared {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+	font-size: var(--text-body);
+	color: var(--color-ink-body);
+}
+
+.knock-row__declared strong {
+	font-weight: 600;
+	color: var(--color-ink-strong);
+}
+
+.knock-row__reason {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-body);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.knock-row__when {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Where derived values would sit. Before admission there are none, and this says so rather than
+   showing an empty placeholder that could be misread as one. */
+.knock-row__derived {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-faint);
+	font-style: italic;
+}
+
+.knock-row__controls {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--spacing-sm);
+	flex-wrap: wrap;
+}
+
+.knock-row__field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+}
+
+.knock-row__select,
+.knock-row__input {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-family: inherit;
+	font-size: var(--text-body);
+}
+
+/* The permission choices: a checkbox per name the decider can actually hand out. Nothing out of
+   bounds appears, because an affordance that always fails is worse than no affordance. */
+.knock-row__permissions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs);
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.knock-row__permission {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-hair);
+	font-size: var(--text-label);
+	color: var(--color-ink-body);
+}
+
+.knock-row__actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	justify-content: flex-end;
+}
+
+.knock-row__admit {
+	padding: var(--spacing-xs) var(--spacing-md);
+	border: 1px solid var(--color-accent-chip-bg);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-accent-chip-bg);
+	color: var(--color-accent-chip);
+	font-size: var(--text-body);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.knock-row__deny {
+	padding: var(--spacing-xs) var(--spacing-md);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-body);
+	cursor: pointer;
+}
+
+/* A refusal leaves the row in place with its reason (08b:23), so it is a line inside the row rather
+   than a banner over the surface. */
+.knock-row__refusal {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-body);
+	font-weight: 600;
+}
+
+/* A decided row stays, quieter: the decision is a record rather than a request that disappeared. */
+.knock-row--decided {
+	background-color: var(--color-surface-tint);
+}
+
+.knock-row__outcome {
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	color: var(--color-ink-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+}
+
+/* The empty state and the refusal state, one treatment: both say 'there is nothing here, and this
+   is why' rather than showing an empty frame (DESIGN.md 263). */
+.gatekeeper__empty {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-xxl) var(--spacing-md);
+	text-align: center;
+}
+
+.gatekeeper__empty-title {
+	margin: 0;
+	font-size: var(--text-body);
+	font-weight: 600;
+	color: var(--color-ink-body);
+}
+
+.gatekeeper__empty-detail {
+	margin: 0;
+	font-size: var(--text-body);
+	line-height: 1.5;
+	color: var(--color-ink-muted);
+}

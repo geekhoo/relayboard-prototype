@@ -4,6 +4,7 @@ import {
 	AdmissionRefused,
 	type Admissions,
 	createAdmissions,
+	type DecidedRequest,
 	type KnockReceipt,
 	type PendingRequest,
 	type PollResult,
@@ -99,12 +100,34 @@ export const listPending = createServerFn({ method: "GET" })
 		}
 	});
 
+/** What a gate holder has already decided, so a denial does not vanish. */
+export const decidedOn = createServerFn({ method: "GET" })
+	.validator(z.object({ boardId: z.string().min(1) }))
+	.handler(async ({ data }): Promise<readonly DecidedRequest[]> => {
+		const actor = session.actingPrincipal();
+		try {
+			return admissions().decided(data.boardId, actor.id);
+		} catch (error) {
+			throw admissionError(error);
+		}
+	});
+
 /** Admit. The granted set is bounded by 07b's rule, which this calls rather than restates. */
 export const admit = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			requestId: z.string().min(1),
 			permissions: z.array(z.string().min(1)),
+			// Chosen in the same act as the set (08b:17): neither is defaulted silently, so the schema
+			// requires it rather than filling one in. `never` is a value the caller states, not an
+			// absence.
+			expiry: z.union([
+				z.object({
+					kind: z.literal("bounded"),
+					hours: z.number().int().positive(),
+				}),
+				z.object({ kind: z.literal("never") }),
+			]),
 		}),
 	)
 	.handler(async ({ data }): Promise<{ ok: true }> => {
@@ -114,6 +137,7 @@ export const admit = createServerFn({ method: "POST" })
 				requestId: data.requestId,
 				grantedBy: actor.id,
 				permissions: data.permissions as never,
+				expiry: data.expiry,
 			});
 			return { ok: true };
 		} catch (error) {

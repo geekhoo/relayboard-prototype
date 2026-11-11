@@ -7,7 +7,9 @@ import {
 	resourcesQuery,
 	threadRowsQuery,
 } from "#/components/-thread-queries";
+import { Gatekeeper } from "#/components/Gatekeeper";
 import { ThreadList } from "#/components/ThreadList";
+import type { PermissionName } from "#/domain";
 import { BOARD_VIEWS, type BoardView } from "#/routes/-board-search";
 import { emptyStateFor, filterThreads } from "#/routes/-thread-list";
 import "./BoardPane.css";
@@ -39,6 +41,7 @@ export function BoardPane({
 	query,
 	unreadOnly,
 	thread,
+	heldPermissions,
 }: {
 	readonly boardId: BoardId;
 	readonly name: string;
@@ -47,6 +50,8 @@ export function BoardPane({
 	readonly query: string;
 	readonly unreadOnly: boolean;
 	readonly thread: string;
+	/** What the acting principal holds on this board — the gate's bound and its affordance. */
+	readonly heldPermissions: readonly PermissionName[];
 }) {
 	const navigate = useNavigate();
 	const search = { view, q: query, unread: unreadOnly, thread };
@@ -64,6 +69,23 @@ export function BoardPane({
 				<h1 className="board-pane__title">{name}</h1>
 				<p className="board-pane__description">{description}</p>
 			</header>
+			{/*
+			 * The gatekeeper, in the frame rather than at a route (08b:22): opening it must not change
+			 * the address, because the reader's place is the board they were on.
+			 *
+			 * `permissionsHeld` is the **bound**: what this reader may hand out here, which 07b's rule
+			 * will enforce anyway. Computing it twice — once for the list of choices and once for the
+			 * refusal — would let the two disagree, so it is one list and the rule decides at the write.
+			 */}
+			<div className="board-pane__gate">
+				<Gatekeeper
+					boardId={boardId}
+					canDecide={heldPermissions.includes("admit:agent")}
+					permissionsHeld={heldPermissions.filter(
+						(name) => name !== "admit:agent" && name !== "revoke:agent",
+					)}
+				/>
+			</div>
 			<nav aria-label="Board views" className="board-pane__views">
 				{BOARD_VIEWS.map((candidate) => (
 					<Link

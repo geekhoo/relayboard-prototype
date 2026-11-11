@@ -190,6 +190,7 @@ describe("admitting", () => {
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board", "post:message"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 		expect(
 			JSON.stringify(admissions.listPending("platform", "alex")),
@@ -212,6 +213,7 @@ describe("admitting", () => {
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 
 		const first = admissions.pollAdmission(
@@ -240,6 +242,7 @@ describe("admitting", () => {
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 		const poll = admissions.pollAdmission(
 			receipt.requestId,
@@ -264,6 +267,7 @@ describe("admitting", () => {
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board", "post:message"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 		const poll = admissions.pollAdmission(
 			receipt.requestId,
@@ -290,6 +294,7 @@ describe("admitting", () => {
 				requestId: receipt.requestId,
 				grantedBy: "daniel",
 				permissions: ["read:board"],
+				expiry: { kind: "bounded", hours: 24 },
 			}),
 		).toThrow(/admit:agent/);
 	});
@@ -316,6 +321,7 @@ describe("admitting", () => {
 				requestId: receipt.requestId,
 				grantedBy: "alex",
 				permissions: ["grant:permission"],
+				expiry: { kind: "bounded", hours: 24 },
 			}),
 		).toThrow(/cannot exceed|do not hold/i);
 
@@ -328,6 +334,7 @@ describe("admitting", () => {
 				requestId: receipt.requestId,
 				grantedBy: "alex",
 				permissions: ["read:board", "post:message"],
+				expiry: { kind: "bounded", hours: 24 },
 			}),
 		).not.toThrow();
 	});
@@ -339,6 +346,7 @@ describe("admitting", () => {
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: [],
+			expiry: { kind: "never" },
 		});
 		expect(() =>
 			admissions.deny({
@@ -408,6 +416,7 @@ describe("the credential resolves through the same resolver a cookie does", () =
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board", "post:message"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 		const poll = admissions.pollAdmission(
 			receipt.requestId,
@@ -468,6 +477,7 @@ describe("the knock surface is not the participant interface", () => {
 		const { admissions } = surface();
 		expect(Object.keys(admissions).sort()).toEqual([
 			"admit",
+			"decided",
 			"deny",
 			"knock",
 			"listPending",
@@ -510,6 +520,7 @@ describe("declared values are carried as declared, and derived ones are absent",
 			requestId: receipt.requestId,
 			grantedBy: "alex",
 			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 24 },
 		});
 		const poll = admissions.pollAdmission(
 			receipt.requestId,
@@ -521,5 +532,132 @@ describe("declared values are carried as declared, and derived ones are absent",
 
 		expect(Object.keys(principal)).not.toContain("issuer");
 		expect(Object.keys(principal)).not.toContain("fingerprint");
+	});
+});
+
+describe("a decision cannot be made twice by a double click", () => {
+	it("answers the second activation with a refusal rather than deciding again", () => {
+		// The same shape 06c found live in the composer: React state is asynchronous, so two
+		// activations in one tick both read the old flag. The component guards with a ref, and this
+		// asserts the *seam's* half — that a second decision on one request cannot succeed even if a
+		// caller does send it, which is what makes the guard a belt rather than the only brace.
+		const { admissions } = surface();
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+
+		admissions.admit({
+			requestId: receipt.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 24 },
+		});
+
+		// The second call is refused, so a double click cannot mint a second credential — and
+		// because the credential is collectable once, a second admission would have been the only way
+		// to get one.
+		expect(() =>
+			admissions.admit({
+				requestId: receipt.requestId,
+				grantedBy: "alex",
+				permissions: ["read:board"],
+				expiry: { kind: "bounded", hours: 24 },
+			}),
+		).toThrow(/already been decided/i);
+	});
+
+	it("records the expiry that was chosen, and never as a silent default", () => {
+		// 08b:17-18: the set and the expiry are one act, and "never" is an explicit value rather than
+		// an absent one.
+		const { admissions } = surface();
+		const bounded = admissions.knock({
+			boardId: "platform",
+			name: "A",
+			operator: "O",
+			reason: "R",
+		});
+		admissions.admit({
+			requestId: bounded.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "bounded", hours: 24 },
+		});
+		const [decided] = admissions.decided("platform", "alex");
+		expect(decided?.expiresAt).toBeDefined();
+		expect(decided?.outcome).toBe("admitted");
+
+		const forever = admissions.knock({
+			boardId: "platform",
+			name: "B",
+			operator: "O",
+			reason: "R",
+		});
+		admissions.admit({
+			requestId: forever.requestId,
+			grantedBy: "alex",
+			permissions: ["read:board"],
+			expiry: { kind: "never" },
+		});
+		const both = admissions.decided("platform", "alex");
+		// "never" is present as an admitted request with no expiry, which is distinguishable from
+		// "not set yet" because the request is admitted at all.
+		expect(both).toHaveLength(2);
+		expect(both.some((row) => row.expiresAt === undefined)).toBe(true);
+	});
+});
+
+describe("a denial is visible to the denyer afterwards", () => {
+	it("appears in the decided list with its reason", () => {
+		// 08b:19: without this the pending list would shrink and the human would have no record of what
+		// they refused or why.
+		const { admissions } = surface();
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.deny({
+			requestId: receipt.requestId,
+			deniedBy: "alex",
+			reason: "We have enough readers",
+		});
+
+		const decided = admissions.decided("platform", "alex");
+		expect(decided).toHaveLength(1);
+		expect(decided[0]?.outcome).toBe("denied");
+		expect(decided[0]?.denialReason).toBe("We have enough readers");
+		// And it is no longer pending, so the two lists do not overlap.
+		expect(admissions.listPending("platform", "alex")).toHaveLength(0);
+	});
+
+	it("shows only the decisions this gate holder made", () => {
+		// A second gate holder should not inherit the first one's record: the list is "what you
+		// decided", which is what the criterion asks for.
+		const { store, admissions } = surface();
+		store.grant({
+			granterId: "alex",
+			principalId: "maya",
+			scope: "board",
+			boardId: "platform",
+			permissions: ["admit:agent"],
+		});
+		const receipt = admissions.knock({
+			boardId: "platform",
+			name: "Scout",
+			operator: "Acme Research",
+			reason: "To contribute",
+		});
+		admissions.deny({
+			requestId: receipt.requestId,
+			deniedBy: "alex",
+			reason: "No",
+		});
+
+		expect(admissions.decided("platform", "alex")).toHaveLength(1);
+		expect(admissions.decided("platform", "maya")).toHaveLength(0);
 	});
 });
