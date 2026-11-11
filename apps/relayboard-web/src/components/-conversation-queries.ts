@@ -123,6 +123,50 @@ export const applyStreamEvent = (
 	}
 };
 
+/**
+ * The reader's stream state, as the interface's own atom.
+ *
+ * **A cache entry rather than component state**, because two places need the same answer and a
+ * component-local flag would let them disagree: the panel renders the control and the count, and the
+ * conversation has to know whether to withhold entries from the view. One value in one place is what
+ * makes "paused" mean one thing.
+ *
+ * `initialData` is connected because a reader arrives connected — that is what the route serves on
+ * open. `staleTime: Infinity` because nothing refetches this: it changes only when the panel toggles
+ * it or when the stream reports a `connection-changed`, and both write it explicitly.
+ */
+export const streamStateQuery = (client: RelayboardClientBound) => ({
+	queryKey: ["stream-state", client.actingPrincipalId] as const,
+	staleTime: Number.POSITIVE_INFINITY,
+	initialData: { connected: true, pending: 0 },
+});
+
+/**
+ * Which entries the reader should **see**, given whether their stream is paused.
+ *
+ * The store's `readView` rule, applied where the view is rendered: an entry is visible when it is at
+ * or before the reader's cursor, or when the reader wrote it. That second clause is the store's, not an
+ * invention here — a principal always sees its own acts, which is why a paused reader can still post.
+ *
+ * When the stream is live everything is visible, because delivery keeps the cursor at the last seq.
+ * So the filter is a no-op in the common case and only bites while paused, which is what makes
+ * "pausing withholds from the view while the entry stays in history" true without a second list.
+ */
+export const visibleEntries = (
+	entries: readonly Entry[],
+	options: {
+		readonly paused: boolean;
+		readonly cursor: number;
+		readonly principalId: string;
+	},
+): readonly Entry[] => {
+	if (!options.paused) return entries;
+	return entries.filter(
+		(entry) =>
+			entry.seq <= options.cursor || entry.authorId === options.principalId,
+	);
+};
+
 export const conversationRosterQuery = (
 	client: RelayboardClientBound,
 	boardId: BoardId,

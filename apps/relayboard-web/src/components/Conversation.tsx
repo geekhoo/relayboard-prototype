@@ -14,9 +14,12 @@ import {
 	conversationPositionsQuery,
 	conversationQuery,
 	conversationRosterQuery,
+	streamStateQuery,
+	visibleEntries,
 } from "#/components/-conversation-queries";
 import { unreadQuery } from "#/components/-rail-queries";
 import { resourcesQuery } from "#/components/-thread-queries";
+import { StreamPanel } from "#/components/StreamPanel";
 import type { ThreadStatus } from "#/domain";
 import {
 	conversationEmptyState,
@@ -124,15 +127,6 @@ export function Conversation({
 		[boardResources.data],
 	);
 
-	const visible = useMemo(
-		() => filterEntries(entries, term, nameOf),
-		[entries, term, nameOf],
-	);
-	const dated = useMemo(() => groupByDay(visible), [visible]);
-	const emptyState = conversation.data
-		? conversationEmptyState(entries, visible, term)
-		: null;
-	const facts = thread ? threadFacts(thread, entries, people) : null;
 	/**
 	 * The reader's own **acknowledged** watermark.
 	 *
@@ -140,10 +134,46 @@ export function Conversation({
 	 * would cover: "up to #n" only means something against where the reader already is.
 	 */
 	const positions = useQuery(conversationPositionsQuery(client, threadId));
+	const streamState = useQuery(streamStateQuery(client));
+	const myCursor =
+		(positions.data ?? []).find(
+			(position) => position.principalId === client.actingPrincipalId,
+		)?.watermarks.cursor ?? 0;
 	const myAcknowledged =
 		(positions.data ?? []).find(
 			(position) => position.principalId === client.actingPrincipalId,
 		)?.watermarks.acknowledged ?? 0;
+
+	/**
+	 * **Pausing withholds from the view, not from history** (11b:15).
+	 *
+	 * The rule is the store's own `readView`: visible when the entry is at or before the reader's
+	 * cursor, or when the reader wrote it. While live the cursor sits at the last seq, so this is a
+	 * no-op; while paused it bites — and the entries are still in the chronology, which is why the
+	 * header count rises while the list does not.
+	 *
+	 * The cursor is the reader's **delivery** watermark, not `seen`: receiving and reading are
+	 * different facts (spec L571), and a paused reader that had read an entry would still not have
+	 * received it.
+	 */
+	const withheld = useMemo(
+		() =>
+			visibleEntries(entries, {
+				paused: !(streamState.data?.connected ?? true),
+				cursor: myCursor,
+				principalId: client.actingPrincipalId,
+			}),
+		[entries, streamState.data?.connected, myCursor, client.actingPrincipalId],
+	);
+	const visible = useMemo(
+		() => filterEntries(withheld, term, nameOf),
+		[withheld, term, nameOf],
+	);
+	const dated = useMemo(() => groupByDay(visible), [visible]);
+	const emptyState = conversation.data
+		? conversationEmptyState(entries, visible, term)
+		: null;
+	const facts = thread ? threadFacts(thread, entries, people) : null;
 
 	// The unread counts are a consequence of having read this thread, so they are refreshed once the
 	// read has resolved — not before, because invalidating on a read that then fails would clear a
@@ -331,6 +361,8 @@ export function Conversation({
 				status={thread?.status ?? "open"}
 				onFailure={setFailure}
 			/>
+
+			<StreamPanel boardId={boardId} threadId={threadId} />
 
 			<form
 				className="conversation__composer"

@@ -5,6 +5,7 @@ import {
 	notFound,
 	useNavigate,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
 	bindClient,
 	resolveActingPrincipal,
@@ -56,6 +57,29 @@ import { type BoardView, parseBoardSearch } from "./-board-search";
  * were trying to reach. That is 04b's criterion, and the shape of it — the pane stays usable — is
  * the reason the thread is a search parameter rather than a second route.
  */
+/**
+ * **The remembered location, and nothing else.**
+ *
+ * Spec L505: `seen` and `cursor` move to the server, keyed by principal; `localStorage` keeps exactly
+ * one thing — where the reader last was — so a reload mid-thread restores that thread instead of
+ * dropping to the default board. 11b:19 calls a refresh a data-loss event otherwise, and it is right:
+ * a reader who has to re-find their place after every reload loses the trail they were following.
+ *
+ * **The watermarks are deliberately not here.** Storing a cursor in the browser would be a second
+ * source of truth for how far the reader has got, and it would survive a revocation, a renewal and a
+ * second tab that read further — each of which the server already knows about.
+ */
+const REMEMBERED_LOCATION = "relayboard:location";
+
+const rememberLocation = (path: string, search: string): void => {
+	// Guarded because `localStorage` throws in a browser with storage disabled, and losing the restore
+	// is a smaller failure than losing the navigation.
+	try {
+		window.localStorage.setItem(REMEMBERED_LOCATION, path + search);
+	} catch {
+		// Nothing to do: the reader simply does not get a remembered location.
+	}
+};
 export const Route = createFileRoute("/boards/$boardId")({
 	// The search is validated on the way in, before the component sees it: the validator returns the
 	// parsed value, so an unknown view or an absurd query is normalised in the address itself rather
@@ -148,6 +172,20 @@ function BoardRoute() {
 	// and then refused.
 	const actingClient = useActingClient();
 	const queryClient = useQueryClient();
+	/**
+	 * Remember the place whenever the address changes, including a thread change within a board.
+	 *
+	 * An effect rather than a click handler: the remembered location must follow every route change
+	 * (a board switch, a thread open, a tab switch), and a handler per control would be a place to
+	 * forget one.
+	 */
+	// **`window.location`, read after a navigation, not the router's route object.** The router's own
+	// `location` field is not on this component's props, and a `useRouterState` subscription here would
+	// re-render the whole board route on every scroll restoration tick; the address is the fact wanted
+	// and it is already written by the time an effect runs.
+	useEffect(() => {
+		rememberLocation(window.location.pathname, window.location.search);
+	}, []);
 	const heldGrant = useQuery(heldGrantQuery(actingClient, board.id));
 	const heldPermissions = heldGrant.data ?? { onBoard: [], workspace: [] };
 	const navigate = useNavigate();

@@ -251,8 +251,12 @@ export const createInMemoryClient = (
 		 * disagree with the watermarks the store keeps.
 		 */
 		setConnection: async (input: SetConnectionInput): Promise<StreamState> => {
+			// **The count first, then the state.** Resuming repositions the cursor to each thread's last
+			// seq, so a count taken afterwards is zero — measured, and it is the same order the server
+			// function uses and the prototype used (app.js L118).
+			const pending = pendingTotal();
 			store.setConnection(actingAs, input.connected);
-			return { connected: input.connected, pending: pendingTotal() };
+			return { connected: input.connected, pending };
 		},
 
 		simulateIncoming: async (threadId) => {
@@ -369,7 +373,9 @@ export const createInMemoryClient = (
 					}
 				}
 			}
-			handlers.onEvent(connectionChanged(true, pending));
+			// The reader's actual state rather than an assumption — the same correction the SSE route
+			// needed for 11b:21.
+			handlers.onEvent(connectionChanged(!store.isPaused(actingAs), pending));
 
 			subscriptions.add(subscription);
 			return () => {

@@ -101,7 +101,16 @@ export const Route = createFileRoute("/api/stream")({
 								}
 							}
 						}
-						send(frameOf(connectionChanged(true, pending)));
+						// **The reader's actual state, not an assumption.** This reported `connected: true`
+						// unconditionally until 11b:21's test caught it: a reader who paused, navigated to
+						// another thread and came back was told it was live while the store still had it
+						// paused — so the panel said "Live" and the withhold filter stood down, and the
+						// withheld entry appeared. The store is the authority; this reads it.
+						send(
+							frameOf(
+								connectionChanged(!store.isPaused(principal.id), pending),
+							),
+						);
 
 						unsubscribe = store.onCommit((commit) => {
 							// **Withheld, not queued.** A paused principal receives nothing and its cursor does

@@ -294,6 +294,20 @@ const stateFor = (store: Store): AdmissionsState => {
  * that waits is a test that flakes**: a suite that slept for a bounded window would take minutes and
  * fail on a loaded machine. A test passes a clock it advances, so "an expired admission is refused on
  * the principal's next request" is asserted in a millisecond.
+ *
+ * ## In this module, `Date.now()` is a defect
+ *
+ * **Written here because it already happened once.** `admit` took the clock and then computed the
+ * expiry's instant with `Date.now()` while the lifecycle check used `now()` — so the two halves of one
+ * decision disagreed, and the clocked tests passed only because the fake instant happened to be in the
+ * past relative to the machine's clock on the day they were written. They failed a week later, in a
+ * different ticket's gate, with no change to this file.
+ *
+ * The rule, which is stronger than "inject the clock": **every read of the current time in this module
+ * goes through `now()`**, and a literal `Date.now()` here is an error rather than a shortcut. An
+ * injected dependency read in one of two places is worse than none at all, because it looks like it
+ * works — and the failure it produces is time-dependent, which means it passes on the machine that
+ * wrote it and fails on CI.
  */
 export const createAdmissions = (
 	store: Store,

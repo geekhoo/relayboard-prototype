@@ -1,0 +1,99 @@
+/* The stream panel's anatomy. Tokens only; no colour literal, no clipped frame. */
+
+.stream-panel {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-block-start: 1px solid var(--color-line-soft);
+	background-color: var(--color-surface-panel);
+}
+
+.stream-panel__state {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	margin: 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	/* Ink rather than a status colour: the WORD carries the state (DESIGN.md 277), and the dot
+	   beside it is the decoration the rule permits. */
+	color: var(--color-ink-body);
+	font-variant-numeric: tabular-nums;
+}
+
+/* The only two purely circular elements allowed are status dots (DESIGN.md 214), which is what this
+   is: 8px, filled, with the word beside it always. */
+.stream-panel__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.stream-panel__dot--live {
+	background-color: var(--color-accent);
+}
+
+/* Paused is the quieter of the two: an outline rather than a fill, so the state reads as "waiting"
+   rather than as a failure. */
+.stream-panel__dot--paused {
+	border: 1px solid var(--color-ink-muted);
+	background-color: transparent;
+}
+
+.stream-panel__detail {
+	margin: 0;
+	font-size: var(--text-label);
+	line-height: 1.45;
+	color: var(--color-ink-muted);
+}
+
+.stream-panel__toggle {
+	align-self: flex-start;
+	padding: var(--spacing-hair) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+.stream-panel__section {
+	margin: var(--spacing-xs) 0 0;
+	font-size: var(--text-label);
+	font-weight: 600;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: var(--color-ink-muted);
+}
+
+.stream-panel__log {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-hair);
+	max-height: 96px;
+	overflow-y: auto;
+}
+
+.stream-panel__line {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.stream-panel__empty {
+	margin: 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-faint);
+}
+
+.stream-panel__note {
+	margin: var(--spacing-xs) 0 0;
+	font-size: var(--text-label);
+	color: var(--color-ink-faint);
+}
