@@ -199,6 +199,7 @@ function ThreadsView({
 					<span className="sr-only">Search threads</span>
 					<input
 						className="board-pane__search-input"
+						data-thread-search
 						type="search"
 						// The value comes from the URL, so clearing it restores the full list through the
 						// same path every other change takes.

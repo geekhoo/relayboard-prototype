@@ -320,6 +320,22 @@ export function Conversation({
 				/>
 			</div>
 
+			{/*
+			 * **Arriving entries are announced**, and the announcement is a *count*, not the text: story 135
+			 * asks that a screen-reader user knows the conversation moved. Reading each new message aloud
+			 * would interrupt whatever the reader is doing — including typing in the composer, which is
+			 * 13b:19's other rule — so this is a polite status line saying how many entries arrived.
+			 *
+			 * The count is derived from the entries themselves rather than from an event handler, so it
+			 * cannot disagree with what is on screen, and it is **the same number the reader can see** in
+			 * the header's subtitle.
+			 */}
+			<p aria-live="polite" className="sr-only" data-arrival-status>
+				{facts?.entryCount === undefined
+					? ""
+					: `${facts.entryCount.toString()} ${facts.entryCount === 1 ? "entry" : "entries"} in this thread`}
+			</p>
+
 			<div className="conversation__list" data-conversation-list>
 				{emptyState ? (
 					<div className="conversation__empty">

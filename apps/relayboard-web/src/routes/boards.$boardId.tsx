@@ -297,6 +297,13 @@ function BoardRoute() {
 		<WorkspaceFrame
 			actingPrincipalId={actingPrincipalId}
 			activeBoardId={board.id}
+			// **The phone's second level**, decided from the address the way everything else here is:
+			// "open" when a thread is, "list" when none is, which is what the stylesheet's two rules read.
+			backTo={{
+				boardId: board.id,
+				search: { ...search, thread: "" },
+			}}
+			threadOpen={threadExists && search.thread !== ""}
 			pane={
 				<BoardPane
 					boardId={board.id}

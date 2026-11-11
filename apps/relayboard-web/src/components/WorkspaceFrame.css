@@ -27,23 +27,40 @@
 }
 
 @media (width <= 980px) {
-	/* DESIGN.md §186 makes the rail an overlay drawer here, and this ticket does not build
-	   that drawer: the toggle, the scrim and the focus capture are 13a's and 04b's. What it
-	   does instead is the honest interim — the rail keeps its own column and spans both rows,
-	   with the pane above the conversation, so nothing is covered up and nothing is a dead
-	   end. The overlay is a visible gap, and this comment is where it is visible from. */
+	/* **The overlay drawer, which 04a left as an interim.** Below this width the rail no longer
+	   keeps a column: it is fixed, off-canvas to the left, and slid in by `data-open` — the hook
+	   the interim comment promised 13a would use. A scrim sits behind it and catches the click;
+	   Escape closes it in the component.
+
+	   The pane and the conversation become two rows of one column, so nothing is covered up
+	   while the drawer is closed and nothing is a dead end while it is open. */
 	.workspace-frame {
-		grid-template-columns: 240px minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
 	}
 
 	.workspace-frame > .workspace-frame__rail {
-		grid-row: 1 / span 2;
+		position: fixed;
+		inset-block: 0;
+		inset-inline-start: 0;
+		width: 240px;
+		z-index: 2;
+		transform: translateX(-100%);
+		/* Off-canvas is not merely invisible: `visibility: hidden` keeps the rail's links out of the
+		   tab order while leaving the element animatable. Measured in 04a — with only the
+		   transform, Tab reached three links nobody could see. */
+		visibility: hidden;
+		transition: transform 160ms ease-out;
+	}
+
+	.workspace-frame > .workspace-frame__rail[data-open="true"] {
+		transform: none;
+		visibility: visible;
 	}
 
 	.workspace-frame__pane,
 	.workspace-frame__conversation {
-		grid-column: 2;
+		grid-column: 1;
 	}
 }
 
@@ -106,4 +123,80 @@
 	padding: var(--spacing-xxl);
 	text-align: center;
 	color: var(--color-ink-muted);
+}
+
+/* The drawer's toggle, and the scrim it opens with. Hidden above 980px, where the rail is a column and
+   a toggle would be a control for something already on screen. */
+
+.workspace-frame__rail-toggle {
+	/* Frame-level, so it cannot be hidden by whichever column happens to be showing. Above the pane and
+	   the conversation, and above the scrim while the drawer is open. */
+	position: fixed;
+	inset-block-start: var(--spacing-xs);
+	inset-inline-start: var(--spacing-xs);
+	/* **Hidden above 980px**, where the rail is a column. */
+	display: none;
+	z-index: 3;
+	padding: var(--spacing-hair) var(--spacing-sm);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-sm);
+	background-color: var(--color-surface);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	cursor: pointer;
+}
+
+/* **The scrim**, which is a button rather than a div: it closes the drawer, so it is a control and a
+   reader with a pointer should be able to operate it. It sits under the rail (`z-index: 1`) and over
+   everything else. */
+.workspace-frame__scrim {
+	position: fixed;
+	inset: 0;
+	border: 0;
+	padding: 0;
+	background-color: var(--color-rail);
+	opacity: 0.28;
+	z-index: 1;
+	cursor: pointer;
+}
+
+/* **The phone's second level.** At and below 680px the pane is the first screen and the conversation
+   the second, of the same route (spec L545). Which one is showing is decided by `data-conversation-level`
+   — "open" when a thread is, "list" when none is — so the address and the layout agree. */
+@media (width <= 680px) {
+	.workspace-frame {
+		grid-template-rows: minmax(0, 1fr);
+	}
+
+	.workspace-frame[data-conversation-level="list"]
+		.workspace-frame__conversation {
+		display: none;
+	}
+
+	.workspace-frame[data-conversation-level="open"] .workspace-frame__pane {
+		display: none;
+	}
+}
+
+/* The back control is shown only when the conversation is the second level, which is what the phone
+   breakpoint creates. Above it there is nothing to go back from. */
+.workspace-frame__back {
+	display: none;
+	padding: var(--spacing-xs) var(--spacing-md);
+	border-block-end: 1px solid var(--color-line-soft);
+	color: var(--color-ink-body);
+	font-size: var(--text-label);
+	text-decoration: none;
+}
+
+@media (width <= 680px) {
+	.workspace-frame__back {
+		display: block;
+	}
+}
+
+@media (width <= 980px) {
+	.workspace-frame__rail-toggle {
+		display: block;
+	}
 }
