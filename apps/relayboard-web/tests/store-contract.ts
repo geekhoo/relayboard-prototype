@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { Entry } from "#/domain";
-import { errorMessageList } from "#/domain";
+import { errorMessageList, errorMessages } from "#/domain";
 import type { Store } from "#/server/store";
 
 /**
@@ -168,6 +168,8 @@ export const describeStoreRules = (workspace: StoreWorkspace): void => {
 				text: "  Padded on purpose.  ",
 			});
 
+			expect(entry.kind).toBe("message");
+			if (entry.kind !== "message") throw new Error("expected a message");
 			expect(entry.text).toBe("Padded on purpose.");
 		});
 	});
@@ -212,7 +214,8 @@ export const describeStoreRules = (workspace: StoreWorkspace): void => {
 
 			expect(replay).toBe(first);
 			expect(seqs(store, threadId)).toEqual(before);
-			expect(store.readEntries(threadId).at(-1)?.text).toBe("Send once.");
+			const last = store.readEntries(threadId).at(-1);
+			expect(last?.kind === "message" && last.text).toBe("Send once.");
 		});
 	});
 
@@ -313,7 +316,8 @@ export const describeStoreRules = (workspace: StoreWorkspace): void => {
 			expect(view.at(-1)).toBe(lastBeforePause);
 			// Meanwhile the thread grew by two, and both entries are readable history.
 			expect(store.readEntries(threadId)).toHaveLength(viewBefore.length + 2);
-			expect(store.readEntries(threadId).at(-1)?.text).toBe(
+			const last = store.readEntries(threadId).at(-1);
+			expect(last?.kind === "message" && last.text).toBe(
 				"Second while paused.",
 			);
 		});
@@ -329,6 +333,128 @@ export const describeStoreRules = (workspace: StoreWorkspace): void => {
 			});
 
 			expect(store.readView(threadId, memberId)).toContainEqual(own);
+		});
+	});
+
+	describe(`an act the store refuses (${workspace.label})`, () => {
+		// **The four rules of a refused write, one per act.** 02b asserts them for an append; since 10a
+		// an act takes a `seq` from the same counter, so a refused act has to leave the chronology
+		// exactly as an append does — unchanged, contiguous, and with nothing half-recorded.
+		//
+		// Written here rather than in the conformance suite because that suite always acts as one
+		// principal: it has no stranger to refuse. An earlier version of this assertion lived there and
+		// passed with the store's permission check **deleted**, which is the finding that moved it.
+		const resourceOnBoard = (store: Store) =>
+			store.listResources(store.readThread(threadId)?.boardId ?? "")[0]?.id ??
+			"";
+
+		it("leaves the thread unchanged and consumes no seq, for each of the three acts", () => {
+			const store = create();
+			const before = seqs(store, threadId);
+			const resourceId = resourceOnBoard(store);
+
+			// A principal outside the board's grant: the same stranger 02b uses for the append.
+			expect(() =>
+				store.attachResource({
+					threadId,
+					resourceId,
+					authorId: strangerId,
+				}),
+			).toThrow(errorMessages.notABoardMember);
+			expect(() =>
+				store.moveStatus({
+					threadId,
+					from: "open",
+					to: "resolved",
+					authorId: strangerId,
+				}),
+			).toThrow(errorMessages.notABoardMember);
+			expect(() =>
+				store.acknowledge({
+					threadId,
+					upTo: 1,
+					authorId: strangerId,
+				}),
+			).toThrow(errorMessages.notABoardMember);
+
+			// Unchanged, gapless, and the stranger's own watermark untouched.
+			expect(seqs(store, threadId)).toEqual(before);
+			expect(positionOf(store, threadId, strangerId).acknowledged).toBe(0);
+		});
+
+		it("refuses a move from a status the thread is not in, and writes nothing", () => {
+			const store = create();
+			const before = seqs(store, threadId);
+
+			// The member holding the permission, moving from a status that is not the thread's.
+			expect(() =>
+				store.moveStatus({
+					threadId,
+					from: "resolved",
+					to: "open",
+					authorId: memberId,
+				}),
+			).toThrow(errorMessages.statusChanged);
+
+			expect(seqs(store, threadId)).toEqual(before);
+			expect(store.readThread(threadId)?.status).toBe("open");
+		});
+
+		it("refuses a move to the status the thread is already in", () => {
+			// Not an error a reader would see often, but it is the difference between an event and a
+			// no-op: an entry saying open → open records a transition that did not happen.
+			const store = create();
+			const before = seqs(store, threadId);
+
+			expect(() =>
+				store.moveStatus({
+					threadId,
+					from: "open",
+					to: "open",
+					authorId: memberId,
+				}),
+			).toThrow(errorMessages.statusUnchanged);
+
+			expect(seqs(store, threadId)).toEqual(before);
+		});
+
+		it("refuses an acknowledgement past the thread's last position", () => {
+			const store = create();
+			const before = seqs(store, threadId);
+
+			expect(() =>
+				store.acknowledge({
+					threadId,
+					upTo: lastSeqOf(store, threadId) + 5,
+					authorId: memberId,
+				}),
+			).toThrow(errorMessages.acknowledgementAhead);
+
+			expect(seqs(store, threadId)).toEqual(before);
+			expect(positionOf(store, threadId, memberId).acknowledged).toBe(0);
+		});
+
+		it("refuses an artifact pointing at a resource on another board", () => {
+			// A resource is board-scoped, so an artifact that named another board's resource would be a
+			// reference the thread's readers could not resolve — or, worse, one that leaked a name across
+			// a boundary the grant model keeps.
+			const store = create();
+			const elsewhere = store
+				.listBoards()
+				.filter((board) => board.id !== store.readThread(threadId)?.boardId)
+				.flatMap((board) => store.listResources(board.id))[0];
+			if (!elsewhere) return;
+
+			const before = seqs(store, threadId);
+			expect(() =>
+				store.attachResource({
+					threadId,
+					resourceId: elsewhere.id,
+					authorId: memberId,
+				}),
+			).toThrow(errorMessages.resourceNotFound);
+
+			expect(seqs(store, threadId)).toEqual(before);
 		});
 	});
 

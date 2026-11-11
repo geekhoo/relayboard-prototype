@@ -14,6 +14,7 @@ import type {
 	Seq,
 	Thread,
 	ThreadId,
+	ThreadStatus,
 	Watermarks,
 } from "#/domain";
 
@@ -217,9 +218,15 @@ export interface AttachResourceInput {
 
 export interface MoveStatusInput {
 	readonly threadId: ThreadId;
-	/** The status the mover believes the thread is in; a move from anything else is refused (10a). */
-	readonly from: string;
-	readonly to: string;
+	/**
+	 * The status the mover believes the thread is in; a move from anything else is refused.
+	 *
+	 * Typed as the closed set rather than as a string: a caller that names a status outside it is a
+	 * compile error in-process and a validation failure on the wire, which is the two places it can be
+	 * caught. The store still checks, because a wire payload arrives as JSON.
+	 */
+	readonly from: ThreadStatus;
+	readonly to: ThreadStatus;
 }
 
 export interface AcknowledgeInput {

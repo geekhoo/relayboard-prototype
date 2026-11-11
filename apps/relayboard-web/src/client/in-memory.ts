@@ -303,17 +303,32 @@ export const createInMemoryClient = (
 			return { principal, grant: grantOn(principalId, boardId), declared };
 		},
 
-		attachResource: async (_input: AttachResourceInput): Promise<Entry> => {
-			throw new NotYetImplementedError("attachResource", "ticket 10a");
+		attachResource: async (input: AttachResourceInput): Promise<Entry> => {
+			// The author is the acting principal, never the caller: the interface has no `authorId`
+			// field (06c), so a forged one cannot reach even this build.
+			return store.attachResource({
+				threadId: input.threadId,
+				resourceId: input.resourceId,
+				authorId: actingAs,
+			});
 		},
 
-		moveStatus: async (_input: MoveStatusInput): Promise<Entry> => {
-			throw new NotYetImplementedError("moveStatus", "ticket 10a");
-		},
+		moveStatus: async (input: MoveStatusInput): Promise<Entry> =>
+			store.moveStatus({
+				threadId: input.threadId,
+				from: input.from,
+				to: input.to,
+				authorId: actingAs,
+			}),
 
-		acknowledge: async (_input: AcknowledgeInput): Promise<Entry> => {
-			throw new NotYetImplementedError("acknowledge", "ticket 10a");
-		},
+		acknowledge: async (input: AcknowledgeInput): Promise<Entry> =>
+			// Advances **this** principal's `acknowledged` watermark and no other: acknowledgement is
+			// personal, and the store is where that is enforced.
+			store.acknowledge({
+				threadId: input.threadId,
+				upTo: input.upTo,
+				authorId: actingAs,
+			}),
 
 		subscribe: (handlers: StreamHandlers): Unsubscribe => {
 			const subscription: Subscription = { handlers, closed: false };

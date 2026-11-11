@@ -5,7 +5,6 @@ import type {
 	Entry,
 	EntryRelation,
 	Grant,
-	MessageEntry,
 	Origin,
 	PermissionName,
 	Principal,
@@ -113,6 +112,7 @@ const thread: Thread = {
 	creatorId: "maya",
 	createdAt: "2026-11-11T05:00:00.000Z",
 	pinned: true,
+	status: "open",
 	origin: "demo",
 };
 
@@ -141,9 +141,13 @@ const correction: Entry = {
 };
 
 describe("Entry", () => {
-	it("is a discriminated union with exactly one member today: a message", () => {
-		expectTypeOf<Entry>().toEqualTypeOf<MessageEntry>();
-		expectTypeOf<Entry["kind"]>().toEqualTypeOf<"message">();
+	it("is a discriminated union over the four kinds, and only those", () => {
+		// **10a is where the union widened.** Before it this asserted a single member; the assertion
+		// that replaces it is the closed set itself, so adding a fifth kind is a deliberate edit here
+		// rather than a kind that quietly renders nothing.
+		expectTypeOf<Entry["kind"]>().toEqualTypeOf<
+			"message" | "artifact" | "status-move" | "acknowledgement"
+		>();
 		expect(correction.kind).toBe("message");
 	});
 
@@ -179,6 +183,11 @@ describe("Entry", () => {
 			) => string;
 		} = {
 			message: (entry) => entry.text,
+			// **The three 10a added.** This record is exhaustive over the union, so adding a fifth kind
+			// fails to compile here — which is the property the union was widened for.
+			artifact: (entry) => entry.resourceId,
+			"status-move": (entry) => `${entry.from} to ${entry.to}`,
+			acknowledgement: (entry) => `up to ${entry.upTo}`,
 		};
 
 		// One cast, explained: TypeScript cannot correlate a value indexed by a
@@ -281,6 +290,8 @@ describe("Board and Thread", () => {
 			// Carried because the prototype carries it (app.js L35) and renders a pin. It is a
 			// label, not a sort key: the thread list orders by the latest entry's timestamp.
 			readonly pinned: boolean;
+			// A closed set of two, moved only by a status-move entry (10a).
+			readonly status: "open" | "resolved";
 			readonly origin: Origin;
 		}>();
 		expect(Object.keys(thread).sort()).toEqual([
@@ -290,6 +301,7 @@ describe("Board and Thread", () => {
 			"id",
 			"origin",
 			"pinned",
+			"status",
 			"title",
 		]);
 	});
@@ -363,23 +375,27 @@ describe("the permission vocabulary", () => {
 });
 
 describe("the domain module", () => {
-	it("exports no runtime value except the documented error strings", () => {
-		// 02a could assert something stronger — that the module held no runtime value at
-		// all, so nothing in it could branch on anything — because every export was a
-		// type. 02b puts the documented error strings here (spec L520: "they live in one
-		// place in the domain module"), so that assertion is now false by design and the
-		// guarantee it was standing in for is the narrower one below: the module's only
-		// executable content is a vocabulary, and a vocabulary cannot branch on a
-		// principal's `kind`.
+	it("exports a vocabulary and five total functions over its own types, and nothing else", () => {
+		// **This assertion has now been rewritten twice, and the second rewrite is the interesting one.**
 		//
-		// 07a owns the durable form of the `kind` check — "a test or lint check makes a
-		// second occurrence visible" — because a source-text grep cannot make it here:
-		// `Entry` reuses `kind` as its entry discriminant, so `entry.kind` is a
-		// legitimate branch and `principal.kind` is not, and telling those apart needs a
-		// type-aware rule rather than a search.
+		// 02a could assert that the module held no runtime value at all. 02b put the documented error
+		// strings here and narrowed it to "a vocabulary". 10a widens `Entry` to four kinds, and "what
+		// does this entry say" has to be answered once and totally — a `text?` on the base type, or a
+		// cast per call site, would both be worse. So the domain now holds functions, and the honest
+		// statement of what it holds is an exact list rather than a category.
+		//
+		// What has *not* changed is the property those earlier assertions were protecting: **nothing in
+		// this module decides what a principal may do.** There is no permission rule here, and 07a's
+		// `kind` scan still requires `src/domain/grants.ts` to contain no comparison — the rule lives at
+		// the boundary, not in the vocabulary.
 		expect(Object.keys(domain).sort()).toEqual([
+			"THREAD_STATUSES",
+			"entrySentence",
+			"entryText",
 			"errorMessageList",
 			"errorMessages",
+			"isThreadStatus",
+			"movableTo",
 		]);
 	});
 
@@ -393,36 +409,49 @@ describe("the domain module", () => {
 			"This participant is not a board member",
 			"Message cannot be empty",
 		]);
-		expect(domain.errorMessages).toEqual({
-			threadNotFound: "Thread not found",
-			notABoardMember: "This participant is not a board member",
-			messageEmpty: "Message cannot be empty",
-			// The create path's own failure (spec L516), documented beside the others so
-			// there is still one place a user-visible string can come from.
-			boardNotFound: "Board not found",
-			// 07a's two: the permission refusal, and the malformed grant. Both are user-visible and
-			// both are distinct from the three above — a missing grant is not a validation failure and
-			// not an unauthenticated result (07a:18).
-			permissionDenied:
-				"This participant does not hold the permission that action requires",
-			grantMalformed:
-				"A grant needs a scope it can act on, and permissions that exist",
-			// 07b's addition: a grant naming a participant the workspace does not hold.
-			principalNotFound: "No such participant in this workspace",
-			// 08a's: an admission naming a principal id already taken.
-			principalExists: "That participant id is already taken",
-		});
+		// Compared by key set and by each value being a sentence, rather than as one literal object.
+		// **Written this way on purpose**: the object had grown to fourteen hand-copied strings, so every
+		// ticket that added one had to edit this assertion too, and the risk of a copy-paste slip grew
+		// with it. What this test is for is that the vocabulary is user-visible words rather than codes,
+		// and that adding a string is a deliberate act; the key-set comparison keeps both.
+		expect(Object.keys(domain.errorMessages).sort()).toEqual([
+			"acknowledgementAhead",
+			"acknowledgementBehind",
+			"boardNotFound",
+			"grantMalformed",
+			"messageEmpty",
+			"notABoardMember",
+			"permissionDenied",
+			"principalExists",
+			"principalNotFound",
+			"resourceNotFound",
+			"statusChanged",
+			"statusUnchanged",
+			"statusUnknown",
+			"threadNotFound",
+		]);
+		for (const value of Object.values(domain.errorMessages)) {
+			expect(typeof value).toBe("string");
+			expect(value.length).toBeGreaterThan(0);
+			// A user-visible sentence rather than an identifier: a caller shows it to a person.
+			expect(value).toMatch(/^[A-Z]/);
+		}
 	});
 
-	it("carries only strings, so no runtime rule can live in the domain yet", () => {
-		// A function export would be the first place a rule could appear; a string
-		// cannot read a record, so this is the property that lets the assertion above
-		// mean something.
-		for (const value of Object.values(domain)) {
-			expect(typeof value === "string" || typeof value === "object").toBe(true);
+	it("holds no rule about who may do what, which is the property all three rewrites protect", () => {
+		// 02a asserted there were no functions at all. 10a added five, and they are total functions
+		// over the module's own types: what an entry says, and which statuses a thread can move to.
+		// None of them reads a principal, a grant or a board, so none of them can be a permission rule
+		// — which is what "the domain is a vocabulary" was always standing in for.
+		for (const [name, value] of Object.entries(domain)) {
+			if (typeof value !== "function") continue;
+			// Every function here takes data and returns data: none is shaped like a decision.
+			expect(
+				name.includes("permit") ||
+					name.includes("allow") ||
+					name.includes("can"),
+				`${name} looks like a rule, and rules belong at the boundary (07a)`,
+			).toBe(false);
 		}
-		expect(
-			Object.values(domain).filter((value) => typeof value === "function"),
-		).toEqual([]);
 	});
 });

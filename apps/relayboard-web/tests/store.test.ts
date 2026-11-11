@@ -77,6 +77,7 @@ const delivery: Thread = {
 	creatorId: "maya",
 	createdAt: "2026-11-11T05:00:00.000Z",
 	pinned: false,
+	status: "open",
 	origin: "demo",
 };
 
@@ -87,6 +88,7 @@ const identity: Thread = {
 	creatorId: "alex",
 	createdAt: "2026-11-11T06:30:00.000Z",
 	pinned: false,
+	status: "open",
 	origin: "demo",
 };
 
@@ -97,6 +99,7 @@ const components: Thread = {
 	creatorId: "alex",
 	createdAt: "2026-11-11T04:15:00.000Z",
 	pinned: false,
+	status: "open",
 	origin: "demo",
 };
 
@@ -175,7 +178,17 @@ const options = (): StoreOptions => ({
 			principalId,
 			scope: "board" as const,
 			boardId,
-			permissions: ["read:board", "post:message", "create:thread"] as const,
+			// The member grant's shape since 07a, and widened with 10a's three act permissions because a
+			// real member holds them: a fixture narrower than a real member would make the act assertions
+			// fail for a reason that has nothing to do with the rule under test.
+			permissions: [
+				"read:board",
+				"post:message",
+				"create:thread",
+				"add:artifact",
+				"move:status",
+				"acknowledge:thread",
+			] as const,
 		})),
 	),
 });

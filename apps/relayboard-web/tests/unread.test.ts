@@ -23,6 +23,7 @@ const thread = (id: string, boardId: string): Thread => ({
 	creatorId: "alex",
 	createdAt: "2026-11-11T05:00:00.000Z",
 	pinned: false,
+	status: "open",
 	origin: "demo",
 });
 

@@ -1,5 +1,5 @@
 import type { Entry, Seq, Thread } from "#/client";
-import type { PrincipalId } from "#/domain";
+import { entryText, type PrincipalId } from "#/domain";
 
 /**
  * The thread pane's arithmetic: what a row shows, in what order, and whether it is shown.
@@ -92,7 +92,7 @@ export const filterThreads = (
 		if (filter.unreadOnly && row.unread === 0) return false;
 		if (needle === "") return true;
 		const haystack =
-			`${row.thread.title} ${row.latest?.text ?? ""}`.toLowerCase();
+			`${row.thread.title} ${row.latest ? entryText(row.latest) : ""}`.toLowerCase();
 		return haystack.includes(needle);
 	});
 };

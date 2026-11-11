@@ -5,7 +5,7 @@ import type {
 	Seq,
 	Thread,
 } from "#/client";
-import type { Principal } from "#/domain";
+import { entryText, type Principal } from "#/domain";
 
 /**
  * The conversation's arithmetic: the order entries appear in, the days they fall on, and what a
@@ -91,8 +91,13 @@ export const filterEntries = (
 ): readonly Entry[] => {
 	const needle = term.trim().toLowerCase();
 	if (needle === "") return entries;
+	// The search reads an entry of **any** kind through `entryText`, so a status move is findable by the
+	// word "resolved" and an acknowledgement by its position. Before 10a this read `entry.text`, which
+	// worked only because every entry was a message.
 	return entries.filter((entry) =>
-		`${entry.text} ${nameOf(entry.authorId)}`.toLowerCase().includes(needle),
+		`${entryText(entry)} ${nameOf(entry.authorId)}`
+			.toLowerCase()
+			.includes(needle),
 	);
 };
 

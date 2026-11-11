@@ -8,11 +8,14 @@ import type {
 	Principal,
 	PrincipalId,
 	Resource,
+	ResourceId,
+	Seq,
 	Thread,
 	ThreadId,
+	ThreadStatus,
 	Watermarks,
 } from "#/domain";
-import { errorMessages } from "#/domain";
+import { errorMessages, isThreadStatus } from "#/domain";
 import { isWellFormedGrant, satisfies } from "#/domain/grants";
 import { checkGrant, unknownPermission } from "#/server/grants";
 
@@ -274,6 +277,42 @@ export interface Store {
 
 	appendMessage(input: AppendMessageInput): Entry;
 
+	/**
+	 * Attach a resource to a thread: an artifact entry, holding the resource **id and nothing else**.
+	 *
+	 * A refused attachment (no permission, no such resource, a resource on another board) throws before
+	 * a `seq` is taken, so the thread is unchanged and the numbering has no gap.
+	 */
+	attachResource(input: {
+		readonly threadId: ThreadId;
+		readonly resourceId: ResourceId;
+		readonly authorId: PrincipalId;
+	}): Entry;
+
+	/**
+	 * Move a thread's status: a status-move entry, and the thread's own status written from it.
+	 *
+	 * `from` is checked against the thread, so a stale control cannot move a thread twice.
+	 */
+	moveStatus(input: {
+		readonly threadId: ThreadId;
+		readonly from: ThreadStatus;
+		readonly to: ThreadStatus;
+		readonly authorId: PrincipalId;
+	}): Entry;
+
+	/**
+	 * A principal reporting how far it has got. Advances **only** its own `acknowledged` watermark.
+	 *
+	 * The entry carries the range (`fromUpTo` → `upTo`) and no verdict of any kind: an acknowledgement
+	 * is a report about the acknowledger, never agreement with what it acknowledged.
+	 */
+	acknowledge(input: {
+		readonly threadId: ThreadId;
+		readonly upTo: Seq;
+		readonly authorId: PrincipalId;
+	}): Entry;
+
 	/** A new board in the workspace. Its mark is derived from the name and its hue defaulted. */
 	createBoard(input: CreateBoardInput): Board;
 
@@ -350,7 +389,9 @@ const NO_GRANTS: StoreOptions = { grants: [] };
 
 /** Deep-freezes an entry, so a `seq` handed to a caller cannot be reassigned by one. */
 const frozen = (entry: Entry): Entry => {
-	Object.freeze(entry.references);
+	// Only a message carries `references`, and the guard is on the kind rather than a cast: a new entry
+	// kind with an array of its own must add its own freeze here rather than silently share one.
+	if (entry.kind === "message") Object.freeze(entry.references);
 	if (entry.relation) Object.freeze(entry.relation);
 	return Object.freeze(entry);
 };
@@ -523,6 +564,50 @@ export const createStore = (
 	// because two subscribers on one store are two readers with their own cursors.
 	const listeners = new Set<CommitListener>();
 
+	/**
+	 * **The one entry-writing path.** Every kind of entry takes its `seq` here.
+	 *
+	 * 10a's central decision, and the reason it is a function rather than four copies of the same six
+	 * lines: a status move, an artifact, an acknowledgement and a message must take numbers from **one
+	 * counter** (spec L450), and four implementations of "read the last seq, add one, append" would be
+	 * four places for that to stop being true. It is also where the permission is asked, so an act cannot
+	 * be written by a principal that could not post.
+	 *
+	 * **One synchronous step.** The `seq` is computed and the entry that takes it is written with no
+	 * `await` between them — the same rule `appendMessage` has followed since 02c, now stated once.
+	 *
+	 * A refusal happens **before** the `seq` is taken, so a refused act consumes no position and leaves
+	 * the thread exactly as it was: there is no half-recorded act, and no gap in the numbering.
+	 */
+	const commitEntry = (
+		threadId: ThreadId,
+		authorId: PrincipalId,
+		permission: PermissionName,
+		build: (seq: number) => Entry,
+	): Entry => {
+		const thread = threadOf(threadId);
+		if (!thread) throw new Error(errorMessages.threadNotFound);
+		if (!holds(authorId, permission, thread.boardId)) {
+			throw new Error(errorMessages.notABoardMember);
+		}
+		const current = entriesOf(threadId);
+		const seq = lastSeq(current) + 1;
+		const entry = frozen(build(seq));
+		entriesByThread.set(threadId, Object.freeze([...current, entry]));
+		let delivered = true;
+		for (const principal of principals) {
+			if (paused.has(principal.id)) {
+				delivered = false;
+				continue;
+			}
+			marksOf(principal.id, threadId).cursor = seq;
+		}
+		for (const listener of listeners) {
+			listener({ threadId, entry, delivered });
+		}
+		return entry;
+	};
+
 	return {
 		listBoards: () => boards,
 		readBoard: (boardId) => boards.find((board) => board.id === boardId),
@@ -618,6 +703,10 @@ export const createStore = (
 				// A thread made through the app is not pinned: pinning is a seeded state until
 				// something offers it as an action, and inventing that action here would be 09's.
 				pinned: false,
+				// A new thread starts open. The seed's one resolved thread exists so that the two
+				// members of the set are both observable — a set whose only seen value is the default
+				// cannot be told from a constant.
+				status: "open",
 				createdAt: new Date().toISOString(),
 				origin: "owner" as const,
 			});
@@ -713,6 +802,137 @@ export const createStore = (
 			});
 			resources = Object.freeze([...resources, resource]);
 			return resource;
+		},
+
+		/**
+		 * Attach a resource to a thread: an **artifact** entry that names the resource by id.
+		 *
+		 * The entry holds no copy of the resource's content — that is the whole rule (spec L435), and it is
+		 * why the field is `resourceId` and not `resource`. Two threads attaching one resource produce two
+		 * entries and one record; a test asserts the record count.
+		 *
+		 * The store checks the resource exists **on this thread's board**, because an artifact pointing at
+		 * another board's resource would be a reference the thread's readers cannot resolve.
+		 */
+		attachResource: (input) => {
+			const thread = threadOf(input.threadId);
+			if (!thread) throw new Error(errorMessages.threadNotFound);
+			const resource = resources.find(
+				(candidate) => candidate.id === input.resourceId,
+			);
+			if (!resource || resource.boardId !== thread.boardId) {
+				throw new Error(errorMessages.resourceNotFound);
+			}
+			return commitEntry(
+				input.threadId,
+				input.authorId,
+				"add:artifact",
+				(seq) => ({
+					id: `art-${input.threadId}-${seq}`,
+					kind: "artifact" as const,
+					seq,
+					authorId: input.authorId,
+					createdAt: new Date().toISOString(),
+					origin: "owner" as const,
+					resourceId: resource.id,
+				}),
+			);
+		},
+
+		/**
+		 * Move a thread's status: a **status-move** entry recording the transition, with its author.
+		 *
+		 * `from` is the caller's belief and is **checked against the thread's actual status**: a stale
+		 * control would otherwise move a thread twice, and the second entry would record a transition that
+		 * never happened. This is optimistic concurrency with a synchronous store — there is no window to
+		 * race, but a browser tab left open is exactly that window.
+		 */
+		moveStatus: (input) => {
+			const thread = threadOf(input.threadId);
+			if (!thread) throw new Error(errorMessages.threadNotFound);
+			if (thread.status !== input.from) {
+				throw new Error(errorMessages.statusChanged);
+			}
+			if (!isThreadStatus(input.to)) {
+				throw new Error(errorMessages.statusUnknown);
+			}
+			if (input.to === thread.status) {
+				// A move to the status it is already in is not a move. Refused rather than recorded,
+				// because an entry saying "open → open" is an event that did not happen.
+				throw new Error(errorMessages.statusUnchanged);
+			}
+			const entry = commitEntry(
+				input.threadId,
+				input.authorId,
+				"move:status",
+				(seq) => ({
+					id: `mv-${input.threadId}-${seq}`,
+					kind: "status-move" as const,
+					seq,
+					authorId: input.authorId,
+					createdAt: new Date().toISOString(),
+					origin: "owner" as const,
+					from: thread.status,
+					to: input.to,
+				}),
+			);
+			// Written only after the entry exists: the status is derived from the chronology and this is
+			// the only writer, so there is no state in which the thread says one thing and the last
+			// status-move entry says another.
+			threads = Object.freeze(
+				threads.map((candidate) =>
+					candidate.id === thread.id
+						? Object.freeze({ ...candidate, status: input.to })
+						: candidate,
+				),
+			);
+			return entry;
+		},
+
+		/**
+		 * A principal reporting how far it has got: an **acknowledgement** entry and a watermark.
+		 *
+		 * The two things this is and is not, both of them the model rather than a courtesy:
+		 *
+		 * - It advances **this principal's** `acknowledged` watermark and no one else's. A test asserts a
+		 *   second principal's watermark is untouched.
+		 * - It carries **no verdict**: there is no field that could read as approval, and it cannot
+		 *   substitute for a status move (spec L438, DESIGN.md §295).
+		 *
+		 * Acknowledging backwards is refused: the ladder only goes up, which is what makes "has this
+		 * principal caught up" answerable from one number.
+		 */
+		acknowledge: (input) => {
+			const thread = threadOf(input.threadId);
+			if (!thread) throw new Error(errorMessages.threadNotFound);
+			const marks = marksOf(input.authorId, input.threadId);
+			if (!holds(input.authorId, "acknowledge:thread", thread.boardId)) {
+				throw new Error(errorMessages.notABoardMember);
+			}
+			if (input.upTo < marks.acknowledged) {
+				throw new Error(errorMessages.acknowledgementBehind);
+			}
+			if (input.upTo > lastSeqOf(input.threadId)) {
+				throw new Error(errorMessages.acknowledgementAhead);
+			}
+			const fromUpTo = marks.acknowledged;
+			const entry = commitEntry(
+				input.threadId,
+				input.authorId,
+				"acknowledge:thread",
+				(seq) => ({
+					id: `ack-${input.threadId}-${seq}`,
+					kind: "acknowledgement" as const,
+					seq,
+					authorId: input.authorId,
+					createdAt: new Date().toISOString(),
+					origin: "owner" as const,
+					upTo: input.upTo,
+					fromUpTo,
+				}),
+			);
+			marks.acknowledged = input.upTo;
+			return entry;
 		},
 
 		appendMessage: (input) => {

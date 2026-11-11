@@ -193,6 +193,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(500),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: true,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -203,6 +204,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(1500),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -213,6 +215,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(1700),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -223,6 +226,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(3400),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -233,6 +237,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(4500),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -243,6 +248,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(800),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -253,6 +259,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(1700),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -263,6 +270,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(2800),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -273,6 +281,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(600),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "open",
 		origin: "demo",
 	},
 	{
@@ -283,6 +292,7 @@ const threads: readonly Thread[] = [
 		createdAt: ago(2600),
 		// Only `delivery` is pinned in the prototype (app.js L35).
 		pinned: false,
+		status: "resolved",
 		origin: "demo",
 	},
 ];
@@ -806,10 +816,16 @@ export const demoSeed = (): StoreSeed => ({
 	entries: Object.fromEntries(
 		Object.entries(entriesByThread()).map(([threadId, entries]) => [
 			threadId,
-			entries.map((entry) => ({
-				...entry,
-				references: entry.references.map((reference) => ({ ...reference })),
-			})),
+			entries.map((entry) =>
+				entry.kind === "message"
+					? {
+							...entry,
+							references: entry.references.map((reference) => ({
+								...reference,
+							})),
+						}
+					: { ...entry },
+			),
 		]),
 	),
 	resources: resources.map((resource) => ({ ...resource })),

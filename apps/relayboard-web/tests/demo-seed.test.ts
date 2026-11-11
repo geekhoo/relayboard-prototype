@@ -213,8 +213,12 @@ describe("the demo workspace", () => {
 		// The resource chips of app.js L53, L60, L74 and L81.
 		const withReferences = Object.values(demoSeed().entries)
 			.flat()
-			.filter((entry) => entry.references.length > 0);
-		expect(withReferences.map((entry) => entry.references)).toEqual([
+			.flatMap((entry) =>
+				entry.kind === "message" && entry.references.length > 0
+					? [entry.references]
+					: [],
+			);
+		expect(withReferences).toEqual([
 			[{ resourceId: "res-1" }],
 			[{ resourceId: "res-2" }],
 			[{ resourceId: "res-5" }],

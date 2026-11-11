@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Entry, Thread } from "#/client";
+import { entryText } from "#/domain";
 import {
 	emptyStateFor,
 	filterThreads,
@@ -26,6 +27,7 @@ const thread = (
 	creatorId: "alex",
 	createdAt,
 	pinned: extra.pinned ?? false,
+	status: "open",
 	origin: "demo",
 });
 
@@ -140,7 +142,11 @@ describe("the thread list's order", () => {
 		);
 
 		expect(row?.latest?.seq).toBe(2);
-		expect(row?.latest?.text).toBe("seq 2 is the older instant");
+		// Read through the domain helper rather than `.text`: since 10a an entry is a union, and the
+		// row's excerpt is whatever the latest entry says, of whatever kind.
+		expect(row?.latest ? entryText(row.latest) : null).toBe(
+			"seq 2 is the older instant",
+		);
 	});
 });
 

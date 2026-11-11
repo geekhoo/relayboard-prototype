@@ -123,6 +123,20 @@ export interface Board {
 }
 
 /**
+ * The thread's state, and the whole of it.
+ *
+ * **A closed set of two, and the closure is the point.** A free-text status would make `moveStatus` a
+ * write that records a string rather than a transition a reader can check — and the transition rule
+ * ("a move from a status the thread is not in is refused") is only meaningful if the set of statuses
+ * is knowable. The two members are the ones the repository already speaks: the interface's stub for
+ * the operation has always read `from: "open", to: "resolved"`
+ * (`tests/contract/operations.conformance.ts`), and inventing a third here would be 10a deciding
+ * product vocabulary no ticket asked it to decide. Widening the set is a one-line change to this
+ * union plus the store's guard; doing it silently is what this comment exists to prevent.
+ */
+export type ThreadStatus = "open" | "resolved";
+
+/**
  * One line of work inside a board. Flat, chronological, identified by its own
  * `seq` counter.
  *
@@ -147,6 +161,17 @@ export interface Thread {
 	 * 04b records that as the decision it was asked for rather than dropping the field silently.
 	 */
 	readonly pinned: boolean;
+	/**
+	 * Where the thread stands, moved only by a `status-move` entry.
+	 *
+	 * **Derived from the chronology and stored alongside it**, which is the one place this app keeps the
+	 * same fact twice — and the reason is that a move is an *event* that a reader must be able to see in
+	 * history (`from → to`), while the current state is what a control needs before it offers a move.
+	 * Recomputing it from the last status-move entry on every read would be correct but would make a
+	 * synchronous read O(entries); storing it and writing it only inside the one path that appends a
+	 * status-move entry is what keeps the two from disagreeing — there is no second writer.
+	 */
+	readonly status: ThreadStatus;
 	readonly createdAt: string;
 	readonly origin: Origin;
 }
@@ -201,16 +226,65 @@ export interface MessageEntry extends EntryBase {
 }
 
 /**
+ * A resource attached to a thread: a pointer, never a copy (spec L435).
+ *
+ * It carries the resource **id** and nothing else about the resource — no name, no url, no
+ * description. That is the whole rule: two threads attaching one resource produce two entries and one
+ * resource record, and editing the resource changes what both entries resolve to because neither holds
+ * a copy. A test asserts there is exactly one resource record after two attachments.
+ */
+export interface ArtifactEntry extends EntryBase {
+	readonly kind: "artifact";
+	readonly resourceId: ResourceId;
+}
+
+/**
+ * A transition on the thread's state, recorded with its author.
+ *
+ * `from` is kept as well as `to` because the transition is the event: a reader can see the thread went
+ * from open to resolved, rather than only that it is resolved now. The store refuses a move whose
+ * `from` is not the thread's current status, so a stale control cannot silently move a thread twice.
+ */
+export interface StatusMoveEntry extends EntryBase {
+	readonly kind: "status-move";
+	readonly from: ThreadStatus;
+	readonly to: ThreadStatus;
+}
+
+/**
+ * A principal reporting how far it has got.
+ *
+ * **A report about the acknowledger, never agreement with what it acknowledged** (spec L438, DESIGN.md
+ * §295). It carries the position it reaches and the position it started from, and it carries no verdict
+ * field of any kind — no `approved`, no `agreed`, no boolean that could be read as one. `fromUpTo` is
+ * the acknowledger's watermark immediately before the act, so the entry states the range it covers even
+ * when the reader's own watermark has since moved past it.
+ */
+export interface AcknowledgementEntry extends EntryBase {
+	readonly kind: "acknowledgement";
+	/** The position this acknowledgement acknowledges up to. */
+	readonly upTo: Seq;
+	/** The acknowledger's acknowledged watermark before this act — the other end of the range. */
+	readonly fromUpTo: Seq;
+}
+
+/**
  * Anything occupying a position in a thread's chronology.
  *
- * A discriminated union over `kind` with one member today: a message. It is a
- * union now, and every consumer is typed against `Entry` rather than against
- * `MessageEntry`, because ticket 10a widens it to artifacts, status moves and
- * acknowledgements — widening a union is an addition, while replacing a type that
- * `readMessages`, the conformance suite and the stream payloads already name is a
- * refactor across every one of them.
+ * A discriminated union over `kind` with four members: a message, an artifact, a status move and an
+ * acknowledgement. Every consumer is typed against `Entry` rather than against `MessageEntry`, which is
+ * what makes the widening an addition rather than a refactor of every reader.
+ *
+ * **An act is an entry, not a parallel record** (spec L450). A status move, an artifact and an
+ * acknowledgement take a `seq` from the **same counter** as a message, so there is one timeline and a
+ * reader never reconciles the conversation against a separate audit log. The consequence is that the
+ * ordering rule holds for every kind: order by `seq`, never by `createdAt`.
  */
-export type Entry = MessageEntry;
+export type Entry =
+	| MessageEntry
+	| ArtifactEntry
+	| StatusMoveEntry
+	| AcknowledgementEntry;
 
 /**
  * How far one principal has got in one thread, on the three-rung ladder every

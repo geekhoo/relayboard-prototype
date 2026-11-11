@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Entry, PrincipalSummary, Thread } from "#/client";
+import type { MessageEntry } from "#/domain";
 import {
 	conversationEmptyState,
 	draftToSend,
@@ -26,6 +27,7 @@ const thread: Thread = {
 	creatorId: "maya",
 	createdAt: "2026-11-11T08:00:00.000Z",
 	pinned: true,
+	status: "open",
 	origin: "demo",
 };
 
@@ -34,7 +36,7 @@ const entry = (
 	createdAt: string,
 	text: string,
 	authorId = "maya",
-	extra: Partial<Entry> = {},
+	extra: Omit<Partial<MessageEntry>, "kind"> = {},
 ): Entry => ({
 	id: `entry-${seq}`,
 	kind: "message",

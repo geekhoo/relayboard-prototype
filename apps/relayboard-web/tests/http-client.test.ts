@@ -46,7 +46,11 @@ describe("the HTTP client", () => {
 			() =>
 				client.attachResource({ threadId: "delivery", resourceId: "res-1" }),
 			() =>
-				client.moveStatus({ threadId: "delivery", from: "open", to: "done" }),
+				client.moveStatus({
+					threadId: "delivery",
+					from: "open",
+					to: "resolved",
+				}),
 			() => client.acknowledge({ threadId: "delivery", upTo: 1 }),
 		]) {
 			const failure = await call().then(

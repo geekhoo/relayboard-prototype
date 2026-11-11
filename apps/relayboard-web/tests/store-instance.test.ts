@@ -84,7 +84,10 @@ describe("the store instance", () => {
 		expect(
 			fresh
 				.readEntries("delivery")
-				.some((entry) => entry.text.includes("must not survive")),
+				.some(
+					(entry) =>
+						entry.kind === "message" && entry.text.includes("must not survive"),
+				),
 		).toBe(false);
 	});
 

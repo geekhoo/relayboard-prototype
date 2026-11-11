@@ -7,6 +7,8 @@ import {
 	conversationRosterQuery,
 } from "#/components/-conversation-queries";
 import { unreadQuery } from "#/components/-rail-queries";
+import { resourcesQuery } from "#/components/-thread-queries";
+import { entrySentence } from "#/domain";
 import {
 	conversationEmptyState,
 	draftToSend,
@@ -60,6 +62,9 @@ export function Conversation({
 	const client = useActingClient();
 	const conversation = useQuery(conversationQuery(client, threadId));
 	const roster = useQuery(conversationRosterQuery(client, boardId));
+	// The board's resources, primed by the pane's loader, so an artifact names its resource at first
+	// paint rather than after a second read (the rule 06a and 06b paid for twice).
+	const boardResources = useQuery(resourcesQuery(client, boardId));
 	const principalId = client.actingPrincipalId;
 
 	const [term, setTerm] = useState("");
@@ -92,6 +97,18 @@ export function Conversation({
 	const nameOf = useCallback(
 		(id: string) => nameOfPrincipal(id, people),
 		[people],
+	);
+	/**
+	 * The board's resources, so an artifact can name what it points at.
+	 *
+	 * An artifact entry holds a resource id and nothing else — the rule 09 established and 10a honours —
+	 * so the name has to come from the board's own list, which the pane's loader primes. Absent while
+	 * loading, and `entrySentence` then states the id rather than rendering an empty chip.
+	 */
+	const resourceNameOf = useCallback(
+		(id: string) =>
+			boardResources.data?.find((resource) => resource.id === id)?.name ?? id,
+		[boardResources.data],
 	);
 
 	const visible = useMemo(
@@ -247,6 +264,7 @@ export function Conversation({
 								entry={entry}
 								isAgent={isAgentAuthored(entry, people)}
 								nameOf={nameOf}
+								resourceNameOf={resourceNameOf}
 							/>
 						</div>
 					))
@@ -310,10 +328,12 @@ function EntryItem({
 	entry,
 	isAgent,
 	nameOf,
+	resourceNameOf,
 }: {
 	readonly entry: Entry;
 	readonly isAgent: boolean;
 	readonly nameOf: (principalId: string) => string;
+	readonly resourceNameOf: (resourceId: string) => string;
 }) {
 	return (
 		// `id` is the anchor target a relation points at; `data-entry-id` stays for the tests and for
@@ -342,7 +362,22 @@ function EntryItem({
 						#{entry.seq}
 					</span>
 				</div>
-				<p className="entry__text">{entry.text}</p>
+				{entry.kind === "message" ? (
+					<p className="entry__text">{entry.text}</p>
+				) : (
+					// **10a's rendering of an act is deliberately provisional.** This ticket widened the
+					// union and every consumer with it; the act's *visual* treatment — the 28px marker in
+					// place of the avatar, the Ink-muted line, the inline resource chip — is 10b's, to
+					// DESIGN.md §247-254. What this must not do is pretend an act is prose, so it reads as
+					// one muted line stating what happened, and no kind of entry is silently dropped from
+					// the chronology.
+					<p
+						className="entry__text entry__text--act"
+						data-entry-act={entry.kind}
+					>
+						{entrySentence(entry, { nameOf, resourceNameOf })}
+					</p>
+				)}
 				{entry.relation ? (
 					<p className="entry__relation">
 						{entry.relation.type} {/*

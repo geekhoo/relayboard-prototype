@@ -163,7 +163,11 @@ describe("what a pending knocker holds", () => {
 		// And the knock itself is not in any chronology.
 		expect(admissions.listPending("platform", "alex")).toHaveLength(1);
 		expect(
-			store.readEntries("delivery").some((e) => e.text.includes("Scout")),
+			store
+				.readEntries("delivery")
+				.some(
+					(entry) => entry.kind === "message" && entry.text.includes("Scout"),
+				),
 		).toBe(false);
 		expect(receipt.requestId).toBeTruthy();
 	});
@@ -749,7 +753,12 @@ describe("the admission lifecycle", () => {
 		// 3. **The entry keeps its author.** Revoking is not deleting.
 		const kept = store
 			.readEntries("delivery")
-			.find((entry) => entry.text === "Written before the revocation.");
+			.find(
+				(entry) =>
+					entry.kind === "message" &&
+					entry.kind === "message" &&
+					entry.text === "Written before the revocation.",
+			);
 		expect(kept?.authorId).toBe(poll.principalId);
 	});
 
@@ -814,7 +823,10 @@ describe("the admission lifecycle", () => {
 		// principal that renewed.
 		const entry = store
 			.readEntries("delivery")
-			.find((candidate) => candidate.text === "Before expiry.");
+			.find(
+				(candidate) =>
+					candidate.kind === "message" && candidate.text === "Before expiry.",
+			);
 		expect(entry?.authorId).toBe(renewed.principalId);
 	});
 

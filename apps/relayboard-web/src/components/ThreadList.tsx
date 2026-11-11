@@ -1,3 +1,4 @@
+import { entryText } from "#/domain";
 import type { ThreadRow } from "#/routes/-thread-list";
 import "./ThreadList.css";
 
@@ -62,8 +63,9 @@ export function ThreadList({
 									</span>
 								</span>
 								<span className="thread-row__excerpt">
-									{row.latest?.text ??
-										"No entries yet. Start the conversation."}
+									{row.latest
+										? entryText(row.latest)
+										: "No entries yet. Start the conversation."}
 								</span>
 								<span className="thread-row__meta">
 									{row.thread.pinned ? (

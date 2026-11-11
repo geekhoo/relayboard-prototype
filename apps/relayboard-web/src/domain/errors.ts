@@ -53,6 +53,31 @@ export const errorMessages = {
 	principalNotFound: "No such participant in this workspace",
 	/** An admission naming a principal id that is already taken. */
 	principalExists: "That participant id is already taken",
+	/**
+	 * An artifact naming a resource this workspace does not hold, or one on another board.
+	 *
+	 * Both are the same refusal from a reader's point of view — there is nothing to point at — and the
+	 * second is the one worth saying out loud: a resource is **board-scoped**, so an artifact cannot
+	 * reach across boards and the message must not imply it could.
+	 */
+	resourceNotFound: "No such resource on this board",
+	/**
+	 * A status move whose `from` is not the thread's current status.
+	 *
+	 * Optimistic concurrency, and the sentence names the situation rather than the mechanism: another
+	 * principal moved it, and the reader's control was reading a state that has since changed.
+	 */
+	statusChanged: "This thread's status changed since you read it",
+	/** A status outside the closed set. */
+	statusUnknown: "That is not a status a thread can be in",
+	/** A move to the status the thread is already in: not a move, so not an event. */
+	statusUnchanged: "This thread is already in that status",
+	/** An acknowledgement that would move the principal's watermark backwards. */
+	acknowledgementBehind:
+		"An acknowledgement cannot go back: this participant already acknowledged further",
+	/** An acknowledgement past the thread's last position. */
+	acknowledgementAhead:
+		"An acknowledgement cannot cover a position this thread has not reached",
 } as const;
 
 /**

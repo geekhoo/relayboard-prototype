@@ -390,6 +390,8 @@ export const describeOperationsConformance = (
 			});
 
 			expect(entry.seq).toBe(before.entries.length + 1);
+			expect(entry.kind).toBe("message");
+			if (entry.kind !== "message") return;
 			expect(entry.text).toBe("Trimmed and committed.");
 			expect(entry.authorId).toBe(actor);
 			expect(entry.origin).toBe<Origin>("owner");
@@ -429,7 +431,9 @@ export const describeOperationsConformance = (
 			// Counted, not trusted: the thread holds the words exactly once.
 			const after = await api.readThread(threadId);
 			expect(
-				after.entries.filter((entry) => entry.text === input.text),
+				after.entries.filter(
+					(entry) => entry.kind === "message" && entry.text === input.text,
+				),
 			).toHaveLength(1);
 		});
 
@@ -460,9 +464,11 @@ export const describeOperationsConformance = (
 			expect(second.seq).toBe(first.seq);
 			const after = await api.readThread(threadId);
 			expect(after.entries.length - before.entries.length).toBe(1);
-			expect(after.entries.filter((entry) => entry.text === text)).toHaveLength(
-				1,
-			);
+			expect(
+				after.entries.filter(
+					(entry) => entry.kind === "message" && entry.text === text,
+				),
+			).toHaveLength(1);
 		});
 
 		it("simulates an incoming entry from an agent on the board, at a real position", async () => {
@@ -541,35 +547,189 @@ export const describeOperationsConformance = (
 			// Every entry in every thread still holds a resource id and never a copy of its
 			// heading, description or url.
 			const contents = await api.readThread(threadId);
+			// An artifact is the 10a form of the same rule: it names the resource by id and holds no
+			// other field of it, so two attachments still resolve to one record.
 			for (const entry of contents.entries) {
-				for (const reference of entry.references) {
-					expect(Object.keys(reference)).toEqual(["resourceId"]);
+				if (entry.kind === "message") {
+					for (const reference of entry.references) {
+						expect(Object.keys(reference)).toEqual(["resourceId"]);
+					}
+				}
+				if (entry.kind === "artifact") {
+					expect(Object.keys(entry).sort()).toEqual([
+						"authorId",
+						"createdAt",
+						"id",
+						"kind",
+						"origin",
+						"resourceId",
+						"seq",
+					]);
 				}
 			}
 		});
 	});
 
-	describe(`the acts this build cannot write yet (${label})`, () => {
-		// These three are on the interface because establishing its shape is this ticket's
-		// job; the entry-writing path reaches 10a. The rule is 06a's: an absent feature must
-		// fail loudly rather than read as a pass, so the suite asserts the failure and names
-		// the ticket. When 10a lands these become success-path assertions — the intended
-		// alarm, not an inconvenience.
-		it("fails loudly on attachResource, moveStatus and acknowledge until 10a", async () => {
+	describe(`authored acts (${label})`, () => {
+		// **These replaced a placeholder that asserted the three threw "until 10a".** 06a's rule was that
+		// an absent feature must fail loudly rather than read as a pass, and that alarm has now done its
+		// job: 10a is where the acts become writable, so the same three calls become success-path
+		// assertions. The alarm fired on schedule rather than having to be remembered.
+		const firstResourceId = async (api: RelayboardClient) =>
+			((await api.listResources(boardId))[0]?.id ?? "") as ResourceId;
+
+		it("attaches a resource as an artifact that names it and copies nothing", async () => {
 			const api = await client();
+			const before = await api.readThread(threadId);
+			const resourceId = await firstResourceId(api);
+
+			const entry = await api.attachResource({ threadId, resourceId });
+
+			expect(entry.kind).toBe("artifact");
+			expect(entry.seq).toBe(before.entries.length + 1);
+			expect(entry.authorId).toBe(actor);
+			if (entry.kind !== "artifact") return;
+			// The id, and nothing else about the resource: two threads attaching one resource produce two
+			// entries and one record, which is the rule the whole artifact model exists for.
+			expect(entry.resourceId).toBe(resourceId);
+			const resources = await api.listResources(boardId);
+			expect(
+				resources.filter((candidate) => candidate.id === resourceId),
+			).toHaveLength(1);
+
+			// And it is in the thread's own chronology, at the right position.
+			const after = await api.readThread(threadId);
+			expect(after.entries.at(-1)?.id).toBe(entry.id);
+		});
+
+		it("moves a thread's status, recording the transition", async () => {
+			const api = await client();
+			const before = await api.readThread(threadId);
+
+			const entry = await api.moveStatus({
+				threadId,
+				from: "open",
+				to: "resolved",
+			});
+
+			expect(entry.kind).toBe("status-move");
+			expect(entry.seq).toBe(before.entries.length + 1);
+			if (entry.kind !== "status-move") return;
+			expect(entry.from).toBe("open");
+			expect(entry.to).toBe("resolved");
+
+			// The thread carries the new status, and the entry is the record of the transition.
+			const after = await api.readThread(threadId);
+			expect(after.thread.status).toBe("resolved");
+		});
+
+		it("refuses a move from a status the thread is not in", async () => {
+			// Optimistic concurrency: a control reading a state that has since changed must not move the
+			// thread again, and a refused act consumes no `seq`.
+			const api = await client();
+			const before = await api.readThread(threadId);
 
 			await expect(
-				api.attachResource({
-					threadId,
-					resourceId: (await api.listResources(boardId))[0]?.id as ResourceId,
-				}),
-			).rejects.toThrow(/10a/);
-			await expect(
-				api.moveStatus({ threadId, from: "open", to: "resolved" }),
-			).rejects.toThrow(/10a/);
+				api.moveStatus({ threadId, from: "resolved", to: "open" }),
+			).rejects.toThrow(/status changed/i);
+
+			const after = await api.readThread(threadId);
+			expect(after.entries).toHaveLength(before.entries.length);
+			expect(after.entries.at(-1)?.id).toBe(before.entries.at(-1)?.id);
+		});
+
+		it("acknowledges up to a position, advancing only the acknowledger's watermark", async () => {
+			const api = await client();
+			const before = await api.readPositions(threadId);
+			const last = (await api.readThread(threadId)).entries.length;
+
+			const entry = await api.acknowledge({ threadId, upTo: last });
+
+			expect(entry.kind).toBe("acknowledgement");
+			if (entry.kind !== "acknowledgement") return;
+			expect(entry.upTo).toBe(last);
+
+			const after = await api.readPositions(threadId);
+			const mine = after.find((position) => position.principalId === actor);
+			expect(mine?.watermarks.acknowledged).toBe(last);
+			// **No other principal's `acknowledged` moved.** Acknowledgement is personal, and this is
+			// the assertion that keeps the third rung from becoming a thread-level flag.
+			//
+			// Only the third rung is compared, and the narrowing is a finding rather than a
+			// convenience: the act is an entry, so it advances every other principal's **`cursor`**
+			// — delivery is a consequence of the commit, exactly as it is for a message. Comparing
+			// the whole record would have asserted that an act is *not delivered*, which is the
+			// opposite of what the model says.
+			for (const position of after) {
+				if (position.principalId === actor) continue;
+				const was = before.find(
+					(candidate) => candidate.principalId === position.principalId,
+				);
+				expect(position.watermarks.acknowledged).toBe(
+					was?.watermarks.acknowledged,
+				);
+			}
+		});
+
+		it("lets seen and acknowledged differ, which is what makes them two rungs", async () => {
+			// **The criterion the third watermark stands or falls on.** If acknowledging a thread always
+			// had the effect of reading it, or vice versa, the ladder would collapse into two rungs and
+			// an unread-but-acknowledged principal would be unrepresentable.
+			const api = await client();
+			const positions = await api.readPositions(threadId);
+			const mine = positions.find((position) => position.principalId === actor);
+			const before = mine?.watermarks as Watermarks;
+
+			// Acknowledge past what has been **seen**, which is a real state: an agent that took the
+			// thread into account without the reading watermark having caught up.
+			const upTo = Math.max(before.seen, before.acknowledged) + 1;
+			await api.acknowledge({ threadId, upTo });
+
+			const next = (await api.readPositions(threadId)).find(
+				(position) => position.principalId === actor,
+			)?.watermarks as Watermarks;
+			expect(next.acknowledged).toBe(upTo);
+			expect(next.seen).toBe(before.seen);
+			expect(next.acknowledged).not.toBe(next.seen);
+		});
+
+		it("refuses an acknowledgement that would go backwards", async () => {
+			const api = await client();
+			const last = (await api.readThread(threadId)).entries.length;
+			await api.acknowledge({ threadId, upTo: last });
+
 			await expect(api.acknowledge({ threadId, upTo: 1 })).rejects.toThrow(
-				/10a/,
+				/acknowledgement cannot go back/i,
 			);
+		});
+
+		it("interleaves acts and messages in one order with no second log", async () => {
+			// **10a's central claim.** Four kinds take one counter, so a reader never reconciles a
+			// conversation against an audit trail: the chronology IS the record.
+			const api = await client();
+			const resourceId = await firstResourceId(api);
+
+			const message = await api.appendMessage({
+				threadId,
+				text: "Between two acts.",
+			});
+			const artifact = await api.attachResource({ threadId, resourceId });
+			const move = await api.moveStatus({
+				threadId,
+				from: "open",
+				to: "resolved",
+			});
+
+			expect(artifact.seq).toBe(message.seq + 1);
+			expect(move.seq).toBe(artifact.seq + 1);
+
+			const entries = (await api.readThread(threadId)).entries;
+			const seqs = entries.map((entry) => entry.seq);
+			// Strictly ascending and contiguous: one counter, no gaps, no second table.
+			expect(seqs).toEqual(seqs.map((_, index) => index + 1));
+			// And the three kinds are in the order they were written.
+			const tail = entries.slice(-3).map((entry) => entry.kind);
+			expect(tail).toEqual(["message", "artifact", "status-move"]);
 		});
 	});
 
