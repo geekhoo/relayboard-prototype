@@ -553,8 +553,10 @@ most downstream and the least replaceability. Ranked:
 2. **`06c`** — the hinge of the whole plan: it is where the interface becomes genuinely swappable
    and where the product's central claim is first true. It is also the ticket carrying a missing
    edge (§1, D1) and the contract-suite ambiguity (§5.5). If 06c is not clean, 07a's enforcement
-   proof (`07a:15`, "a test calls the server function directly") is unverifiable and W8 has no
-   gate.
+   proof (`07a:17`, "a test calls the server function directly") is unverifiable and W8 has no
+   gate. *(Line number re-pointed: when this was written the criterion was `07a:15`, and
+   `b04f4f8` inserted two above it. The substance is unchanged — and the judgement was right, in
+   that 06c did not land the criterion as worded and 07a now carries the substitution.)*
 3. **`07a`** — six tickets behind it (09, 10a, 12, and transitively 13a, 14, 15a) and it freezes
    the declaration shape the whole transport uses.
 

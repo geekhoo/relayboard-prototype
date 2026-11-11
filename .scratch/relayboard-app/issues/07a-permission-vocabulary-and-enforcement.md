@@ -14,7 +14,7 @@
 - [ ] Every permission is scoped — to the workspace or to exactly one board id. There is no implicitly workspace-wide permission and no unscoped grant: a grant record that omits its scope is a validation failure.
 - [ ] `read:board` on a board yields that board's threads **and** its resources. Every other permission stands alone; a test asserts each of these pairs independently against the same principal: `post:message` does not yield `create:thread`, `acknowledge:thread` does not yield `move:status`, `read:board` does not yield `read:member`, `read:resource` does not yield `add:resource`.
 - [ ] Every participant operation declares the one permission it requires, using the table in spec L325–341, and the declaration is a single value on the operation's definition rather than a branch inside its handler. The table has a row for **every** operation on `RelayboardClient`, including `readActingPrincipal`, whose requirement is `none` and whose reason is in the table rather than inferred: a caller with no session has to be able to ask who it is acting as, so that one operation requires no grant. A test asserts the declared set equals the table's rows one for one, so an operation added to the interface without a row — or a row without an operation — fails here rather than in a later ticket.
-- [ ] The check runs in the server function before the handler body — not in the client, and not inside the store's domain logic. A test calls the server function directly with a request that never touched the UI and asserts the refusal.
+- [ ] The check runs in the server function before the handler body — not in the client, and not inside the store's domain logic — and the refusal is proven **without a UI**. **The original wording here, "a test calls the server function directly with a request that never touched the UI", is not writable and is substituted rather than dropped:** under `vitest` a created server function has only `method` and `__executeServer`, so an in-process call throws "No Start context found in AsyncLocalStorage", and an ALS shim would test the shim (06c:17 measured this four ways). The same claim is proven three ways instead — `permitsRequirement` asserted directly against the requirement table, the boundary schemas exercised in Node, and a served build exercised over HTTP with a request carrying no UI session and asserting the refusal. Each is a real request that never touched the UI; none of them pretends to call a server function in process.
 - [ ] A refusal names the missing permission and its scope in a message a caller can act on, distinct from a validation failure and from an unauthenticated result.
 - [ ] The seed's provisional membership predicate from 02c is replaced by a grant lookup, and the board membership the prototype encoded in `board.members` is reproduced as grants so the same principals can do the same things.
 - [ ] The seeded principal from 02c receives the workspace-wide grant (spec L429, story 81–85): `read:board`, `create:board`, `admit:agent`, `revoke:agent`, `grant:permission` at workspace scope, of `kind: "human"`. A test asserts it still cannot post to a board it holds no board-scoped grant on.
@@ -24,3 +24,16 @@
 - [ ] The conformance suite's refusals are asserted through the client interface as well as through direct calls, so the same behaviour is proven at both entry points.
 
 **Leaves the build green:** yes. Every operation is now permission-checked server-side; the grant-administration rules are not yet in place, so the store-level `grant` operation is permissive by design and 07b closes it.
+
+## This ticket closes four open boxes, and should tick them as it goes
+
+Four criteria elsewhere in the set are open for one reason only: the thing they require is this ticket's
+to build. Whoever works 07a should tick each of them in the same change, rather than leaving them to be
+rediscovered as gaps. Each of the four now names this ticket on its own line, so a reader arriving at
+any of them knows it is scheduled rather than abandoned:
+
+- **06a:14** — `readPrincipal`'s handler checks `read:member` on the board it was given.
+- **06c:15** — a caller without `post:message` cannot trigger a simulation.
+- **06b:20** — the resolver yields a principal **and its permission set**, not just the principal.
+- **06b:22** — a permission refusal the client can tell apart from a validation failure and from an
+  unauthenticated result: the same refusal this ticket checks at the boundary, seen from the caller's side.
