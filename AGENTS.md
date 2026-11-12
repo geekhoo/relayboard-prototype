@@ -20,8 +20,8 @@ them.
 | `QA.md` | The recorded, reproducible verification pass for the prototype. |
 | `INTENT.md` | How the agent skills are authored, validated and consumed. |
 | `.scratch/relayboard-app/spec.md` | The port spec: what the app must become, and every decision behind it. |
-| `.scratch/relayboard-app/issues/` | The port tickets — **30**, in dependency order. **Work the frontier**: a ticket is startable when every ticket in its `Blocked by` line is done. `01` and `02a` are the only two that can start now. |
-| `.scratch/relayboard-app/reviews/` | The two reviews that shaped the ticket set, with line-numbered evidence. |
+| `.scratch/relayboard-app/issues/` | The tickets, in dependency order: the port batch, then the fix batch the implementation review produced. **Work the frontier**: a ticket is startable when every ticket in its `Blocked by` line is done. See `docs/agents/issue-tracker.md` for the current state rather than a count here. |
+| `.scratch/relayboard-app/reviews/` | The reviews: three that shaped the port ticket set, three from the implementation panel, the synthesis that deduplicates them, and the retro on the port's environment. |
 
 None of the workspace packaging is required to open the prototype:
 `index.html` still runs on its own.
@@ -40,7 +40,8 @@ npm run typecheck    # tsc --noEmit
 npm run check:styles # no colour literal outside the token block; no clipped frame
 npm test             # vitest: the unit, domain and contract seams
 npm run e2e          # playwright: the route seam, against the built server
-npm run check:boot   # the built server refuses to start without a usable SESSION_SECRET
+npm run check:boot   # the built server refuses to *serve* without a usable SESSION_SECRET
+                     # (the process listens; the first request fails, naming the variable)
 npm run check:bundle # no server-only string reaches a client asset
 
 # packages/relayboard-skills

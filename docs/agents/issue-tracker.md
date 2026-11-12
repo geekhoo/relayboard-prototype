@@ -12,22 +12,25 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 
 ## Current contents
 
-- `.scratch/relayboard-app/spec.md` — `/to-spec` output for porting the static
-  prototype into `apps/relayboard-web`. Status: `ready-for-agent`. Revision 8.
-- `.scratch/relayboard-app/issues/` — `/to-tickets` output, restructured after a
-  delivery review and a lead-dev review: **30 tickets**, each a green vertical
-  slice that fits one focused session. Twelve keep their original number; the
-  nine that were too large are now `02a–c`, `04a–c`, `06a–c`, `07a–b`, `08a–c`,
-  `10a–b`, `11a–c`, `13a–b`, `15a–c`. Every ticket is `ready-for-agent` by
-  construction.
-- `.scratch/relayboard-app/reviews/` — the two reviews that shaped the set, plus
-  the sub-issue proposals they came from. Read them when a ticket's reasoning is
-  unclear; they cite line numbers.
+Counts are deliberately absent: a hard number in a steering file is stale the day
+the frontier moves. List the directory instead.
+
+| Artefact | What it is | Status |
+| --- | --- | --- |
+| `spec.md` | `/to-spec` output: what the app must become, and the decisions behind it | Revision 8, closed out |
+| `issues/01`–`15c` | the port tickets — the build that reached parity | Complete |
+| `parity-checklist.md` | `QA.md`'s 64 prototype assertions, frozen and rewritten as app observables | Frozen at `cb0564a`; do not edit to fit a suite |
+| `issues/16`–`31` | the fix tickets, from the implementation review | `16`–`30` `ready-for-agent`; `31` `wontfix` |
+| `reviews/lead-dev-review.md`, `pm-review.md`, `sequence-plan.md` | the reviews that shaped the port ticket set | Historical; cite when a port ticket's reasoning is unclear |
+| `reviews/implementation-*.md` (three) | the implementation panel: security, architecture, product/UX, with line-numbered evidence | Current evidence; `implementation-review-synthesis.md` is the deduplicated spine and the fix order |
+| `reviews/retro-environment.md` | the retro on the port: which findings a check could have caught | Current; it is what the fix batch and the environment checks came from |
+
+Start from `implementation-review-synthesis.md` rather than the three panel reports:
+they overlap, and the synthesis names which findings are the same defect.
 
 Work the frontier: a ticket is startable when every ticket named in its
-`**Blocked by:**` line is complete. `01` and `02a` have no blockers and can start
-immediately, in parallel — but they share `vite.config.ts` and `package.json`, so
-take `02a` second if both are claimed the same day.
+`**Blocked by:**` line is complete. Read the ticket file's own `Blocked by:` line
+rather than trusting a summary of the graph.
 
 ## When a skill says "publish to the issue tracker"
 
